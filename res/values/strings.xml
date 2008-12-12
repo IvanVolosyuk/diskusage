@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DiskUsage</string>
+<string name="app_description">Utility to examine SDcard content and cleanup some space there.</string>
+<string name="scaning_directories">Scanning directories...</string>
+<string name="button_show">Show</string>
+<string name="button_delete">Delete</string>
+<string name="button_cancel">Cancel</string>
+<string name="button_background">Background</string>
+</resources>
