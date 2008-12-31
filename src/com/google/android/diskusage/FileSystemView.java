@@ -87,6 +87,7 @@ class FileSystemView extends View {
     extensionToMime.put("3gp", "video/3gp");
     extensionToMime.put("txt", "text/plain");
     extensionToMime.put("html", "text/html");
+    extensionToMime.put("apk", "application/vnd.android.package-archive");
   }
 
   public FileSystemView(DiskUsage context, FileSystemEntry root) {
