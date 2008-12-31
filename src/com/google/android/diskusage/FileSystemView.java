@@ -547,8 +547,8 @@ class FileSystemView extends View {
     if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
       final FileSystemEntry selected = cursor.position;
       // FIXME: hack to disable removal of /sdcard
-      if (selected == masterRoot.children[0]) return true   ;
-      askForDeletion(selected);
+      if (selected == masterRoot.children[0]) return true;
+      view(selected);
     }
 
     /*if ((keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ENTER)) {
