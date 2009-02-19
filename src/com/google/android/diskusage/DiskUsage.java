@@ -13,19 +13,24 @@ import android.view.Menu;
 import java.io.File;
 
 public class DiskUsage extends Activity {
-	private FileSystemView view;
+	private static FileSystemView view;
 	private ProgressDialog loading;
 	private Handler handler;
 	private static final String SDCARD_ROOT = "/sdcard";
+	private static FileSystemEntry root;
 	
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
         
-		Log.i("DiskUsage", "all placed!");
-		
-		handler = new Handler();
-		
+        if (root != null) {
+          final FileSystemEntry superRoot = new FileSystemEntry(new FileSystemEntry[] { root } );
+          view = new FileSystemView(DiskUsage.this, superRoot);
+          setContentView(view);
+          return;
+        }
+
+        handler = new Handler();
     	handler.post(new Runnable() {
     	  public void run() {
     	    final File sdcard = new File(SDCARD_ROOT);
@@ -38,8 +43,7 @@ public class DiskUsage extends Activity {
     	      @Override
             public void run() {
     	        try {
-    	          final FileSystemEntry root =
-    	            new FileSystemEntry(null, sdcard, 0, 20);
+    	           root = new FileSystemEntry(null, sdcard, 0, 20);
     	          final FileSystemEntry superRoot = new FileSystemEntry(new FileSystemEntry[] { root } );
     	          view = new FileSystemView(DiskUsage.this, superRoot);
 
@@ -95,5 +99,13 @@ public class DiskUsage extends Activity {
           DiskUsage.this.finish();
         }
       }).create().show();
+    }
+    final protected void onSaveInstanceState(Bundle outState) {
+      if (view != null)
+        view.saveState(outState);
+    }
+    final protected void onRestoreInstanceState(Bundle inState) {
+      if (view != null)
+        view.restoreState(inState); 
     }
 }

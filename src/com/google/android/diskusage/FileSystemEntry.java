@@ -4,6 +4,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.util.Log;
+
 import java.io.File;
 import java.util.Comparator;
 
@@ -478,5 +480,27 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
       parent0.sizeString = null;
       parent0 = parent0.parent;
     }
+  }
+
+  /**
+   * Walks through the path and finds the specified entry, null otherwise.
+   */
+  public FileSystemEntry getEntryByName(String path) {
+    String[] pathElements = path.split("/");
+    FileSystemEntry entry = this;
+    
+    outer:
+      for (int i = 1; i < pathElements.length; i++) {
+        String name = pathElements[i];
+        FileSystemEntry[] children = entry.children;
+        for (int j = 0; j < children.length; j++) {
+          entry = children[j];
+          if (name.equals(entry.name)) {
+            continue outer;
+          }
+        }
+        return null;
+      }
+    return entry;
   }
 }

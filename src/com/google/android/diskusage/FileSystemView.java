@@ -7,12 +7,14 @@ import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.net.Uri;
+import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -100,7 +102,7 @@ class FileSystemView extends View {
     this.setFocusable(true);
     this.setFocusableInTouchMode(true);
     targetViewBottom = root.size;
-
+    cursor = new Cursor(masterRoot);
   }
   
   private Bitmap cacheBitmap;
@@ -443,24 +445,50 @@ class FileSystemView extends View {
     String path = entry.path();
     Intent intent = new Intent(Intent.ACTION_VIEW);
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    Uri uri = Uri.fromFile(new File(entry.path()));
-    String[] types = { "audio/", "video/", "text/" };
+    File file = new File(entry.path());
+    Uri uri = Uri.fromFile(file);
+    
+    if (file.isDirectory()) {
+      intent = new Intent("org.openintents.action.VIEW_DIRECTORY");
+      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      intent.setData(uri);
+      
+      try {
+        context.startActivity(intent);
+        return;
+      } catch(ActivityNotFoundException e) {
+      }
+
+      intent = new Intent("org.openintents.action.PICK_DIRECTORY");
+      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      intent.setData(uri);
+      intent.putExtra("org.openintents.extra.TITLE", "OI File Manager");
+      intent.putExtra("org.openintents.extra.BUTTON_TEXT", "Return to DiskUsage");
+      try {
+        context.startActivity(intent);
+        return;
+      } catch(ActivityNotFoundException e) {
+      }
+      Toast.makeText(context, "Install \"OI File manager\" to view directories",
+          Toast.LENGTH_SHORT).show();
+      return;
+    }
+
     int dot = path.lastIndexOf(".");
     int slash = path.lastIndexOf("/");
     if (dot > slash) {
       String extension = path.substring(dot + 1).toLowerCase(); 
-      for (int i = 0; i < types.length; i++) {
-        String mime = extensionToMime.get(extension);
-        if (mime != null) {
-          try {
-            intent.setDataAndType(uri, mime);
-            context.startActivity(intent);
-            return;
-          } catch (ActivityNotFoundException e) {
-          }
+      String mime = extensionToMime.get(extension);
+      if (mime != null) {
+        try {
+          intent.setDataAndType(uri, mime);
+          context.startActivity(intent);
+          return;
+        } catch (ActivityNotFoundException e) {
         }
       }
     }
+    
     Toast.makeText(context, "No viewer found", Toast.LENGTH_SHORT).show();
   }
   
@@ -563,10 +591,26 @@ class FileSystemView extends View {
   @Override
   protected final void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
-    cursor = new Cursor(masterRoot);
     screenHeight = getHeight();
     screenWidth = getWidth();
     FileSystemEntry.elementWidth = screenWidth / maxLevels;
     titleNeedUpdate = true;
+  }
+
+  public void restoreState(Bundle inState) {
+    FileSystemEntry entry = masterRoot.getEntryByName(
+        inState.getString("cursor"));
+    if (entry == null) return;
+    cursor.set(this, entry);
+    targetViewDepth = prevViewDepth = viewDepth = inState.getFloat("viewDepth");
+    targetViewTop = prevViewTop = viewTop = inState.getLong("viewTop");
+    targetViewBottom = prevViewBottom = viewBottom = inState.getLong("viewBottom");
+  }
+
+  public void saveState(Bundle outState) {
+    outState.putString("cursor", cursor.position.path());
+    outState.putFloat("viewDepth", viewDepth);
+    outState.putLong("viewTop", viewTop);
+    outState.putLong("viewBottom", viewBottom);
   }
 }
