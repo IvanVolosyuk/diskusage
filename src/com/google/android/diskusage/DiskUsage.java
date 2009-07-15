@@ -60,7 +60,7 @@ public class DiskUsage extends Activity {
 
     	        } catch (final OutOfMemoryError e) {
     	          view = null;
-    	          Log.d("DiskUsage", "DiskUsage got OutOfMemory!");
+    	          Log.d("DiskUsage", "out of memory!");
     	          handler.post(new Runnable() {
     	            public void run() {
     	              loading.dismiss();
@@ -83,7 +83,7 @@ public class DiskUsage extends Activity {
     
     private void handleOutOfMemory() {
       new AlertDialog.Builder(this)
-      .setTitle("Out of Memory!")
+      .setTitle(getString(R.string.out_of_memory))
       .setOnCancelListener(new OnCancelListener() {
         public void onCancel(DialogInterface dialog) {
           DiskUsage.this.finish();
@@ -93,7 +93,7 @@ public class DiskUsage extends Activity {
     
     private void handleEmptySDCard() {
       new AlertDialog.Builder(this)
-      .setTitle("Empty or missing sdcard")
+      .setTitle(getString(R.string.empty_or_missing_sdcard))
       .setOnCancelListener(new OnCancelListener() {
         public void onCancel(DialogInterface dialog) {
           DiskUsage.this.finish();

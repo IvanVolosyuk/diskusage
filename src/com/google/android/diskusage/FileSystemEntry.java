@@ -1,5 +1,6 @@
 package com.google.android.diskusage;
 
+import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -16,6 +17,14 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
   private static final Paint fill_bg = new Paint();
   private static final float ascent;
   private static final float descent;
+  private static String n_bytes;
+  private static String n_kilobytes; 
+  private static String n_megabytes; 
+  private static String n_megabytes10; 
+  private static String n_megabytes100;
+  private static String dir_name_size_num_dirs;
+  private static String dir_empty;
+  private static String dir_name_size;
   
   /**
    * Font size. Also accessed from FileSystemView.
@@ -338,11 +347,11 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
   
   private static String calcSizeString(long size) {
     float sz = size;
-    if (sz < 1024) return String.format("%4.0f bytes", sz);
-    if (sz < 1024 * 1024) return String.format("%4.0f KiB", sz / 1024);
-    if (sz < 1024 * 1024 * 10) return String.format("%5.2f MB", sz / (1024 * 1024));
-    if (sz < 1024 * 1024 * 200) return String.format("%5.1f MB", sz / (1024 * 1024));
-    return String.format("%4.0f MB", sz / (1024 * 1024));
+    if (sz < 1024) return String.format(n_bytes, sz);
+    if (sz < 1024 * 1024) return String.format(n_kilobytes, sz / 1024);
+    if (sz < 1024 * 1024 * 10) return String.format(n_megabytes, sz / (1024 * 1024));
+    if (sz < 1024 * 1024 * 200) return String.format(n_megabytes10, sz / (1024 * 1024));
+    return String.format(n_megabytes100, sz / (1024 * 1024));
   }
 
   @Override
@@ -352,11 +361,11 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
       sizeString0 = sizeString = calcSizeString(size);
     }
     if (children != null && children.length != 0)
-      return name + " (" + sizeString0 + ", " + children.length + " dirs)";
+      return String.format(dir_name_size_num_dirs, name, sizeString0, children.length);
     else if (size == 0) {
-      return name + " (empty)";
+      return String.format(dir_empty, name);
     } else {
-      return name + " (" + sizeString0 + ")";
+      return String.format(dir_name_size, name, sizeString0);
     }
   }
 
@@ -502,5 +511,17 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
         return null;
       }
     return entry;
+  }
+
+  static void setupStrings(Context context) {
+    if (n_bytes != null) return;
+    n_bytes = context.getString(R.string.n_bytes);
+    n_kilobytes = context.getString(R.string.n_kilobytes);
+    n_megabytes = context.getString(R.string.n_megabytes);
+    n_megabytes10 = context.getString(R.string.n_megabytes10);
+    n_megabytes100 = context.getString(R.string.n_megabytes100);
+    dir_name_size_num_dirs = context.getString(R.string.dir_name_size_num_dirs);
+    dir_empty = context.getString(R.string.dir_empty);
+    dir_name_size = context.getString(R.string.dir_name_size);
   }
 }

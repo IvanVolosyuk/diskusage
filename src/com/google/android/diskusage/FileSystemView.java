@@ -191,6 +191,7 @@ class FileSystemView extends View {
 
   @Override
   protected final void onDraw(final Canvas canvas) {
+    FileSystemEntry.setupStrings(context);
     try {
       boolean animation = false;
       long curr = System.currentTimeMillis();
@@ -221,13 +222,21 @@ class FileSystemView extends View {
       if (animation) {
         postInvalidateDelayed(20);
       } else if (titleNeedUpdate) {
-        context.setTitle(cursor.position.toString() + " - DiskUsage");
+        context.setTitle(format(R.string.title_for_path, cursor.position.toString()));
         titleNeedUpdate = false;
       }
 
     } catch (Throwable t) {
       Log.d("DiskUsage", "Got exception", t);
     }
+  }
+  
+  private String format(int id, Object... args) {
+    return context.getString(id, args);
+  }
+  
+  private String str(int id) {
+    return context.getString(id);
   }
 
   final void prepareMotion() {
@@ -421,7 +430,7 @@ class FileSystemView extends View {
     // FIXME: hack to disable removal of /sdcard
     if (menuForEntry == masterRoot.children[0]) return;
     
-    menu.add(context.getString(R.string.button_show))
+    menu.add(str(R.string.button_show))
       .setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
         String path = menuForEntry.path();
@@ -430,7 +439,7 @@ class FileSystemView extends View {
         return true;
       }
     });
-    menu.add(context.getString(R.string.button_delete))
+    menu.add(str(R.string.button_delete))
       .setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
         String path = menuForEntry.path();
@@ -462,14 +471,16 @@ class FileSystemView extends View {
       intent = new Intent("org.openintents.action.PICK_DIRECTORY");
       intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
       intent.setData(uri);
-      intent.putExtra("org.openintents.extra.TITLE", "OI File Manager");
-      intent.putExtra("org.openintents.extra.BUTTON_TEXT", "Return to DiskUsage");
+      intent.putExtra("org.openintents.extra.TITLE",
+          str(R.string.title_in_oi_file_manager));
+      intent.putExtra("org.openintents.extra.BUTTON_TEXT",
+          str(R.string.button_text_in_oi_file_manager));
       try {
         context.startActivity(intent);
         return;
       } catch(ActivityNotFoundException e) {
       }
-      Toast.makeText(context, "Install \"OI File manager\" to view directories",
+      Toast.makeText(context, str(R.string.install_oi_file_manager),
           Toast.LENGTH_SHORT).show();
       return;
     }
@@ -489,7 +500,8 @@ class FileSystemView extends View {
       }
     }
     
-    Toast.makeText(context, "No viewer found", Toast.LENGTH_SHORT).show();
+    Toast.makeText(context, str(R.string.no_viewer_found),
+        Toast.LENGTH_SHORT).show();
   }
   
   private void askForDeletion(final FileSystemEntry entry) {
@@ -497,15 +509,16 @@ class FileSystemView extends View {
     Log.d("DiskUsage", "Deletion requested for " + path);
     
     new AlertDialog.Builder(this.context)
-    .setTitle("Delete " + path +
-        (new File(path).isDirectory() ? " directory?" : " file?"))
-    .setPositiveButton(context.getString(R.string.button_delete),
+    .setTitle(new File(path).isDirectory()
+        ? format(R.string.ask_to_delete_directory, path)
+        : format(R.string.ask_to_delete_file, path))
+    .setPositiveButton(str(R.string.button_delete),
         new DialogInterface.OnClickListener() {
       public void onClick(DialogInterface dialog, int which) {
         BackgroundDelete.startDelete(FileSystemView.this, entry);
       }
     })
-    .setNegativeButton(context.getString(R.string.button_cancel),
+    .setNegativeButton(str(R.string.button_cancel),
         new DialogInterface.OnClickListener() {
       public void onClick(DialogInterface dialog, int whichButton) {
       }

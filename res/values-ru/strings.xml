@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Карта SD</string>
+<string name="app_description">Утилита для просмотра занятости SD и ее очистки.</string>
+<string name="scaning_directories">Сканирование папок...</string>
+<string name="button_show">Показать</string>
+<string name="button_delete">Удалить</string>
+<string name="button_cancel">Отмена</string>
+<string name="button_background">Скрыть прогресс</string>
+<string name="install_oi_file_manager">Установите &quot;OI File manager&quot; для просмотра папок</string>
+<string name="title_for_path">%s - Карта SD</string>
+<string name="title_in_oi_file_manager">OI File Manager</string>
+<string name="button_text_in_oi_file_manager">Назад в DiskUsage</string>
+<string name="no_viewer_found">Неизвестный формат</string>
+<string name="ask_to_delete_directory">Удалить %s папку?</string>
+<string name="ask_to_delete_file">Удалить %s файл?</string>
+<string name="out_of_memory">Недостаточно памяти!</string>
+<string name="empty_or_missing_sdcard">Карта памяти пуста или отсутствует</string>
+<string name="path_doesnt_exist">%s\nне найден</string>
+<string name="file_deleted">Файл удален</string>
+<string name="error_file_wasnt_deleted">Ошибка: файл не был удален</string>
+<string name="deleting_path">Deleting %s</string>
+<string name="deleted_n_directories_and_n_files">Удалено %d папок и %d файлов</string>
+<string name="deleted_n_directories_and_files_and_canceled">Удаление прервано: %d папок и %d файлов было удалено</string>
+<string name="deleted_n_directories_and_n_files_and_failed">Удаление завершено с ошибкой!: %d папок и %d файлов было удалено</string>
+<string name="n_bytes">%4.0f б</string>
+<string name="n_kilobytes">%4.0f кб</string>
+<string name="n_megabytes">%5.2f Мб</string>
+<string name="n_megabytes10">%5.1f Мб</string>
+<string name="n_megabytes100">%4.0f Мб</string>
+<string name="dir_name_size_num_dirs">%s (%s, %d папок)</string>
+<string name="dir_empty">%s (пуста)</string>
+<string name="dir_name_size">%s (%s)</string>
+</resources>

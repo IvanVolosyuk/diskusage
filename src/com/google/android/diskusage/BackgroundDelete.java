@@ -30,24 +30,27 @@ public class BackgroundDelete extends Thread {
     path = entry.path();
     file = new File(path);
     if (!file.exists()) {
-      Toast.makeText(view.context, path + "\ndoesn't exists", Toast.LENGTH_LONG).show();
+      Toast.makeText(view.context, format(R.string.path_doesnt_exist, path),
+          Toast.LENGTH_LONG).show();
       view.remove(entry);
       return;
     }
     
     if (file.isFile()) {
       if (file.delete()) {
-        Toast.makeText(view.context, "File deleted", Toast.LENGTH_SHORT).show();
+        Toast.makeText(view.context, str(R.string.file_deleted),
+            Toast.LENGTH_SHORT).show();
         view.remove(entry);
       } else {
-        Toast.makeText(view.context, "Error: file wasn't deleted", Toast.LENGTH_SHORT).show();
+        Toast.makeText(view.context, str(R.string.error_file_wasnt_deleted),
+            Toast.LENGTH_SHORT).show();
       }
       return;
     }
     view.remove(entry);
     
     dialog = new ProgressDialog(view.context);
-    dialog.setMessage("Deleting " + path);
+    dialog.setMessage(format(R.string.deleting_path, path));
     dialog.setIndeterminate(true);
     dialog.setButton(view.context.getString(R.string.button_background),
         new DialogInterface.OnClickListener() {
@@ -104,17 +107,17 @@ public class BackgroundDelete extends Thread {
 
     if (deletionStatus == DELETION_SUCCESS) {
       Toast.makeText(view.context,
-          String.format("Deleted %d directories and %d files",
+          format(R.string.deleted_n_directories_and_n_files,
               numDeletedDirectories, numDeletedFiles),
               Toast.LENGTH_LONG).show();
     } else if (deletionStatus == DELETION_CANCELED) {
       Toast.makeText(view.context,
-          String.format("Delete canceled: %d directories and %d files so far",
+          format(R.string.deleted_n_directories_and_files_and_canceled,
               numDeletedDirectories, numDeletedFiles),
               Toast.LENGTH_LONG).show();
     } else {
       Toast.makeText(view.context,
-          String.format("Delete failed!: %d directories and %d files was deleted",
+          format(R.string.deleted_n_directories_and_n_files_and_failed,
               numDeletedDirectories, numDeletedFiles),
               Toast.LENGTH_LONG).show();
     }
@@ -152,6 +155,13 @@ public class BackgroundDelete extends Thread {
     } else {
       return DELETION_FAILED;
     }
+  }
+
+  private String format(int id, Object... args) {
+    return view.context.getString(id, args);
+  }
+  private String str(int id) {
+    return view.context.getString(id);
   }
 }
 
