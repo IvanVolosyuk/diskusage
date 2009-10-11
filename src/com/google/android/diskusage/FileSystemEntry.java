@@ -34,8 +34,8 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
   private static final Paint cursor_fg = new Paint();
   private static final Paint fg = new Paint();
   private static final Paint fill_bg = new Paint();
-  private static final float ascent;
-  private static final float descent;
+  private static float ascent;
+  private static float descent;
   private static String n_bytes;
   private static String n_kilobytes; 
   private static String n_megabytes; 
@@ -48,7 +48,7 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
   /**
    * Font size. Also accessed from FileSystemView.
    */
-  static final float fontSize;
+  static float fontSize;
   
   /**
    * Width of one element. Setup from FileSystemView when geometry changes.
@@ -65,9 +65,6 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     fill_bg.setStyle(Paint.Style.FILL);
     cursor_fg.setColor(Color.YELLOW);
     cursor_fg.setStyle(Paint.Style.STROKE);
-    ascent = fg.ascent();
-    descent = fg.descent();
-    fontSize = descent - ascent;
   }
 
   // Object Fields:
@@ -542,5 +539,12 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     dir_name_size_num_dirs = context.getString(R.string.dir_name_size_num_dirs);
     dir_empty = context.getString(R.string.dir_empty);
     dir_name_size = context.getString(R.string.dir_name_size);
+    float textSize = context.getResources().getDisplayMetrics().scaledDensity
+                     * 12 + 0.5f;
+    if (textSize < 10) textSize = 10; 
+    fg.setTextSize(textSize);
+    ascent = fg.ascent();
+    descent = fg.descent();
+    fontSize = descent - ascent;
   }
 }
