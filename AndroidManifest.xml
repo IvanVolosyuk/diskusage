@@ -10,7 +10,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-    </application>
+    <activity android:name=".DeleteActivity"></activity>
+</application>
 <uses-sdk android:targetSdkVersion="4" android:minSdkVersion="1"></uses-sdk>
 <supports-screens android:smallScreens="true" android:anyDensity="true" android:normalScreens="true" android:resizeable="true" android:largeScreens="true"></supports-screens>
 </manifest> 

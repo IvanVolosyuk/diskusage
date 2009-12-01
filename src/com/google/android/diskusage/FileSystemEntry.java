@@ -27,7 +27,12 @@ import android.graphics.Rect;
 import android.util.Log;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
+import java.util.Vector;
 
 public class FileSystemEntry implements Comparator<FileSystemEntry> {
   private static final Paint bg = new Paint();
@@ -44,6 +49,23 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
   private static String dir_name_size_num_dirs;
   private static String dir_empty;
   private static String dir_name_size;
+  static FileSystemEntry deleteParent = null;
+  private static final Comparator<FileSystemEntry> alphaComparator =
+    new Comparator<FileSystemEntry>() {
+      public int compare(FileSystemEntry a, FileSystemEntry b) {
+        boolean ha = a.hasChildren();
+        boolean hb = b.hasChildren();
+        if (ha != hb) {
+          if (ha) return -1;
+          else return 1;
+        }
+        return a.relativePath(deleteParent).compareTo(b.relativePath(deleteParent));
+      }
+  };
+  
+  public boolean hasChildren() {
+    return children != null && children.length != 0;
+  }
   
   /**
    * Font size. Also accessed from FileSystemView.
@@ -89,8 +111,7 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
    * Constructor for root node.
    */
   public FileSystemEntry(FileSystemEntry[] children) {
-    this.children = new FileSystemEntry[children.length];
-    System.arraycopy(children, 0, this.children, 0, children.length);
+    this.children = children;
     for (int i = 0; i < children.length; i++) {
       size += children[i].size;
       children[i].parent = this;
@@ -370,8 +391,14 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     return String.format(n_megabytes100, sz / (1024 * 1024));
   }
 
-  @Override
   public final String toString() {
+    String res = toTitleString();
+    if (parent == deleteParent) return res;
+    else return parent.relativePath(deleteParent) + "/" + res;
+    
+  }
+  
+  public final String toTitleString() {
     String sizeString0 = this.sizeString;
     if (sizeString0 == null) {
       sizeString0 = sizeString = calcSizeString(size);
@@ -388,6 +415,11 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
   public final String path() {
     if (parent == null) return "";
     return parent.path() + "/" + name;
+  }
+  
+  public final String relativePath(FileSystemEntry root) {
+    if (parent == root) return name;
+    return parent.relativePath(root) + "/" + name;
   }
 
   /**
@@ -543,8 +575,20 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
                      * 12 + 0.5f;
     if (textSize < 10) textSize = 10; 
     fg.setTextSize(textSize);
+    fg.setFlags(fg.getFlags() | Paint.ANTI_ALIAS_FLAG);
     ascent = fg.ascent();
     descent = fg.descent();
     fontSize = descent - ascent;
+  }
+
+  public void getAllChildren(List<FileSystemEntry> out) {
+    FileSystemEntry[] sortedChildren = new FileSystemEntry[children.length];
+    System.arraycopy(children, 0, sortedChildren, 0, children.length);
+    Arrays.sort(sortedChildren, alphaComparator);
+    for (int i = 0; i < children.length; i++) {
+      FileSystemEntry child = children[i];
+      if (child.children != null) child.getAllChildren(out);
+      else out.add(child);
+    }
   }
 }

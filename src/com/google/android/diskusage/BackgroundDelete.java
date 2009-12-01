@@ -151,8 +151,6 @@ public class BackgroundDelete extends Thread {
     cancelDeletion = true;
   }
 
-
-  
   public final int deleteRecursively(File directory) {
     if (cancelDeletion) return DELETION_CANCELED;
     boolean isDirectory = directory.isDirectory();

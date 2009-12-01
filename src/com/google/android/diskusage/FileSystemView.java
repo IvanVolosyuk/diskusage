@@ -19,11 +19,13 @@
 
 package com.google.android.diskusage;
 
+import java.io.File;
+import java.util.HashMap;
+
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -41,9 +43,6 @@ import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.Toast;
-
-import java.io.File;
-import java.util.HashMap;
 
 class FileSystemView extends View {
   FileSystemEntry masterRoot;
@@ -63,6 +62,9 @@ class FileSystemView extends View {
   private float viewDepth;
   private long  viewTop;
   private long  viewBottom;
+  
+  private long displayTop;
+  private long displayBottom;
 
   private int screenWidth;
   private int screenHeight;
@@ -200,7 +202,7 @@ class FileSystemView extends View {
       // Log.d("DiskUsage", "bounds: " + bounds);
       masterRoot.paint(canvas, bounds, cursor, viewTop, viewDepth, yscale, screenHeight);
     } else {
-      Rect bounds2 = new Rect(0, 0, screenWidth * 2, screenHeight * 2);
+      Rect bounds2 = new Rect(0, 0, screenWidth, screenHeight);
       masterRoot.paint(canvas, bounds2, cursor, viewTop, viewDepth, yscale, screenHeight);
     }
   }
@@ -226,19 +228,22 @@ class FileSystemView extends View {
       }
 
       Rect bounds = canvas.getClipBounds();
-      yscale = screenHeight / (float)(viewBottom - viewTop);
+      long dt = (viewBottom - viewTop) / 40;
+      displayTop = viewTop - dt;
+      displayBottom = viewBottom + dt;
+      yscale = screenHeight / (float)(displayBottom - displayTop);
       if (useCache && (touchMovement || animationDuration == 300)) {
         if (!checkCacheValid()) makeCacheBitmap();
         paintCached(canvas);
       } else {
         cacheBitmap = null;
-        paintSlow(canvas, viewTop, viewBottom, viewDepth, bounds, screenHeight);
+        paintSlow(canvas, displayTop, displayBottom, viewDepth, bounds, screenHeight);
       }
 
       if (animation) {
         postInvalidateDelayed(20);
       } else if (titleNeedUpdate) {
-        context.setTitle(format(R.string.title_for_path, cursor.position.toString()));
+        context.setTitle(format(R.string.title_for_path, cursor.position.toTitleString()));
         titleNeedUpdate = false;
       }
 
@@ -286,7 +291,7 @@ class FileSystemView extends View {
       touchY = newTouchY;
       touchDepth = (FileSystemEntry.elementWidth * viewDepth + touchX) /
       FileSystemEntry.elementWidth;
-      touchPoint = viewTop + (viewBottom - viewTop) * (long)touchY / screenHeight;
+      touchPoint = displayTop + (displayBottom - displayTop) * (long)touchY / screenHeight;
       touchEntry = masterRoot.findEntry((int)touchDepth + 1, touchPoint);
 
     } else if (action == MotionEvent.ACTION_MOVE) {
@@ -326,9 +331,7 @@ class FileSystemView extends View {
       if (!touchMovement) {
         // FIXME: broken
         if (masterRoot.depth(touchEntry) > (int)touchDepth + 1) return true;
-        cursor.set(this, touchEntry);
-        zoomCursor();
-        zoomOutCursor();
+        touchSelect(touchEntry);
         return true;
       }
       touchMovement = false;
@@ -354,6 +357,62 @@ class FileSystemView extends View {
     }
     return true;
   }
+  
+  private boolean fullZoom;
+  
+  
+  /*
+   * TODO:
+   * Check translations
+   * Make zoomin to scroll more
+   * Add Message to the screen in DeleteActivity
+   * Check that DeleteActivity has right title
+   * multitouch on eclair
+   * Change colors for a new look
+   */
+  private void touchSelect(FileSystemEntry entry) {
+    FileSystemEntry prevCursor = cursor.position;
+    int prevDepth = cursor.depth;
+    cursor.set(this, entry);
+    int currDepth = cursor.depth;
+    prepareMotion();
+    zoomCursor();
+    zoomOutCursor();
+    boolean has_children = entry.children != null && entry.children.length != 0; 
+    if (!has_children) {
+      fullZoom = false;
+      return;
+    } else if (prevCursor == entry) {
+      fullZoom = !fullZoom;
+    } else if (targetViewBottom == prevViewBottom
+        && targetViewTop == prevViewTop) {
+      fullZoom = true;
+    } else if (currDepth < prevDepth) {
+      fullZoom = true;
+    } else if (currDepth > prevDepth) {
+      fullZoom = false;
+    } else {
+      // pass
+    }
+
+    Log.d("diskusage", "viewDepth = " + viewDepth + " cursor.depth = " + cursor.depth);
+    if (cursor.depth == viewDepth && viewDepth > 0)
+      targetViewDepth = viewDepth - 1;
+    else if ((cursor.depth == viewDepth + 3) && has_children)
+      targetViewDepth = viewDepth + 1;
+    
+    if (fullZoom) {
+      targetViewTop = cursor.top;
+      targetViewBottom = cursor.top + cursor.position.size;
+    }
+    if (targetViewBottom == prevViewBottom && targetViewTop == prevViewTop) {
+      fullZoom = false;
+      targetViewTop = cursor.top + 1;
+      targetViewBottom = cursor.top + cursor.position.size - 1;
+      zoomCursor();
+      zoomOutCursor();
+    }
+  }
 
   public final void zoomCursor() {
     if (cursor.position.size == 0) {
@@ -374,7 +433,7 @@ class FileSystemView extends View {
       if (targetViewTop > cursor.top) {
         //Log.d("DiskUsage", "moving down to fit view after zoom in");
         // 10% from top
-        long offset = cursor.top - (long)(targetViewTop * 0.9 + targetViewBottom * 0.1);
+        long offset = cursor.top - (long)(targetViewTop * 0.8 + targetViewBottom * 0.2);
         targetViewTop += offset;
         targetViewBottom += offset;
 
@@ -391,7 +450,7 @@ class FileSystemView extends View {
       prepareMotion();
 
       long offset = cursor.top + cursor.position.size 
-      - (long)(targetViewTop * 0.1 + targetViewBottom * 0.9);
+      - (long)(targetViewTop * 0.2 + targetViewBottom * 0.8);
       targetViewTop += offset;
       targetViewBottom += offset;
       if (targetViewBottom > masterRoot.size) {
@@ -524,22 +583,35 @@ class FileSystemView extends View {
     final String path = entry.path();
     Log.d("DiskUsage", "Deletion requested for " + path);
     
-    new AlertDialog.Builder(this.context)
-    .setTitle(new File(path).isDirectory()
-        ? format(R.string.ask_to_delete_directory, path)
-        : format(R.string.ask_to_delete_file, path))
-    .setPositiveButton(str(R.string.button_delete),
-        new DialogInterface.OnClickListener() {
-      public void onClick(DialogInterface dialog, int which) {
-        BackgroundDelete.startDelete(FileSystemView.this, entry);
-      }
-    })
-    .setNegativeButton(str(R.string.button_cancel),
-        new DialogInterface.OnClickListener() {
-      public void onClick(DialogInterface dialog, int whichButton) {
-      }
-    }).create().show();
+    if (entry.children == null || entry.children.length == 0) {
+      // Delete single file or directory
+      new AlertDialog.Builder(this.context)
+      .setTitle(new File(path).isDirectory()
+          ? format(R.string.ask_to_delete_directory, path)
+          : format(R.string.ask_to_delete_file, path))
+      .setPositiveButton(str(R.string.button_delete),
+          new DialogInterface.OnClickListener() {
+        public void onClick(DialogInterface dialog, int which) {
+          BackgroundDelete.startDelete(FileSystemView.this, entry);
+        }
+      })
+      .setNegativeButton(str(R.string.button_cancel),
+          new DialogInterface.OnClickListener() {
+        public void onClick(DialogInterface dialog, int whichButton) {
+        }
+      }).create().show();
+    } else {
+      Intent i = new Intent(context, DeleteActivity.class);
+      i.putExtra("path", path);
+      context.startActivityForResult(i, 0);
+    }
   }
+  
+  void continueDelete(String path) {
+    FileSystemEntry entry = masterRoot.getEntryByName(path);
+    BackgroundDelete.startDelete(this, entry);
+  }
+  
   
   public void remove(FileSystemEntry entry) {
     this.invalidate();
@@ -641,5 +713,9 @@ class FileSystemView extends View {
     outState.putFloat("viewDepth", viewDepth);
     outState.putLong("viewTop", viewTop);
     outState.putLong("viewBottom", viewBottom);
+  }
+
+  public void resetCursor() {
+    cursor.set(this, masterRoot.children[0]);
   }
 }
