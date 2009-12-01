@@ -11,11 +11,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="4"/>
-    <Button android:id="@+id/ok_button" android:text="Delete"
+    <Button android:id="@+id/ok_button" android:text="@string/button_delete"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"/>
-    <Button android:id="@+id/cancel_button" android:text="Cancel"
+    <Button android:id="@+id/cancel_button" android:text="@string/button_cancel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"/>
