@@ -364,11 +364,9 @@ class FileSystemView extends View {
   /*
    * TODO:
    * Check translations
-   * Make zoomin to scroll more
    * Add Message to the screen in DeleteActivity
    * Check that DeleteActivity has right title
    * multitouch on eclair
-   * Change colors for a new look
    */
   private void touchSelect(FileSystemEntry entry) {
     FileSystemEntry prevCursor = cursor.position;

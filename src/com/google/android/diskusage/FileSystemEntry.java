@@ -38,6 +38,7 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
   private static final Paint bg = new Paint();
   private static final Paint cursor_fg = new Paint();
   private static final Paint fg = new Paint();
+  private static final Paint fg2 = new Paint();
   private static final Paint fill_bg = new Paint();
   private static float ascent;
   private static float descent;
@@ -78,11 +79,15 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
   static int elementWidth;
   
   static {
-    bg.setColor(Color.BLACK);
+    bg.setColor(Color.parseColor("#060118"));
     bg.setStyle(Paint.Style.FILL);
-    bg.setAlpha(150);
+//    bg.setAlpha(255);
     fg.setColor(Color.WHITE);
     fg.setStyle(Paint.Style.STROKE);
+    fg.setFlags(fg.getFlags() | Paint.ANTI_ALIAS_FLAG);
+    fg2.setColor(Color.parseColor("#18C5E7"));
+    fg2.setStyle(Paint.Style.STROKE);
+    fg2.setFlags(fg.getFlags() | Paint.ANTI_ALIAS_FLAG);
     fill_bg.setColor(Color.WHITE);
     fill_bg.setStyle(Paint.Style.FILL);
     cursor_fg.setColor(Color.YELLOW);
@@ -323,10 +328,10 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
             if (sizeString0 == null) {
               c.sizeString = sizeString0 = calcSizeString(c.size);
             }
-            canvas.drawText(c.name,  xoffset + 2, pos1, fg);
-            canvas.drawText(sizeString0, xoffset + 2, pos2, fg);
+            canvas.drawText(c.name,  xoffset + 2, pos1, c.children == null ? fg2 : fg);
+            canvas.drawText(sizeString0, xoffset + 2, pos2, c.children == null ? fg2 : fg);
           } else if (bottom - top > fontSize0)
-            canvas.drawText(c.name, xoffset + 2, (top + bottom - ascent - descent) / 2, fg);
+            canvas.drawText(c.name, xoffset + 2, (top + bottom - ascent - descent) / 2, c.children == null ? fg2 : fg);
       }
 
       child_clipTop -= csize;
@@ -575,7 +580,7 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
                      * 12 + 0.5f;
     if (textSize < 10) textSize = 10; 
     fg.setTextSize(textSize);
-    fg.setFlags(fg.getFlags() | Paint.ANTI_ALIAS_FLAG);
+    fg2.setTextSize(textSize);
     ascent = fg.ascent();
     descent = fg.descent();
     fontSize = descent - ascent;
