@@ -20,6 +20,8 @@
 package com.google.android.diskusage;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.ReflectPermission;
 import java.util.HashMap;
 
 import android.app.AlertDialog;
@@ -275,9 +277,25 @@ class FileSystemView extends View {
     float cursory1 = cursory0 + cursor.position.size * yscale;
     invalidate((int)cursorx0, (int)cursory0, (int)cursorx1 + 1, (int)cursory1 + 1);
   }
+  
+  long prevMoveTime;
 
   @Override
   public final boolean onTouchEvent(MotionEvent ev) {
+    // FIXME: move the check outside of the event handling
+    /*try {
+      java.lang.reflect.Method method = ev.getClass().getMethod("getPointerCount");
+        Integer num = (Integer) method.invoke(ev);
+    } catch (SecurityException e) {
+      Log.e("diskusage", "security exception", e);
+    } catch (NoSuchMethodException e) {
+    } catch (IllegalArgumentException e) {
+      Log.e("diskusage", "exception", e);
+    } catch (IllegalAccessException e) {
+      Log.e("diskusage", "exception", e);
+    } catch (InvocationTargetException e) {
+      Log.e("diskusage", "exception", e);
+    }*/
     if (sdcardIsEmpty())
       return true;
 
@@ -300,6 +318,7 @@ class FileSystemView extends View {
       if (Math.abs(touchOffsetX) < 10 && Math.abs(touchOffsetY)< 10 && !touchMovement)
         return true;
       touchMovement = true;
+      prevMoveTime = ev.getEventTime();
       
       viewDepth -= touchOffsetX / FileSystemEntry.elementWidth;
       if (viewDepth < -0.4f) viewDepth = -0.4f;
@@ -335,6 +354,38 @@ class FileSystemView extends View {
         return true;
       }
       touchMovement = false;
+      
+      { // copy paste
+        long currTime = ev.getEventTime();
+        float multiplier = 50.f / (1 + currTime - prevMoveTime);
+        if (multiplier > 1000) {
+          throw new RuntimeException("cx");
+          //multiplier = 100;
+        }
+        
+        touchOffsetX = (newTouchX - touchX) * multiplier;
+        touchOffsetY = (newTouchY - touchY) * multiplier;
+        targetViewDepth -= touchOffsetX / FileSystemEntry.elementWidth;
+        if (targetViewDepth < -0.4f) targetViewDepth = -0.4f;
+
+        long offset = (long)(touchOffsetY / yscale);
+        long allowedOverflow = (long)(screenHeight / 10 / yscale);
+        targetViewTop -= offset;
+        targetViewBottom -= offset;
+
+        if (targetViewTop < -allowedOverflow) {
+          long oldTop = targetViewTop;
+          targetViewTop = -allowedOverflow;
+          targetViewBottom += targetViewTop - oldTop;
+        }
+
+        if (targetViewBottom > masterRoot.size + allowedOverflow) {
+          long oldBottom = targetViewBottom;
+          targetViewBottom = masterRoot.size + allowedOverflow;
+          targetViewTop += targetViewBottom - oldBottom;
+        }
+      }
+      
       if (animationStartTime != 0) return true;
       prepareMotion();
       animationDuration = 300;
@@ -359,11 +410,11 @@ class FileSystemView extends View {
   }
   
   private boolean fullZoom;
+  private boolean warnOnFileSelect;
   
   
   /*
    * TODO:
-   * Check translations
    * Add Message to the screen in DeleteActivity
    * Check that DeleteActivity has right title
    * multitouch on eclair
@@ -379,6 +430,14 @@ class FileSystemView extends View {
     boolean has_children = entry.children != null && entry.children.length != 0; 
     if (!has_children) {
       fullZoom = false;
+      if (targetViewTop == prevViewTop
+          && targetViewBottom == prevViewBottom) {
+        if (!warnOnFileSelect) {
+        Toast.makeText(context,
+            "Press menu to preview or delete", Toast.LENGTH_SHORT).show();
+        }
+        warnOnFileSelect = true;
+      }
       return;
     } else if (prevCursor == entry) {
       fullZoom = !fullZoom;
@@ -419,7 +478,7 @@ class FileSystemView extends View {
     }
     float yscale = screenHeight / (float)(targetViewBottom - targetViewTop);
 
-    if (cursor.position.size * yscale > FileSystemEntry.fontSize * 2) {
+    if (cursor.position.size * yscale > FileSystemEntry.fontSize * 2 + 2) {
       //Log.d("DiskUsage", "position large enough to contain label");
     } else {
       //Log.d("DiskUsage", "zoom in");
@@ -501,7 +560,10 @@ class FileSystemView extends View {
     
     menuForEntry = cursor.position;
     // FIXME: hack to disable removal of /sdcard
-    if (menuForEntry == masterRoot.children[0]) return;
+    if (menuForEntry == masterRoot.children[0]) {
+      Toast.makeText(context, "Select directory or file first", Toast.LENGTH_SHORT).show();
+      return;
+    }
     
     menu.add(str(R.string.button_show))
       .setOnMenuItemClickListener(new OnMenuItemClickListener() {
