@@ -21,6 +21,7 @@ package com.google.android.diskusage;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.ReflectPermission;
 import java.util.HashMap;
 
@@ -78,14 +79,7 @@ class FileSystemView extends View {
   private static long animationDuration = 900; 
   private static final int maxLevels = 4;
 
-  private float touchDepth;
-  private long touchPoint;
-
-  private FileSystemEntry touchEntry;
-  private float touchX, touchY;
-  private boolean touchMovement;
-  private float touchOffsetX;
-  private float touchOffsetY;
+  
   private final boolean useCache = false;
 
   private FileSystemEntry menuForEntry;
@@ -111,6 +105,228 @@ class FileSystemView extends View {
     extensionToMime.put("html", "text/html");
     extensionToMime.put("apk", "application/vnd.android.package-archive");
   }
+  
+  private boolean hasMultitouch;
+  private Method getPointerCount;
+  private Method getPointerId;
+  private Method getX;
+  private Method getY;
+  private Method findPointerIndex;
+  private Integer zero = new Integer(0);
+  private Integer one = new Integer(1);
+  
+  private boolean fullZoom;
+  private boolean warnOnFileSelect;
+  
+  private float touchDepth;
+  private long touchPoint;
+
+  private FileSystemEntry touchEntry;
+  private float touchX, touchY;
+  private boolean touchMovement;
+  private float speedX;
+  private float speedY;
+  
+  // Multitouch
+  private int pointerId;
+  private int pointerId2;
+  private long touchPoint2;
+  private boolean afterMultitouch;
+  
+  private boolean onMultiTouch(MotionEvent ev) {
+    try {
+      int action = ev.getAction();
+      Integer num = (Integer) getPointerCount.invoke(ev);
+      Log.d("diskusage", "num" + num + " action = " + Integer.toHexString(action));
+      if (action == 0x105 /* ACTION_POINTER_2_DOWN */ && num == 2) {
+        touchMovement = true;
+        Integer idx = (Integer) findPointerIndex.invoke(ev, pointerId);
+        pointerId2 = (Integer) getPointerId.invoke(ev, idx ^ 1);
+        float touchY2 = (Float) getY.invoke(ev, pointerId2);
+        touchPoint2 = displayTop + (displayBottom - displayTop) * (long)touchY2 / screenHeight;
+        return true;
+      }
+      
+      if ((action & 0x7) == 0x6 && num == 2) {
+        afterMultitouch = true;
+        return true;
+      }
+      if (action == MotionEvent.ACTION_MOVE && num >= 2) {
+        float y = (Float) getY.invoke(ev, pointerId);
+        float y2 = (Float) getY.invoke(ev, pointerId2);
+        long dp = Math.abs(touchPoint2 - touchPoint);
+        float dy = Math.abs(y2 - y);
+        long displayTop = touchPoint - (long)((y / dy) * dp);
+        long displayBottom = touchPoint + (long) (((screenHeight - y) / dy) * dp);
+        long dt = (displayBottom - displayTop) / 41;
+        viewTop = displayTop + dt;
+        viewBottom = displayBottom - dt;
+        
+        if (viewTop < 0) {
+          viewTop = 0;
+        }
+
+        if (viewBottom > masterRoot.size) {
+          viewBottom = masterRoot.size;
+        }
+        targetViewTop = viewTop;
+        targetViewBottom = viewBottom;
+        animationStartTime = 0;
+        postInvalidate();
+        return true;
+      }
+      return false;
+    } catch (IllegalArgumentException e) {
+      Log.e("diskusage", "multitouch", e);
+    } catch (IllegalAccessException e) {
+      Log.e("diskusage", "multitouch", e);
+    } catch (InvocationTargetException e) {
+      Log.e("diskusage", "multitouch", e);
+    }
+    hasMultitouch = false;
+    Log.d("diskusage", "multitouch disabled");
+    return false;
+  }
+
+  @Override
+  public final boolean onTouchEvent(MotionEvent ev) {
+    if (sdcardIsEmpty())
+      return true;
+    
+    if (hasMultitouch && onMultiTouch(ev))
+      return true;
+
+    float newTouchX = ev.getX();
+    float newTouchY = ev.getY();
+
+    int action = ev.getAction();
+
+    if (action == MotionEvent.ACTION_DOWN || (afterMultitouch && action == MotionEvent.ACTION_MOVE)) {
+      afterMultitouch = false;
+      touchX = newTouchX;
+      touchY = newTouchY;
+      touchDepth = (FileSystemEntry.elementWidth * viewDepth + touchX) /
+      FileSystemEntry.elementWidth;
+      touchPoint = displayTop + (displayBottom - displayTop) * (long)touchY / screenHeight;
+      touchEntry = masterRoot.findEntry((int)touchDepth + 1, touchPoint);
+      speedX = 0;
+      speedY = 0;
+      prevMoveTime = ev.getEventTime();
+    } else if (action == MotionEvent.ACTION_MOVE) {
+      float touchOffsetX = newTouchX - touchX;
+      float touchOffsetY = newTouchY - touchY;
+      long moveTime = ev.getEventTime();
+      speedX += touchOffsetX;
+      speedY += touchOffsetY;
+      long dt = moveTime - prevMoveTime; 
+      if (dt > 10) {
+        speedX *= 10.f / dt;
+        speedY *= 10.f / dt;
+        prevMoveTime = moveTime - 10;
+      }
+      
+      if (Math.abs(touchOffsetX) < 10 && Math.abs(touchOffsetY)< 10 && !touchMovement)
+        return true;
+      touchMovement = true;
+      
+      viewDepth -= touchOffsetX / FileSystemEntry.elementWidth;
+      if (viewDepth < -0.4f) viewDepth = -0.4f;
+      targetViewDepth = viewDepth;
+
+      long offset = (long)(touchOffsetY / yscale);
+      long allowedOverflow = (long)(screenHeight / 10 / yscale);
+      viewTop -= offset;
+      viewBottom -= offset;
+
+      if (viewTop < -allowedOverflow) {
+        long oldTop = viewTop;
+        viewTop = -allowedOverflow;
+        viewBottom += viewTop - oldTop;
+      }
+
+      if (viewBottom > masterRoot.size + allowedOverflow) {
+        long oldBottom = viewBottom;
+        viewBottom = masterRoot.size + allowedOverflow;
+        viewTop += viewBottom - oldBottom;
+      }
+      targetViewTop = viewTop;
+      targetViewBottom = viewBottom;
+      animationStartTime = 0;
+      touchX = newTouchX;
+      touchY = newTouchY;
+      postInvalidate();
+    } else if (action == MotionEvent.ACTION_UP) {
+      if (!touchMovement) {
+        // FIXME: broken
+        if (masterRoot.depth(touchEntry) > (int)touchDepth + 1) return true;
+        touchSelect(touchEntry);
+        return true;
+      }
+      touchMovement = false;
+      
+      { // copy paste
+        float touchOffsetX = speedX * 15;
+        float touchOffsetY = speedY * 15;
+        targetViewDepth -= touchOffsetX / FileSystemEntry.elementWidth;
+        if (targetViewDepth < -0.4f) targetViewDepth = -0.4f;
+
+        long offset = (long)(touchOffsetY / yscale);
+        long allowedOverflow = (long)(screenHeight / 10 / yscale);
+        targetViewTop -= offset;
+        targetViewBottom -= offset;
+
+        if (targetViewTop < -allowedOverflow) {
+          long oldTop = targetViewTop;
+          targetViewTop = -allowedOverflow;
+          targetViewBottom += targetViewTop - oldTop;
+        }
+
+        if (targetViewBottom > masterRoot.size + allowedOverflow) {
+          long oldBottom = targetViewBottom;
+          targetViewBottom = masterRoot.size + allowedOverflow;
+          targetViewTop += targetViewBottom - oldBottom;
+        }
+      }
+      
+      if (animationStartTime != 0) return true;
+      prepareMotion();
+      animationDuration = 300;
+      if (targetViewTop < 0) {
+        long oldTop = targetViewTop;
+        targetViewTop = 0;
+        targetViewBottom += targetViewTop - oldTop;
+      } else if (targetViewBottom > masterRoot.size) {
+        long oldBottom = targetViewBottom;
+        targetViewBottom = masterRoot.size;
+        targetViewTop += targetViewBottom - oldBottom;
+      }
+
+      if (viewDepth < 0) {
+        targetViewDepth = 0;
+      } else {
+        targetViewDepth = Math.round(targetViewDepth);
+      }
+      postInvalidate();
+    }
+    return true;
+  }
+  
+  private void setupMultitouch() {
+    Class<MotionEvent> me = MotionEvent.class;
+    try {
+      getPointerCount = me.getMethod("getPointerCount");
+      getPointerId = me.getMethod("getPointerId", int.class);
+      getX = me.getMethod("getX", int.class);
+      getY = me.getMethod("getY", int.class);
+      findPointerIndex = me.getMethod("findPointerIndex", int.class);
+      hasMultitouch = true;
+    } catch (SecurityException e) {
+    } catch (NoSuchMethodException e) {
+      Log.e("diskusage", "exception", e);
+    }
+    Log.d("diskusage",
+        "multitouch support " + (hasMultitouch ? "enabled" : "disabled"));
+  }
 
   public FileSystemView(DiskUsage context, FileSystemEntry root) {
     super(context);
@@ -123,6 +339,7 @@ class FileSystemView extends View {
     this.setFocusableInTouchMode(true);
     targetViewBottom = root.size;
     cursor = new Cursor(masterRoot);
+    setupMultitouch();
   }
   
   private Bitmap cacheBitmap;
@@ -280,144 +497,12 @@ class FileSystemView extends View {
   
   long prevMoveTime;
 
-  @Override
-  public final boolean onTouchEvent(MotionEvent ev) {
-    // FIXME: move the check outside of the event handling
-    /*try {
-      java.lang.reflect.Method method = ev.getClass().getMethod("getPointerCount");
-        Integer num = (Integer) method.invoke(ev);
-    } catch (SecurityException e) {
-      Log.e("diskusage", "security exception", e);
-    } catch (NoSuchMethodException e) {
-    } catch (IllegalArgumentException e) {
-      Log.e("diskusage", "exception", e);
-    } catch (IllegalAccessException e) {
-      Log.e("diskusage", "exception", e);
-    } catch (InvocationTargetException e) {
-      Log.e("diskusage", "exception", e);
-    }*/
-    if (sdcardIsEmpty())
-      return true;
-
-    float newTouchX = ev.getX();
-    float newTouchY = ev.getY();
-
-    int action = ev.getAction();
-
-    if (action == MotionEvent.ACTION_DOWN) {
-      touchX = newTouchX;
-      touchY = newTouchY;
-      touchDepth = (FileSystemEntry.elementWidth * viewDepth + touchX) /
-      FileSystemEntry.elementWidth;
-      touchPoint = displayTop + (displayBottom - displayTop) * (long)touchY / screenHeight;
-      touchEntry = masterRoot.findEntry((int)touchDepth + 1, touchPoint);
-
-    } else if (action == MotionEvent.ACTION_MOVE) {
-      touchOffsetX = newTouchX - touchX;
-      touchOffsetY = newTouchY - touchY;
-      if (Math.abs(touchOffsetX) < 10 && Math.abs(touchOffsetY)< 10 && !touchMovement)
-        return true;
-      touchMovement = true;
-      prevMoveTime = ev.getEventTime();
-      
-      viewDepth -= touchOffsetX / FileSystemEntry.elementWidth;
-      if (viewDepth < -0.4f) viewDepth = -0.4f;
-      targetViewDepth = viewDepth;
-
-      long offset = (long)(touchOffsetY / yscale);
-      long allowedOverflow = (long)(screenHeight / 10 / yscale);
-      viewTop -= offset;
-      viewBottom -= offset;
-
-      if (viewTop < -allowedOverflow) {
-        long oldTop = viewTop;
-        viewTop = -allowedOverflow;
-        viewBottom += viewTop - oldTop;
-      }
-
-      if (viewBottom > masterRoot.size + allowedOverflow) {
-        long oldBottom = viewBottom;
-        viewBottom = masterRoot.size + allowedOverflow;
-        viewTop += viewBottom - oldBottom;
-      }
-      targetViewTop = viewTop;
-      targetViewBottom = viewBottom;
-      animationStartTime = 0;
-      touchX = newTouchX;
-      touchY = newTouchY;
-      postInvalidate();
-    } else if (action == MotionEvent.ACTION_UP) {
-      if (!touchMovement) {
-        // FIXME: broken
-        if (masterRoot.depth(touchEntry) > (int)touchDepth + 1) return true;
-        touchSelect(touchEntry);
-        return true;
-      }
-      touchMovement = false;
-      
-      { // copy paste
-        long currTime = ev.getEventTime();
-        float multiplier = 50.f / (1 + currTime - prevMoveTime);
-        if (multiplier > 1000) {
-          throw new RuntimeException("cx");
-          //multiplier = 100;
-        }
-        
-        touchOffsetX = (newTouchX - touchX) * multiplier;
-        touchOffsetY = (newTouchY - touchY) * multiplier;
-        targetViewDepth -= touchOffsetX / FileSystemEntry.elementWidth;
-        if (targetViewDepth < -0.4f) targetViewDepth = -0.4f;
-
-        long offset = (long)(touchOffsetY / yscale);
-        long allowedOverflow = (long)(screenHeight / 10 / yscale);
-        targetViewTop -= offset;
-        targetViewBottom -= offset;
-
-        if (targetViewTop < -allowedOverflow) {
-          long oldTop = targetViewTop;
-          targetViewTop = -allowedOverflow;
-          targetViewBottom += targetViewTop - oldTop;
-        }
-
-        if (targetViewBottom > masterRoot.size + allowedOverflow) {
-          long oldBottom = targetViewBottom;
-          targetViewBottom = masterRoot.size + allowedOverflow;
-          targetViewTop += targetViewBottom - oldBottom;
-        }
-      }
-      
-      if (animationStartTime != 0) return true;
-      prepareMotion();
-      animationDuration = 300;
-      if (targetViewTop < 0) {
-        long oldTop = targetViewTop;
-        targetViewTop = 0;
-        targetViewBottom += targetViewTop - oldTop;
-      } else if (targetViewBottom > masterRoot.size) {
-        long oldBottom = targetViewBottom;
-        targetViewBottom = masterRoot.size;
-        targetViewTop += targetViewBottom - oldBottom;
-      }
-
-      if (viewDepth < 0) {
-        targetViewDepth = 0;
-      } else {
-        targetViewDepth = Math.round(targetViewDepth);
-      }
-      postInvalidate();
-    }
-    return true;
-  }
-  
-  private boolean fullZoom;
-  private boolean warnOnFileSelect;
-  
-  
   /*
    * TODO:
    * Add Message to the screen in DeleteActivity
    * Check that DeleteActivity has right title
    * multitouch on eclair
+   * Fling works bad on eclair, use 10ms approximation for last movement
    */
   private void touchSelect(FileSystemEntry entry) {
     FileSystemEntry prevCursor = cursor.position;
