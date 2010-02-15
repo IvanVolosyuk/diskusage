@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.google.android.diskusage"
-    android:versionName="1.2" android:versionCode="1100">
+    android:versionName="1.2.2" android:versionCode="1202">
     <application android:icon="@drawable/icon" android:label="@string/app_name"
     android:description="@string/app_description">
         <activity android:name=".DiskUsage" android:label="@string/app_name">
@@ -12,6 +12,10 @@
         </activity>
     <activity android:name=".DeleteActivity"></activity>
 </application>
-<uses-sdk android:targetSdkVersion="4" android:minSdkVersion="1"></uses-sdk>
-<supports-screens android:smallScreens="true" android:anyDensity="true" android:normalScreens="true" android:resizeable="true" android:largeScreens="true"></supports-screens>
+<uses-sdk android:minSdkVersion="1" android:targetSdkVersion="5"></uses-sdk>
+<supports-screens android:smallScreens="true"
+                  android:anyDensity="true"
+                  android:normalScreens="true"
+                  android:resizeable="true"
+                  android:largeScreens="true"/>
 </manifest> 

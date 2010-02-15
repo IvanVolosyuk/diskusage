@@ -137,30 +137,39 @@ class FileSystemView extends View {
     try {
       int action = ev.getAction();
       Integer num = (Integer) getPointerCount.invoke(ev);
-      Log.d("diskusage", "num" + num + " action = " + Integer.toHexString(action));
-      if (action == 0x105 /* ACTION_POINTER_2_DOWN */ && num == 2) {
-        touchMovement = true;
-        Integer idx = (Integer) findPointerIndex.invoke(ev, pointerId);
-        pointerId2 = (Integer) getPointerId.invoke(ev, idx ^ 1);
-        float touchY2 = (Float) getY.invoke(ev, pointerId2);
-        touchPoint2 = displayTop + (displayBottom - displayTop) * (long)touchY2 / screenHeight;
-        return true;
+      if (num == 1) {
+        return false;
       }
       
-      if ((action & 0x7) == 0x6 && num == 2) {
-        afterMultitouch = true;
-        return true;
-      }
       if (action == MotionEvent.ACTION_MOVE && num >= 2) {
+        if (afterMultitouch) {
+          afterMultitouch = false;
+          touchMovement = true;
+          pointerId = (Integer) getPointerId.invoke(ev, 0);
+          pointerId2 = (Integer) getPointerId.invoke(ev, 1);
+          Log.d("diskusage", "pointerId = " + pointerId + " "  + pointerId2);
+          float touchY = (Float) getY.invoke(ev, pointerId);
+          float touchY2 = (Float) getY.invoke(ev, pointerId2);
+          Log.d("diskusage", "touchY = " + touchY + " "  + touchY2);
+          touchPoint = displayTop + (displayBottom - displayTop) * (long)touchY / screenHeight;
+          touchPoint2 = displayTop + (displayBottom - displayTop) * (long)touchY2 / screenHeight;
+          Log.d("diskusage", "touchPoints = " + touchPoint + " "  + touchPoint2);
+          return true;
+        }
         float y = (Float) getY.invoke(ev, pointerId);
         float y2 = (Float) getY.invoke(ev, pointerId2);
         long dp = Math.abs(touchPoint2 - touchPoint);
         float dy = Math.abs(y2 - y);
+        if (dy < 2) dy = 2;
         long displayTop = touchPoint - (long)((y / dy) * dp);
         long displayBottom = touchPoint + (long) (((screenHeight - y) / dy) * dp);
         long dt = (displayBottom - displayTop) / 41;
+        if (dt < 2) {
+          displayBottom += 41 * 2; 
+        }
         viewTop = displayTop + dt;
         viewBottom = displayBottom - dt;
+        Log.d("diskusage", "viewTop = " + viewTop + " viewBottom = " + viewBottom + " dy = " + dy + " dt = " + dt + " y = " + y + " y2 " + y2);
         
         if (viewTop < 0) {
           viewTop = 0;
@@ -174,6 +183,8 @@ class FileSystemView extends View {
         animationStartTime = 0;
         postInvalidate();
         return true;
+      } else {
+        afterMultitouch = true;
       }
       return false;
     } catch (IllegalArgumentException e) {
@@ -763,21 +774,25 @@ class FileSystemView extends View {
     cursor.set(this, entry);
     cursor.up(this);
     cursor.left(this);
-    entry.remove();
+    fadeAwayEntry(entry);
     if (cursor.position == entry) {
       cursor.position = masterRoot;
     }
     cursor.refresh(this);
-    zoomCursor();
-    zoomOutCursor();
+    // zoomCursor();
+    // zoomOutCursor();
+  }
+  
+  public void fadeAwayEntry(FileSystemEntry entry) {
+    entry.remove();
   }
 
   public void restore(FileSystemEntry entry) {
-    if (cursor.position == masterRoot)
-      cursor.position = entry;
-    cursor.refresh(this);
-    zoomCursor();
-    zoomOutCursor();
+    // if (cursor.position == masterRoot)
+    //   cursor.position = entry;
+    // cursor.refresh(this);
+    // zoomCursor();
+    // zoomOutCursor();
   }
   
   public boolean sdcardIsEmpty() {
@@ -839,6 +854,7 @@ class FileSystemView extends View {
     super.onLayout(changed, left, top, right, bottom);
     screenHeight = getHeight();
     screenWidth = getWidth();
+    Log.d("diskusage", "screen = " + screenWidth + "x" + screenHeight);
     FileSystemEntry.elementWidth = screenWidth / maxLevels;
     titleNeedUpdate = true;
   }
