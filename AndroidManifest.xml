@@ -3,7 +3,7 @@
     package="com.google.android.diskusage"
     android:versionName="1.2.2" android:versionCode="1202">
     <application android:icon="@drawable/icon" android:label="@string/app_name"
-    android:description="@string/app_description">
+    android:description="@string/app_description" android:debuggable="true">
         <activity android:name=".DiskUsage" android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -18,4 +18,5 @@
                   android:normalScreens="true"
                   android:resizeable="true"
                   android:largeScreens="true"/>
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>
 </manifest> 

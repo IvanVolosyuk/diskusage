@@ -49,6 +49,6 @@ public class DeleteActivity extends Activity {
           }
         });
       }
-    });
+    }, false);
   }
 }

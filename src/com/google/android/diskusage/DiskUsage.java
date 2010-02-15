@@ -41,8 +41,12 @@ public class DiskUsage extends Activity {
   private static ProgressDialog loading;
   
   static void LoadFiles(final Activity activity,
-      final AfterLoad runAfterLoad) {
+      final AfterLoad runAfterLoad, boolean force) {
     boolean scanRunning = false;
+    
+    if (force) {
+      root = null;
+    }
 
     if (root != null) {
       runAfterLoad.run(root);
@@ -109,7 +113,7 @@ public class DiskUsage extends Activity {
         setContentView(view);
         view.requestFocus();
       }
-    });
+    }, false);
   }
   
   @Override

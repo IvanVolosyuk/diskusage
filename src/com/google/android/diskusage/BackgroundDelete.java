@@ -43,7 +43,7 @@ public class BackgroundDelete extends Thread {
   private int numDeletedDirectories = 0;
   private int numDeletedFiles = 0;
   
-  private BackgroundDelete(FileSystemView view, FileSystemEntry entry) {
+  private BackgroundDelete(final FileSystemView view, final FileSystemEntry entry) {
     this.view = view;
     this.entry = entry;
     path = entry.path();
@@ -66,8 +66,6 @@ public class BackgroundDelete extends Thread {
       }
       return;
     }
-    view.remove(entry);
-    
     dialog = new ProgressDialog(view.context);
     dialog.setMessage(format(R.string.deleting_path, path));
     dialog.setIndeterminate(true);
@@ -100,6 +98,7 @@ public class BackgroundDelete extends Thread {
     view.post(new Runnable() {
       public void run() {
         if (dialog != null) dialog.dismiss();
+        view.remove(entry);
         if (deletionStatus != DELETION_SUCCESS) {
           restore();
           view.invalidate();

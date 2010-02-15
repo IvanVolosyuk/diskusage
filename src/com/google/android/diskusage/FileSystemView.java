@@ -25,6 +25,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ReflectPermission;
 import java.util.HashMap;
 
+import com.google.android.diskusage.DiskUsage.AfterLoad;
+
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
@@ -77,6 +79,7 @@ class FileSystemView extends View {
   private long animationStartTime;
   private Interpolator interpolator = new DecelerateInterpolator();
   private static long animationDuration = 900; 
+  private static long deletionAnimationDuration = 900; 
   private static final int maxLevels = 4;
 
   
@@ -440,6 +443,7 @@ class FileSystemView extends View {
   @Override
   protected final void onDraw(final Canvas canvas) {
     FileSystemEntry.setupStrings(context);
+    fadeAwayEntry();
     try {
       boolean animation = false;
       long curr = System.currentTimeMillis();
@@ -652,33 +656,54 @@ class FileSystemView extends View {
   public final void onPrepareOptionsMenu(Menu menu) {
     //Log.d("DiskUsage", "onCreateContextMenu");
     menu.clear();
-    if (sdcardIsEmpty()) return;
-    
-    menuForEntry = cursor.position;
-    // FIXME: hack to disable removal of /sdcard
-    if (menuForEntry == masterRoot.children[0]) {
-      Toast.makeText(context, "Select directory or file first", Toast.LENGTH_SHORT).show();
-      return;
+    boolean showFileMenu = false;
+
+    if (!sdcardIsEmpty()) {
+      menuForEntry = cursor.position;
+      // FIXME: hack to disable removal of /sdcard
+      if (menuForEntry == masterRoot.children[0]) {
+        Toast.makeText(context, "Select directory or file first", Toast.LENGTH_SHORT).show();
+      } else {
+        showFileMenu = true;
+      }
     }
-    
-    menu.add(str(R.string.button_show))
+
+    if (showFileMenu) {
+      menu.add(str(R.string.button_show))
       .setOnMenuItemClickListener(new OnMenuItemClickListener() {
+        public boolean onMenuItemClick(MenuItem item) {
+          String path = menuForEntry.path();
+          Log.d("DiskUsage", "show " + path);
+          FileSystemView.this.view(menuForEntry);
+          return true;
+        }
+      });
+    }
+
+    menu.add("Rescan")
+    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
-        String path = menuForEntry.path();
-        Log.d("DiskUsage", "show " + path);
-        FileSystemView.this.view(menuForEntry);
+        DiskUsage.LoadFiles(context, new AfterLoad() {
+          public void run(FileSystemEntry root) {
+            masterRoot = root;
+            targetViewBottom = root.size;
+            cursor = new Cursor(masterRoot);
+          }
+        }, true);
         return true;
       }
     });
-    menu.add(str(R.string.button_delete))
+    if (showFileMenu) {
+      menu.add(str(R.string.button_delete))
       .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        String path = menuForEntry.path();
-        Log.d("DiskUsage", "ask for deletion of " + path);
-        FileSystemView.this.askForDeletion(menuForEntry);
-        return true;
-      }
-    });
+        public boolean onMenuItemClick(MenuItem item) {
+          String path = menuForEntry.path();
+          Log.d("DiskUsage", "ask for deletion of " + path);
+          FileSystemView.this.askForDeletion(menuForEntry);
+          return true;
+        }
+      });
+    }
   }
   
   private void view(FileSystemEntry entry) {
@@ -689,6 +714,16 @@ class FileSystemView extends View {
     Uri uri = Uri.fromFile(file);
     
     if (file.isDirectory()) {
+      intent = new Intent(Intent.ACTION_VIEW);
+      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      intent.setData(uri);
+      
+      try {
+        context.startActivity(intent);
+        return;
+      } catch(ActivityNotFoundException e) {
+      }
+
       intent = new Intent("org.openintents.action.VIEW_DIRECTORY");
       intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
       intent.setData(uri);
@@ -770,11 +805,11 @@ class FileSystemView extends View {
   
   
   public void remove(FileSystemEntry entry) {
-    this.invalidate();
+    this.postInvalidate();
     cursor.set(this, entry);
     cursor.up(this);
     cursor.left(this);
-    fadeAwayEntry(entry);
+    fadeAwayEntryStart(entry);
     if (cursor.position == entry) {
       cursor.position = masterRoot;
     }
@@ -783,11 +818,74 @@ class FileSystemView extends View {
     // zoomOutCursor();
   }
   
-  public void fadeAwayEntry(FileSystemEntry entry) {
-    entry.remove();
+  private FileSystemEntry deletingEntry = null;
+  private long deletingAnimationStartTime = 0;
+  private long deletingInitialSize;
+  
+  public void fadeAwayEntryStart(FileSystemEntry entry) {
+    if (deletingEntry != null) {
+      deletingEntry.remove();
+    }
+    deletingAnimationStartTime = 0;
+    deletingEntry = entry;
+    deletingInitialSize = entry.size;
   }
-
+  
+  public void fadeAwayEntry() {
+    FileSystemEntry entry = deletingEntry;
+    if (entry == null) return;
+    Log.d("diskusage", "deletion in progress");
+    
+    if (deletingAnimationStartTime == 0) {
+      deletingAnimationStartTime = System.currentTimeMillis();
+    }
+    long dt = System.currentTimeMillis() - deletingAnimationStartTime;
+    Log.d("diskusage", "dt = + " + dt);
+    if (dt > deletionAnimationDuration) {
+      entry.remove();
+      deletingEntry = null;
+      return;
+    }
+    this.postInvalidateDelayed(20);
+    float f = interpolator.getInterpolation(dt / (float) animationDuration);
+    Log.d("diskusage", "f = + " + f);
+    long prevSize = entry.size;
+    long newSize = (long)((1 - f) * deletingInitialSize);
+    Log.d("diskusage", "newSize = + " + newSize);
+    long dSize = newSize - prevSize;
+    FileSystemEntry parent = entry.parent;
+    
+    while (parent != null) {
+      parent.size += dSize;
+      parent = parent.parent;
+    }
+    // Climp children
+    while (true) {
+      if (newSize == entry.size) return;
+      entry.size = newSize;
+      if (entry.children == null || entry.children.length == 0)
+        return;
+      FileSystemEntry[] children = entry.children;
+      long size = 0;
+      for (int i = 0; i < children.length; i++) {
+        size += children[i].size;
+        if (size < newSize) continue;
+        
+        size -= children[i].size;
+        newSize -= size;
+        FileSystemEntry[] newChildren = new FileSystemEntry[i + 1];
+        System.arraycopy(children, 0, newChildren, 0, i + 1);
+        entry.children = newChildren;
+        entry = children[i];
+      }
+    }
+  }
+  
   public void restore(FileSystemEntry entry) {
+    if (deletingEntry != null) {
+      deletingEntry.remove();
+      deletingEntry = null;
+    }
     // if (cursor.position == masterRoot)
     //   cursor.position = entry;
     // cursor.refresh(this);
