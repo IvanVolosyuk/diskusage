@@ -668,17 +668,16 @@ class FileSystemView extends View {
       }
     }
 
-    if (showFileMenu) {
-      menu.add(str(R.string.button_show))
-      .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-        public boolean onMenuItemClick(MenuItem item) {
-          String path = menuForEntry.path();
-          Log.d("DiskUsage", "show " + path);
-          FileSystemView.this.view(menuForEntry);
-          return true;
-        }
-      });
-    }
+    menu.add(str(R.string.button_show))
+    .setEnabled(showFileMenu)
+    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
+      public boolean onMenuItemClick(MenuItem item) {
+        String path = menuForEntry.path();
+        Log.d("DiskUsage", "show " + path);
+        FileSystemView.this.view(menuForEntry);
+        return true;
+      }
+    });
 
     menu.add("Rescan")
     .setOnMenuItemClickListener(new OnMenuItemClickListener() {
@@ -693,30 +692,31 @@ class FileSystemView extends View {
         return true;
       }
     });
-    if (showFileMenu) {
-      menu.add(str(R.string.button_delete))
-      .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-        public boolean onMenuItemClick(MenuItem item) {
-          String path = menuForEntry.path();
-          Log.d("DiskUsage", "ask for deletion of " + path);
-          FileSystemView.this.askForDeletion(menuForEntry);
-          return true;
-        }
-      });
-    }
+    menu.add(str(R.string.button_delete))
+    .setEnabled(showFileMenu)
+    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
+      public boolean onMenuItemClick(MenuItem item) {
+        String path = menuForEntry.path();
+        Log.d("DiskUsage", "ask for deletion of " + path);
+        FileSystemView.this.askForDeletion(menuForEntry);
+        return true;
+      }
+    });
   }
   
   private void view(FileSystemEntry entry) {
     String path = entry.path();
     Intent intent = new Intent(Intent.ACTION_VIEW);
+    intent.addCategory(Intent.CATEGORY_DEFAULT);
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
     File file = new File(entry.path());
     Uri uri = Uri.fromFile(file);
     
     if (file.isDirectory()) {
       intent = new Intent(Intent.ACTION_VIEW);
+      intent.addCategory(Intent.CATEGORY_DEFAULT);
       intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setData(uri);
+      intent.setDataAndType(uri, "vnd.android.cursor.item/com.metago.filemanager.dir");
       
       try {
         context.startActivity(intent);
@@ -756,16 +756,17 @@ class FileSystemView extends View {
     if (dot > slash) {
       String extension = path.substring(dot + 1).toLowerCase(); 
       String mime = extensionToMime.get(extension);
-      if (mime != null) {
-        try {
+      try {
+        if (mime != null) {
           intent.setDataAndType(uri, mime);
-          context.startActivity(intent);
-          return;
-        } catch (ActivityNotFoundException e) {
+        } else {
+          intent.setDataAndType(uri, "binary/unknown");
         }
+        context.startActivity(intent);
+        return;
+      } catch (ActivityNotFoundException e) {
       }
     }
-    
     Toast.makeText(context, str(R.string.no_viewer_found),
         Toast.LENGTH_SHORT).show();
   }
