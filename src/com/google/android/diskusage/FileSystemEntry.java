@@ -87,7 +87,7 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     fg.setFlags(fg.getFlags() | Paint.ANTI_ALIAS_FLAG);
     fg2.setColor(Color.parseColor("#18C5E7"));
     fg2.setStyle(Paint.Style.STROKE);
-    fg2.setFlags(fg.getFlags() | Paint.ANTI_ALIAS_FLAG);
+    fg2.setFlags(fg2.getFlags() | Paint.ANTI_ALIAS_FLAG);
     fill_bg.setColor(Color.WHITE);
     fill_bg.setStyle(Paint.Style.FILL);
     cursor_fg.setColor(Color.YELLOW);
@@ -328,10 +328,15 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
             if (sizeString0 == null) {
               c.sizeString = sizeString0 = calcSizeString(c.size);
             }
-            canvas.drawText(c.name,  xoffset + 2, pos1, c.children == null ? fg2 : fg);
+            int cliplen = fg2.breakText(c.name, true, elementWidth - 4, null);
+            String clippedName = c.name.substring(0, cliplen);
+            canvas.drawText(clippedName,  xoffset + 2, pos1, c.children == null ? fg2 : fg);
             canvas.drawText(sizeString0, xoffset + 2, pos2, c.children == null ? fg2 : fg);
-          } else if (bottom - top > fontSize0)
-            canvas.drawText(c.name, xoffset + 2, (top + bottom - ascent - descent) / 2, c.children == null ? fg2 : fg);
+          } else if (bottom - top > fontSize0) {
+            int cliplen = fg2.breakText(c.name, true, elementWidth - 4, null);
+            String clippedName = c.name.substring(0, cliplen);
+            canvas.drawText(clippedName, xoffset + 2, (top + bottom - ascent - descent) / 2, c.children == null ? fg2 : fg);
+          }
       }
 
       child_clipTop -= csize;
