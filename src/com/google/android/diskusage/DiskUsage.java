@@ -27,6 +27,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.DialogInterface.OnCancelListener;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
@@ -62,7 +63,7 @@ public class DiskUsage extends Activity {
 
     if (scanRunning) return;
     final Handler handler = new Handler();
-    final File sdcard = new File(SDCARD_ROOT);
+    final File sdcard = Environment.getExternalStorageDirectory();
 
     new Thread() {
       @Override
