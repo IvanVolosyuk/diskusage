@@ -23,6 +23,7 @@
 <string name="scaning_directories">Scanning directories...</string>
 <string name="button_show">Show</string>
 <string name="button_delete">Delete</string>
+<string name="button_rescan">Rescan</string>
 <string name="button_cancel">Cancel</string>
 <string name="button_background">Background</string>
 <string name="install_oi_file_manager">Install &quot;OI File manager&quot; to view directories</string>
@@ -34,9 +35,9 @@
 <string name="ask_to_delete_file">Delete %s file?</string>
 <string name="out_of_memory">Not enough memory!</string>
 <string name="empty_or_missing_sdcard">Empty or missing sdcard</string>
-<string name="path_doesnt_exist">%s\ndoesn't exist</string>
+<string name="path_doesnt_exist">%s\ndoesn\'t exist</string>
 <string name="file_deleted">File deleted</string>
-<string name="error_file_wasnt_deleted">Error: file wasn't deleted</string>
+<string name="error_file_wasnt_deleted">Error: file wasn\'t deleted</string>
 <string name="deleting_path">Deleting %s</string>
 <string name="deleted_n_directories_and_n_files">Deleted %d directories and %d files</string>
 <string name="deleted_n_directories_and_files_and_canceled">Delete canceled: %d directories and %d files so far</string>

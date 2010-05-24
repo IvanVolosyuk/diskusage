@@ -24,6 +24,7 @@
 <string name="button_show">Показать</string>
 <string name="button_delete">Удалить</string>
 <string name="button_cancel">Отмена</string>
+<string name="button_rescan">Обновить</string>
 <string name="button_background">Скрыть прогресс</string>
 <string name="install_oi_file_manager">Установите &quot;OI File manager&quot; для просмотра папок</string>
 <string name="title_for_path">%s - Карта SD</string>

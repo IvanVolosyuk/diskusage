@@ -19,24 +19,23 @@
 
 package com.google.android.diskusage;
 
+import java.io.File;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.DialogInterface.OnCancelListener;
+import android.content.DialogInterface.OnClickListener;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 
-import java.io.File;
-
 public class DiskUsage extends Activity {
   private FileSystemView view;
-  private static final String SDCARD_ROOT = "/sdcard";
   private static FileSystemEntry root;
   private static AfterLoad afterLoad;
   private static ProgressDialog loading;
@@ -82,7 +81,7 @@ public class DiskUsage extends Activity {
               afterLoad = null;
               
               if (newRoot.children[0].children == null) {
-                handleEmptySDCard(activity);
+                handleEmptySDCard(activity, runAfterLoad);
                 return;
               }
               root = newRoot;
@@ -141,9 +140,17 @@ public class DiskUsage extends Activity {
     }).create().show();
   }
 
-  private static void handleEmptySDCard(final Activity activity) {
+  private static void handleEmptySDCard(final Activity activity,
+      final AfterLoad afterLoad) {
     new AlertDialog.Builder(activity)
     .setTitle(activity.getString(R.string.empty_or_missing_sdcard))
+    .setPositiveButton(activity.getString(R.string.button_rescan), new OnClickListener() {
+      public void onClick(DialogInterface dialog, int which) {
+        if (afterLoad == null)
+          throw new RuntimeException("afterLoad is empty");
+        LoadFiles(activity, afterLoad, true);
+      }
+    })
     .setOnCancelListener(new OnCancelListener() {
       public void onCancel(DialogInterface dialog) {
         activity.finish();

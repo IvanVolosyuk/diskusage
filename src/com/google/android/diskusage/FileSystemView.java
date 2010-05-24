@@ -22,10 +22,7 @@ package com.google.android.diskusage;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.ReflectPermission;
 import java.util.HashMap;
-
-import com.google.android.diskusage.DiskUsage.AfterLoad;
 
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
@@ -48,6 +45,8 @@ import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.Toast;
+
+import com.google.android.diskusage.DiskUsage.AfterLoad;
 
 class FileSystemView extends View {
   FileSystemEntry masterRoot;
@@ -112,12 +111,7 @@ class FileSystemView extends View {
   private boolean hasMultitouch;
   private Method getPointerCount;
   private Method getPointerId;
-  private Method getX;
   private Method getY;
-  private Method findPointerIndex;
-  private Integer zero = new Integer(0);
-  private Integer one = new Integer(1);
-  
   private boolean fullZoom;
   private boolean warnOnFileSelect;
   
@@ -134,7 +128,7 @@ class FileSystemView extends View {
   private int pointerId;
   private int pointerId2;
   private long touchPoint2;
-  private boolean afterMultitouch;
+  private boolean multitouchResetState;
   
   private boolean onMultiTouch(MotionEvent ev) {
     try {
@@ -145,8 +139,8 @@ class FileSystemView extends View {
       }
       
       if (action == MotionEvent.ACTION_MOVE && num >= 2) {
-        if (afterMultitouch) {
-          afterMultitouch = false;
+        if (multitouchResetState) {
+          multitouchResetState = false;
           touchMovement = true;
           pointerId = (Integer) getPointerId.invoke(ev, 0);
           pointerId2 = (Integer) getPointerId.invoke(ev, 1);
@@ -172,7 +166,7 @@ class FileSystemView extends View {
         }
         viewTop = displayTop + dt;
         viewBottom = displayBottom - dt;
-        Log.d("diskusage", "viewTop = " + viewTop + " viewBottom = " + viewBottom + " dy = " + dy + " dt = " + dt + " y = " + y + " y2 " + y2);
+        // Log.d("diskusage", "viewTop = " + viewTop + " viewBottom = " + viewBottom + " dy = " + dy + " dt = " + dt + " y = " + y + " y2 " + y2);
         
         if (viewTop < 0) {
           viewTop = 0;
@@ -187,7 +181,7 @@ class FileSystemView extends View {
         postInvalidate();
         return true;
       } else {
-        afterMultitouch = true;
+        multitouchResetState = true;
       }
       return false;
     } catch (IllegalArgumentException e) {
@@ -207,6 +201,12 @@ class FileSystemView extends View {
     if (sdcardIsEmpty())
       return true;
     
+    if (deletingEntry != null) {
+      // setup state of multitouch to reinitialize next time
+      multitouchResetState = true;
+      return true;
+    }
+    
     if (hasMultitouch && onMultiTouch(ev))
       return true;
 
@@ -215,14 +215,19 @@ class FileSystemView extends View {
 
     int action = ev.getAction();
 
-    if (action == MotionEvent.ACTION_DOWN || (afterMultitouch && action == MotionEvent.ACTION_MOVE)) {
-      afterMultitouch = false;
+    if (action == MotionEvent.ACTION_DOWN || (
+        multitouchResetState && action == MotionEvent.ACTION_MOVE)) {
+      multitouchResetState = false;
       touchX = newTouchX;
       touchY = newTouchY;
       touchDepth = (FileSystemEntry.elementWidth * viewDepth + touchX) /
       FileSystemEntry.elementWidth;
       touchPoint = displayTop + (displayBottom - displayTop) * (long)touchY / screenHeight;
       touchEntry = masterRoot.findEntry((int)touchDepth + 1, touchPoint);
+      if (touchEntry == masterRoot) {
+        touchEntry = null;
+        Log.d("diskusage", "warning: masterRoot selected in onTouchEvent");
+      }
       speedX = 0;
       speedY = 0;
       prevMoveTime = ev.getEventTime();
@@ -270,8 +275,12 @@ class FileSystemView extends View {
       touchY = newTouchY;
       postInvalidate();
     } else if (action == MotionEvent.ACTION_UP) {
+      if (multitouchResetState) return true;
       if (!touchMovement) {
-        // FIXME: broken
+        if (touchEntry == null) {
+          Log.d("diskusage", "touchEntry == null");
+          return true;
+        }
         if (masterRoot.depth(touchEntry) > (int)touchDepth + 1) return true;
         touchSelect(touchEntry);
         return true;
@@ -330,9 +339,9 @@ class FileSystemView extends View {
     try {
       getPointerCount = me.getMethod("getPointerCount");
       getPointerId = me.getMethod("getPointerId", int.class);
-      getX = me.getMethod("getX", int.class);
+      me.getMethod("getX", int.class);
       getY = me.getMethod("getY", int.class);
-      findPointerIndex = me.getMethod("findPointerIndex", int.class);
+      me.getMethod("findPointerIndex", int.class);
       hasMultitouch = true;
     } catch (SecurityException e) {
     } catch (NoSuchMethodException e) {
@@ -443,7 +452,7 @@ class FileSystemView extends View {
   @Override
   protected final void onDraw(final Canvas canvas) {
     FileSystemEntry.setupStrings(context);
-    fadeAwayEntry();
+    fadeAwayEntry(this);
     try {
       boolean animation = false;
       long curr = System.currentTimeMillis();
@@ -552,7 +561,7 @@ class FileSystemView extends View {
       // pass
     }
 
-    Log.d("diskusage", "viewDepth = " + viewDepth + " cursor.depth = " + cursor.depth);
+    // Log.d("diskusage", "viewDepth = " + viewDepth + " cursor.depth = " + cursor.depth);
     if (cursor.depth == viewDepth && viewDepth > 0)
       targetViewDepth = viewDepth - 1;
     else if ((cursor.depth == viewDepth + 3) && has_children)
@@ -679,7 +688,7 @@ class FileSystemView extends View {
       }
     });
 
-    menu.add("Rescan")
+    menu.add(context.getString(R.string.button_rescan))
     .setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
         DiskUsage.LoadFiles(context, new AfterLoad() {
@@ -687,6 +696,8 @@ class FileSystemView extends View {
             masterRoot = root;
             targetViewBottom = root.size;
             cursor = new Cursor(masterRoot);
+            titleNeedUpdate = true;
+            postInvalidate();
           }
         }, true);
         return true;
@@ -804,55 +815,79 @@ class FileSystemView extends View {
     BackgroundDelete.startDelete(this, entry);
   }
   
+  public void moveAwayCursor(FileSystemEntry entry) {
+    if (cursor.position != entry) return;
+//    FIXME: should not be needed
+//    this.postInvalidate();
+//    cursor.set(this, entry);
+    cursor.up(this);
+    if (cursor.position != entry) {
+      return;
+    }
+    cursor.left(this);
+    
+//    if (cursor.position == entry) {
+//      cursor.position = masterRoot.children[0];
+//    }
+  }
   
   public void remove(FileSystemEntry entry) {
-    this.postInvalidate();
-    cursor.set(this, entry);
-    cursor.up(this);
-    cursor.left(this);
-    fadeAwayEntryStart(entry);
-    if (cursor.position == entry) {
-      cursor.position = masterRoot;
-    }
-    cursor.refresh(this);
-    // zoomCursor();
-    // zoomOutCursor();
+//    this.postInvalidate();
+//    cursor.set(this, entry);
+//    cursor.up(this);
+//    if (cursor.position == entry) {
+//      cursor.left(this);
+//    }
+//    if (cursor.position == entry) {
+//      cursor.position = masterRoot.children[0];
+//    }
+    fadeAwayEntryStart(entry, this);
+    postInvalidate();
+//    cursor.refresh(this);
   }
   
   private FileSystemEntry deletingEntry = null;
   private long deletingAnimationStartTime = 0;
   private long deletingInitialSize;
   
-  public void fadeAwayEntryStart(FileSystemEntry entry) {
+  public void deleteDeletingEntry() {
+    if (deletingEntry.parent == masterRoot) {
+      throw new RuntimeException("sdcard deletion is not available in UI");
+    }
+    moveAwayCursor(deletingEntry);
+    deletingEntry.remove();
+    deletingEntry = null;
+  }
+  
+  public void fadeAwayEntryStart(FileSystemEntry entry, FileSystemView view) {
     if (deletingEntry != null) {
-      deletingEntry.remove();
+      deleteDeletingEntry();
     }
     deletingAnimationStartTime = 0;
     deletingEntry = entry;
     deletingInitialSize = entry.size;
   }
   
-  public void fadeAwayEntry() {
+  public void fadeAwayEntry(FileSystemView view) {
     FileSystemEntry entry = deletingEntry;
     if (entry == null) return;
-    Log.d("diskusage", "deletion in progress");
+//    Log.d("diskusage", "deletion in progress");
     
     if (deletingAnimationStartTime == 0) {
       deletingAnimationStartTime = System.currentTimeMillis();
     }
     long dt = System.currentTimeMillis() - deletingAnimationStartTime;
-    Log.d("diskusage", "dt = + " + dt);
+//    Log.d("diskusage", "dt = + " + dt);
     if (dt > deletionAnimationDuration) {
-      entry.remove();
-      deletingEntry = null;
+      deleteDeletingEntry();
       return;
     }
     this.postInvalidateDelayed(20);
     float f = interpolator.getInterpolation(dt / (float) animationDuration);
-    Log.d("diskusage", "f = + " + f);
+//    Log.d("diskusage", "f = + " + f);
     long prevSize = entry.size;
     long newSize = (long)((1 - f) * deletingInitialSize);
-    Log.d("diskusage", "newSize = + " + newSize);
+//    Log.d("diskusage", "newSize = + " + newSize);
     long dSize = newSize - prevSize;
     FileSystemEntry parent = entry.parent;
     
@@ -860,7 +895,7 @@ class FileSystemView extends View {
       parent.size += dSize;
       parent = parent.parent;
     }
-    // Climp children
+    // truncate children
     while (true) {
       if (newSize == entry.size) return;
       entry.size = newSize;
@@ -868,24 +903,31 @@ class FileSystemView extends View {
         return;
       FileSystemEntry[] children = entry.children;
       long size = 0;
+      FileSystemEntry prevEntry = entry;
       for (int i = 0; i < children.length; i++) {
         size += children[i].size;
-        if (size < newSize) continue;
+        // if sum of sizes of children less then newSize continue
+        if (newSize > size) continue;
         
-        size -= children[i].size;
-        newSize -= size;
+        // size of children larger than newSize, need to trunc last child
+        long lastChildSizeChange = size - newSize;
+        long newChildSize = children[i].size - lastChildSizeChange;
+        // size of last child will be updated at the begining of while loop
+        newSize = newChildSize;
+        
         FileSystemEntry[] newChildren = new FileSystemEntry[i + 1];
         System.arraycopy(children, 0, newChildren, 0, i + 1);
         entry.children = newChildren;
         entry = children[i];
+        break;
       }
+      if (prevEntry == entry) throw new RuntimeException("loop protection");
     }
   }
   
   public void restore(FileSystemEntry entry) {
     if (deletingEntry != null) {
-      deletingEntry.remove();
-      deletingEntry = null;
+      deleteDeletingEntry();
     }
     // if (cursor.position == masterRoot)
     //   cursor.position = entry;
@@ -902,6 +944,18 @@ class FileSystemView extends View {
   public final boolean onKeyDown(final int keyCode, final KeyEvent event) {
     if (sdcardIsEmpty())
       return super.onKeyDown(keyCode, event);
+    
+    if (deletingEntry != null) {
+      switch (keyCode) {
+      case KeyEvent.KEYCODE_DPAD_CENTER:
+      case KeyEvent.KEYCODE_DPAD_LEFT:
+      case KeyEvent.KEYCODE_DPAD_RIGHT:
+      case KeyEvent.KEYCODE_DPAD_UP:
+      case KeyEvent.KEYCODE_DPAD_DOWN:
+        return true;
+      }
+      return super.onKeyDown(keyCode, event);
+    }
     
     if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
       cursor.down(this);

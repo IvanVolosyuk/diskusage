@@ -24,6 +24,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.os.Debug;
 import android.util.Log;
 
 import java.io.File;
@@ -148,8 +149,8 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     for (int i = 0; i < list.length; i++) {
       File child = list[i];
 
-      if (isLink(child)) continue;
-      if (isSpecial(child)) continue;
+//      if (isLink(child)) continue;
+//      if (isSpecial(child)) continue;
 
       FileSystemEntry c = null;
 
@@ -401,6 +402,8 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     return String.format(n_megabytes100, sz / (1024 * 1024));
   }
 
+  // FIXME: not a general toString() but specific to deletion activity,
+  // need to rename to something else
   public final String toString() {
     String res = toTitleString();
     if (parent == deleteParent) return res;
@@ -492,8 +495,12 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     long offset = 0;
     FileSystemEntry dir;
     FileSystemEntry root = this;
+    
+//    Log.d("diskusage", "getOffset()");
 
     while (cursor != root) {
+//      Log.d("diskusage", "cursor = " + (cursor != null) + " root = " + (root != null));
+//      Log.d("diskusage", "cursor = " + cursor.name + " root = " + root.name);
       dir = cursor.parent;
       FileSystemEntry[] children = dir.children;
       int len = children.length;
@@ -507,7 +514,8 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     }
     return offset;
   }
-
+  
+  // FIXME: no resort needed
   public final void remove() {
     FileSystemEntry[] children0 = parent.children;
     int len = children0.length;
@@ -525,7 +533,7 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
       while (parent0 != null) {
         parent0.size -= size;
         parent0.sizeString = null;
-        java.util.Arrays.sort(parent0.children, this);
+//        java.util.Arrays.sort(parent0.children, this);
         parent0 = parent0.parent;
       }
       return;

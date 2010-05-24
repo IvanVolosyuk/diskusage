@@ -54,7 +54,7 @@ class Cursor {
 		top -= newCursor.size;
 		position = newCursor;
 		view.invalidate(this);
-        view.titleNeedUpdate = true;
+		view.titleNeedUpdate = true;
 	}
 	
 	void right(FileSystemView view) {
@@ -65,7 +65,7 @@ class Cursor {
 		depth++;
 		// Log.d("Sample", "position depth = " + depth);
 		view.invalidate(this);
-        view.titleNeedUpdate = true;
+		view.titleNeedUpdate = true;
 	}
 	
 	boolean left(FileSystemView view) {
@@ -76,18 +76,19 @@ class Cursor {
 		depth--;
 		// Log.d("Sample", "position depth = " + depth);
 		view.invalidate(this);
-        view.titleNeedUpdate = true;
+		view.titleNeedUpdate = true;
 		return true;
 	}
 	
 	void set(FileSystemView view, FileSystemEntry newpos) {
+	        if (newpos == root) throw new RuntimeException("will break zoomOut()");
 		view.invalidate(this);
 		position = newpos;
 		depth = root.depth(position) - 1;
 		// Log.d("Sample", "position depth = " + depth);
 		top = root.getOffset(position);
 		view.invalidate(this);
-        view.titleNeedUpdate = true;
+		view.titleNeedUpdate = true;
 	}
 	
 	void refresh(FileSystemView view) {
