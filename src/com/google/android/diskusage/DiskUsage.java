@@ -20,6 +20,7 @@
 package com.google.android.diskusage;
 
 import java.io.File;
+import java.lang.reflect.Method;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -28,14 +29,22 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.IPackageStatsObserver;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageStats;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.RemoteException;
 import android.util.Log;
 import android.view.Menu;
 
 public class DiskUsage extends Activity {
   private FileSystemView view;
+  public static FileSystemPackage pkg_removed;
   private static FileSystemEntry root;
   private static AfterLoad afterLoad;
   private static ProgressDialog loading;
@@ -70,6 +79,7 @@ public class DiskUsage extends Activity {
         try {
           FileSystemEntry rootElement =
             new FileSystemEntry(null, sdcard, 0, 20);
+          loadApps2SD(activity, rootElement);
           final FileSystemEntry newRoot = new FileSystemEntry(
               new FileSystemEntry[] { rootElement } );
 
@@ -85,6 +95,7 @@ public class DiskUsage extends Activity {
                 return;
               }
               root = newRoot;
+              pkg_removed = null;
               runAfterLoad.run(root);
             }
           });
@@ -104,6 +115,15 @@ public class DiskUsage extends Activity {
     }.start();
   }
   
+  protected static void loadApps2SD(Activity activity,
+      FileSystemEntry rootElement) {
+    try {
+    new Apps2SDLoader(activity, rootElement).load();
+    } catch (Throwable t) {
+      Log.e("diskusage", "problem loading apps2sd info", t);
+    }
+  }
+
   @Override
   protected void onCreate(Bundle icicle) {
     super.onCreate(icicle);
@@ -114,6 +134,21 @@ public class DiskUsage extends Activity {
         view.requestFocus();
       }
     }, false);
+  }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    if (pkg_removed == null) return;
+    // Check if package removed
+    String pkg_name = pkg_removed.pkg;
+    PackageManager pm = getPackageManager();
+    try {
+      pm.getPackageInfo(pkg_name, 0);
+    } catch (NameNotFoundException e) {
+      view.remove(pkg_removed);
+    }
+    pkg_removed = null;
   }
   
   @Override

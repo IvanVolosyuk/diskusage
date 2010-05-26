@@ -50,4 +50,6 @@
 <string name="dir_name_size_num_dirs">%s (%s, %d dirs)</string>
 <string name="dir_empty">%s (empty)</string>
 <string name="dir_name_size">%s (%s)</string>
+<string name="apps_bulk_uninstall_not_supported">Uninstall multiple apps not supported</string>
+
 </resources>

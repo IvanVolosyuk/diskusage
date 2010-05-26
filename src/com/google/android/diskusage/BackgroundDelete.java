@@ -21,6 +21,9 @@ package com.google.android.diskusage;
 
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -47,6 +50,17 @@ public class BackgroundDelete extends Thread {
     this.view = view;
     this.entry = entry;
     path = entry.path();
+    if (path.startsWith("/sdcard/Apps2SD/")) {
+      if (entry instanceof FileSystemPackage) {
+        FileSystemPackage pkg = (FileSystemPackage) entry;
+        uninstall(pkg);
+        return;
+      }
+    } else if (path.startsWith("/sdcard/Apps2SD")) {
+      Toast.makeText(view.context, format(R.string.apps_bulk_uninstall_not_supported, path),
+          Toast.LENGTH_LONG).show();
+      return;
+    }
     file = new File(path);
     if (!file.exists()) {
       Toast.makeText(view.context, format(R.string.path_doesnt_exist, path),
@@ -87,6 +101,13 @@ public class BackgroundDelete extends Thread {
     start();
   }
   
+  private void uninstall(FileSystemPackage pkg) {
+    String pkg_name = pkg.pkg;
+    Uri packageURI = Uri.parse("package:" + pkg_name);
+    Intent uninstallIntent = new Intent(Intent.ACTION_DELETE, packageURI);
+    view.context.startActivity(uninstallIntent);
+  }
+
   static void startDelete(FileSystemView view, FileSystemEntry entry) {
     new BackgroundDelete(view, entry);
   }

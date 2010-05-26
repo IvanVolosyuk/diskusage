@@ -130,6 +130,8 @@ class FileSystemView extends View {
   private long touchPoint2;
   private boolean multitouchResetState;
   
+  private int stats_num_deletions = 0;
+  
   private boolean onMultiTouch(MotionEvent ev) {
     try {
       int action = ev.getAction();
@@ -787,6 +789,12 @@ class FileSystemView extends View {
     Log.d("DiskUsage", "Deletion requested for " + path);
     
     if (entry.children == null || entry.children.length == 0) {
+      if (entry instanceof FileSystemPackage) {
+        DiskUsage.pkg_removed = (FileSystemPackage) entry;
+        BackgroundDelete.startDelete(FileSystemView.this, entry);
+        return;
+      }
+
       // Delete single file or directory
       new AlertDialog.Builder(this.context)
       .setTitle(new File(path).isDirectory()
@@ -815,7 +823,7 @@ class FileSystemView extends View {
     BackgroundDelete.startDelete(this, entry);
   }
   
-  public void moveAwayCursor(FileSystemEntry entry) {
+  public final void moveAwayCursor(FileSystemEntry entry) {
     if (cursor.position != entry) return;
 //    FIXME: should not be needed
 //    this.postInvalidate();
@@ -831,7 +839,8 @@ class FileSystemView extends View {
 //    }
   }
   
-  public void remove(FileSystemEntry entry) {
+  public final void remove(FileSystemEntry entry) {
+    stats_num_deletions++;
 //    this.postInvalidate();
 //    cursor.set(this, entry);
 //    cursor.up(this);
@@ -850,7 +859,7 @@ class FileSystemView extends View {
   private long deletingAnimationStartTime = 0;
   private long deletingInitialSize;
   
-  public void deleteDeletingEntry() {
+  public final void deleteDeletingEntry() {
     if (deletingEntry.parent == masterRoot) {
       throw new RuntimeException("sdcard deletion is not available in UI");
     }
@@ -859,7 +868,7 @@ class FileSystemView extends View {
     deletingEntry = null;
   }
   
-  public void fadeAwayEntryStart(FileSystemEntry entry, FileSystemView view) {
+  public final void fadeAwayEntryStart(FileSystemEntry entry, FileSystemView view) {
     if (deletingEntry != null) {
       deleteDeletingEntry();
     }
@@ -868,15 +877,17 @@ class FileSystemView extends View {
     deletingInitialSize = entry.size;
   }
   
-  public void fadeAwayEntry(FileSystemView view) {
+  public final void fadeAwayEntry(FileSystemView view) {
     FileSystemEntry entry = deletingEntry;
     if (entry == null) return;
 //    Log.d("diskusage", "deletion in progress");
     
+    long time = System.currentTimeMillis();
+    
     if (deletingAnimationStartTime == 0) {
-      deletingAnimationStartTime = System.currentTimeMillis();
+      deletingAnimationStartTime = time;
     }
-    long dt = System.currentTimeMillis() - deletingAnimationStartTime;
+    long dt = time - deletingAnimationStartTime;
 //    Log.d("diskusage", "dt = + " + dt);
     if (dt > deletionAnimationDuration) {
       deleteDeletingEntry();
@@ -889,6 +900,9 @@ class FileSystemView extends View {
     long newSize = (long)((1 - f) * deletingInitialSize);
 //    Log.d("diskusage", "newSize = + " + newSize);
     long dSize = newSize - prevSize;
+    
+    if (dSize >= 0) return;
+    
     FileSystemEntry parent = entry.parent;
     
     while (parent != null) {
@@ -921,11 +935,18 @@ class FileSystemView extends View {
         entry = children[i];
         break;
       }
-      if (prevEntry == entry) throw new RuntimeException("loop protection");
+      if (prevEntry == entry) {
+        String msg = "f = " + f;
+        msg += " newSize = " + newSize;
+        msg += " size = " + size;
+        msg += " nchildren = " + children.length;
+        msg += " stats_num_deletions = " + stats_num_deletions;
+        throw new RuntimeException("loop protection " + msg);
+      }
     }
   }
   
-  public void restore(FileSystemEntry entry) {
+  public final void restore(FileSystemEntry entry) {
     if (deletingEntry != null) {
       deleteDeletingEntry();
     }
@@ -936,7 +957,7 @@ class FileSystemView extends View {
     // zoomOutCursor();
   }
   
-  public boolean sdcardIsEmpty() {
+  public final boolean sdcardIsEmpty() {
     return cursor.position == masterRoot;
   }
   
@@ -1012,7 +1033,7 @@ class FileSystemView extends View {
     titleNeedUpdate = true;
   }
 
-  public void restoreState(Bundle inState) {
+  public final void restoreState(Bundle inState) {
     FileSystemEntry entry = masterRoot.getEntryByName(
         inState.getString("cursor"));
     if (entry == null) return;
@@ -1022,14 +1043,14 @@ class FileSystemView extends View {
     targetViewBottom = prevViewBottom = viewBottom = inState.getLong("viewBottom");
   }
 
-  public void saveState(Bundle outState) {
+  public final void saveState(Bundle outState) {
     outState.putString("cursor", cursor.position.path());
     outState.putFloat("viewDepth", viewDepth);
     outState.putLong("viewTop", viewTop);
     outState.putLong("viewBottom", viewBottom);
   }
 
-  public void resetCursor() {
+  public final void resetCursor() {
     cursor.set(this, masterRoot.children[0]);
   }
 }

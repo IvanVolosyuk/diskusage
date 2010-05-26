@@ -123,6 +123,14 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
       children[i].parent = this;
     }
   }
+  
+  public FileSystemEntry(FileSystemEntry parent,
+      String name, int size, FileSystemEntry[] children) {
+    this.parent = parent;
+    this.name = name;
+    this.size = size;
+    this.children = children;
+  }
 
   /**
    * Constructor for directory object.
@@ -541,7 +549,7 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     throw new RuntimeException("child is not found: " + this);
   }
 
-  public void insert(FileSystemEntry newEntry) {
+  public final void insert(FileSystemEntry newEntry) {
     FileSystemEntry[] children0 = new FileSystemEntry[children.length + 1];
     System.arraycopy(children, 0, children0, 0, children.length);
     children0[children.length] = newEntry;
@@ -560,7 +568,7 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
   /**
    * Walks through the path and finds the specified entry, null otherwise.
    */
-  public FileSystemEntry getEntryByName(String path) {
+  public final FileSystemEntry getEntryByName(String path) {
     String[] pathElements = path.split("/");
     FileSystemEntry entry = this;
     
@@ -599,7 +607,7 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     fontSize = descent - ascent;
   }
 
-  public void getAllChildren(List<FileSystemEntry> out) {
+  public final void getAllChildren(List<FileSystemEntry> out) {
     FileSystemEntry[] sortedChildren = new FileSystemEntry[children.length];
     System.arraycopy(children, 0, sortedChildren, 0, children.length);
     Arrays.sort(sortedChildren, alphaComparator);
