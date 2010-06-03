@@ -1,19 +1,15 @@
 package com.google.android.diskusage;
 
-import java.io.File;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import android.app.Activity;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageStatsObserver;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageStats;
-import android.os.Environment;
 import android.os.RemoteException;
-import android.os.StatFs;
 import android.util.Log;
 
 public class Apps2SDLoader {

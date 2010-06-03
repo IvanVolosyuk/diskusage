@@ -19,15 +19,14 @@
 
 package com.google.android.diskusage;
 
+import java.io.File;
+
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
-
-import java.io.File;
 
 public class BackgroundDelete extends Thread {
   ProgressDialog dialog;

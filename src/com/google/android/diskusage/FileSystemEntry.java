@@ -19,26 +19,23 @@
 
 package com.google.android.diskusage;
 
+import java.io.File;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.os.Debug;
-import android.util.Log;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Vector;
 
 public class FileSystemEntry implements Comparator<FileSystemEntry> {
   private static final Paint bg = new Paint();
   private static final Paint cursor_fg = new Paint();
   private static final Paint fg = new Paint();
+  private static final Paint fg_rect = fg;
+//  private static final Paint fg_rect = new Paint();
   private static final Paint fg2 = new Paint();
   private static final Paint fill_bg = new Paint();
   private static float ascent;
@@ -86,6 +83,8 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     fg.setColor(Color.WHITE);
     fg.setStyle(Paint.Style.STROKE);
     fg.setFlags(fg.getFlags() | Paint.ANTI_ALIAS_FLAG);
+//    fg_rect.setColor(Color.WHITE);
+//    fg_rect.setStyle(Paint.Style.STROKE);
     fg2.setColor(Color.parseColor("#18C5E7"));
     fg2.setStyle(Paint.Style.STROKE);
     fg2.setFlags(fg2.getFlags() | Paint.ANTI_ALIAS_FLAG);
@@ -249,11 +248,6 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     return true;
   }
 
-  private static boolean isSpecial(File file) {
-    String path = file.getPath();
-    return (path.equals("/sys") || path.equals("/proc") || path.equals("/dev"));
-  }
-
   private static void paint(long parent_size, FileSystemEntry[] entries,
       Canvas canvas, float xoffset, float yoffset, float yscale,
       long clipLeft, long clipRight, long clipTop, long clipBottom,
@@ -298,10 +292,9 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
             child_clipLeft, child_clipRight, child_clipTop, child_clipBottom, screenHeight);
 
       if (bottom - top < 2) {
-        long all_size = 0;
         bottom += parent_size * yscale;
         canvas.drawRect(xoffset, top, child_xoffset, bottom, fill_bg);
-        canvas.drawRect(xoffset, top, child_xoffset, bottom, fg);
+        canvas.drawRect(xoffset, top, child_xoffset, bottom, fg_rect);
         return;
       }
 
@@ -313,7 +306,7 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
           float bottom0 = bottom > windowHeight0 ? windowHeight0 : bottom;
           
           canvas.drawRect(xoffset, top0, child_xoffset, bottom0, bg);
-          canvas.drawRect(xoffset, top0, child_xoffset, bottom0, fg);
+          canvas.drawRect(xoffset, top0, child_xoffset, bottom0, fg_rect);
 
           if (bottom - top > fontSize0 * 2) {
             float pos = (top + bottom) * 0.5f;
