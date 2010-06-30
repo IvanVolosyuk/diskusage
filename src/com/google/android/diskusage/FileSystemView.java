@@ -152,7 +152,7 @@ class FileSystemView extends View {
           if (dx < minDistance) dx = minDistance;
           touchWidth = dx / FileSystemEntry.elementWidth;
           touchPointX = viewDepth + avg_x / FileSystemEntry.elementWidth; 
-          Log.d("diskusage", "multitouch reset " + avg_x + " : " + dx);
+//          Log.d("diskusage", "multitouch reset " + avg_x + " : " + dx);
           return true;
         }
         float dy = ymax - ymin;
@@ -164,7 +164,6 @@ class FileSystemView extends View {
         
         float avg_x = 0.5f * (xmax + xmin);
         float dx = xmax - xmin;
-        float old_dx = dx;
         if (dx < minDistance) dx = minDistance;
         FileSystemEntry.elementWidth = (int) (dx / touchWidth);
 
@@ -175,7 +174,7 @@ class FileSystemView extends View {
         
         targetViewDepth = viewDepth = touchPointX - avg_x / FileSystemEntry.elementWidth;
         maxLevels = screenWidth / (float) FileSystemEntry.elementWidth;
-        Log.d("diskusage", "multitouch " + avg_x + " : " + dx + "(" + old_dx + ")");
+//        Log.d("diskusage", "multitouch " + avg_x + " : " + dx + "(" + old_dx + ")");
         
         long dt = (displayBottom - displayTop) / 41;
         if (dt < 2) {
@@ -187,7 +186,7 @@ class FileSystemView extends View {
         targetViewTop = viewTop;
         targetViewBottom = viewBottom;
         animationStartTime = 0;
-        postInvalidate();
+        invalidate();
         return true;
       }
       return true;
@@ -244,7 +243,7 @@ class FileSystemView extends View {
     animationStartTime = 0;
     touchX = newTouchX;
     touchY = newTouchY;
-    postInvalidate();
+    invalidate();
     return;
   }
   
@@ -328,7 +327,7 @@ class FileSystemView extends View {
       if (animationStartTime != 0) return true;
       prepareMotion();
       animationDuration = 300;
-      postInvalidate();
+      invalidate();
     }
     return true;
   }
@@ -491,13 +490,13 @@ class FileSystemView extends View {
       }
 
       if (animation) {
-        postInvalidateDelayed(20);
+        invalidate();
       } else {
         if (targetViewTop < 0 || targetViewBottom > masterRoot.size
             || viewDepth < 0) {
           prepareMotion();
           animationDuration = 300;
-          postInvalidateDelayed(20);
+          invalidate();
           if (targetViewTop < 0) {
             long oldTop = targetViewTop;
             targetViewTop = 0;
@@ -677,7 +676,7 @@ class FileSystemView extends View {
         targetViewTop -= diff;
       }
     }
-    postInvalidateDelayed(20);
+    invalidate();
   }
 
   public final void zoomOutCursor() {
@@ -697,7 +696,7 @@ class FileSystemView extends View {
     long size = viewRoot.size;
     targetViewBottom = targetViewTop + size;
     zoomCursor();
-    postInvalidateDelayed(20);
+    invalidate();
   }
 
   final boolean back() {
@@ -750,7 +749,7 @@ class FileSystemView extends View {
             targetViewBottom = root.size;
             cursor = new Cursor(masterRoot);
             titleNeedUpdate = true;
-            postInvalidate();
+            invalidate();
           }
         }, true);
         return true;
@@ -909,7 +908,7 @@ class FileSystemView extends View {
   public final void moveAwayCursor(FileSystemEntry entry) {
     if (cursor.position != entry) return;
 //    FIXME: should not be needed
-//    this.postInvalidate();
+//    this.invalidate();
 //    cursor.set(this, entry);
     cursor.up(this);
     if (cursor.position != entry) {
@@ -924,7 +923,7 @@ class FileSystemView extends View {
   
   public final void remove(FileSystemEntry entry) {
     stats_num_deletions++;
-//    this.postInvalidate();
+//    this.invalidate();
 //    cursor.set(this, entry);
 //    cursor.up(this);
 //    if (cursor.position == entry) {
@@ -934,7 +933,7 @@ class FileSystemView extends View {
 //      cursor.position = masterRoot.children[0];
 //    }
     fadeAwayEntryStart(entry, this);
-    postInvalidate();
+    invalidate();
 //    cursor.refresh(this);
   }
   
@@ -976,7 +975,7 @@ class FileSystemView extends View {
       deleteDeletingEntry();
       return;
     }
-    this.postInvalidateDelayed(20);
+    this.invalidate();
     float f = interpolator.getInterpolation(dt / (float) animationDuration);
 //    Log.d("diskusage", "f = + " + f);
     long prevSize = entry.size;
@@ -1123,8 +1122,9 @@ class FileSystemView extends View {
   }
 
   public final void restoreState(Bundle inState) {
-    FileSystemEntry entry = masterRoot.getEntryByName(
-        inState.getString("cursor"));
+    String cursorName = inState.getString("cursor");
+    if (cursorName == null) return;
+    FileSystemEntry entry = masterRoot.getEntryByName(cursorName);
     if (entry == null) return;
     cursor.set(this, entry);
     targetViewDepth = prevViewDepth = viewDepth = inState.getFloat("viewDepth");
