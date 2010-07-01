@@ -58,10 +58,17 @@ public class DiskUsage extends Activity {
     
     scanRunning = afterLoad != null;
     afterLoad = runAfterLoad;
-    loading = ProgressDialog.show(
-        activity, null,
-        activity.getString(R.string.scaning_directories),
-        true, true);
+    loading = new ProgressDialog(activity) {
+      @Override
+      public void onBackPressed() {
+        super.onBackPressed();
+        activity.finish();
+      }
+    };
+    loading.setCancelable(true);
+    loading.setIndeterminate(true);
+    loading.setMessage(activity.getString(R.string.scaning_directories));
+    loading.show();
 
     if (scanRunning) return;
     final Handler handler = new Handler();
