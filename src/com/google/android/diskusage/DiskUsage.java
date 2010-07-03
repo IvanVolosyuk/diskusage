@@ -59,9 +59,7 @@ public class DiskUsage extends Activity {
     scanRunning = afterLoad != null;
     afterLoad = runAfterLoad;
     loading = new ProgressDialog(activity) {
-      @Override
       public void onBackPressed() {
-        super.onBackPressed();
         activity.finish();
       }
     };
@@ -147,22 +145,27 @@ public class DiskUsage extends Activity {
     try {
       pm.getPackageInfo(pkg_name, 0);
     } catch (NameNotFoundException e) {
-      view.remove(pkg_removed);
+      if (view != null)
+        view.remove(pkg_removed);
     }
     pkg_removed = null;
   }
   
   @Override
   public void onActivityResult(int a, int result, Intent i) {
-    if (result != RESULT_OK) return;
-    String path = i.getStringExtra("path");
-    view.continueDelete(path);
+    if (view != null) {
+      if (result != RESULT_OK) return;
+      String path = i.getStringExtra("path");
+      view.continueDelete(path);
+    }
   }
   
 
   @Override
   public final boolean onPrepareOptionsMenu(Menu menu) {
-    view.onPrepareOptionsMenu(menu);
+    if (view != null) {
+      view.onPrepareOptionsMenu(menu);
+    }
     return true;
   }
 

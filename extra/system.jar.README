@@ -1,0 +1,2 @@
+The system.jar contains stubs with private APIs built from android sources:
+  git://android.git.kernel.org/platform/frameworks/base.git
