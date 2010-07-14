@@ -36,6 +36,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -93,9 +94,6 @@ class FileSystemView extends View {
   static HashMap<String, String> extensionToMime;
 
   private boolean hasMultitouch;
-  private Method getPointerCount;
-  private Method getX;
-  private Method getY;
   private boolean fullZoom;
   private boolean warnOnFileSelect;
   
@@ -118,21 +116,37 @@ class FileSystemView extends View {
   
   private int stats_num_deletions = 0;
   
-  private boolean onMultiTouch(MotionEvent ev) {
-    try {
+   static class VersionedMultitouchHandler {
+     boolean handleTouch(MotionEvent ev) {
+       return false;
+     }
+    public static VersionedMultitouchHandler newInstance(FileSystemView view) {
+      final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+      VersionedMultitouchHandler detector = null;
+      if (sdkVersion < Build.VERSION_CODES.ECLAIR) {
+        detector = new VersionedMultitouchHandler();
+      } else {
+        detector = view.new MultiTouchHandler();
+      }
+      return detector;
+    }
+  }
+  
+  class MultiTouchHandler extends VersionedMultitouchHandler {
+    boolean handleTouch(MotionEvent ev) {
       int action = ev.getAction();
-      Integer num = (Integer) getPointerCount.invoke(ev);
+      Integer num = (Integer) ev.getPointerCount();
       if (num == 1) {
         return false;
       }
-      
+
       if (action == MotionEvent.ACTION_MOVE && num >= 2) {
         float xmin, xmax, ymin, ymax;
-        ymin = ymax = (Float) getY.invoke(ev, 0);
-        xmin = xmax = (Float) getX.invoke(ev, 0);
+        ymin = ymax = (Float) ev.getY(0);
+        xmin = xmax = (Float) ev.getX(0);
         for (int i = 1; i < num; i++) {
-          float x = (Float) getX.invoke(ev, i);
-          float y = (Float) getY.invoke(ev, i);
+          float x = (Float) ev.getX(i);
+          float y = (Float) ev.getY(i);
           if (x < xmin) xmin = x;
           if (x > xmax) xmax = x;
           if (y < ymin) ymin = y;
@@ -152,7 +166,7 @@ class FileSystemView extends View {
           if (dx < minDistance) dx = minDistance;
           touchWidth = dx / FileSystemEntry.elementWidth;
           touchPointX = viewDepth + avg_x / FileSystemEntry.elementWidth; 
-//          Log.d("diskusage", "multitouch reset " + avg_x + " : " + dx);
+          //            Log.d("diskusage", "multitouch reset " + avg_x + " : " + dx);
           return true;
         }
         float dy = ymax - ymin;
@@ -161,7 +175,7 @@ class FileSystemView extends View {
         float avg_y = 0.5f * (ymax + ymin);
         displayTop = touchPoint - displayBottom_Top * (long) avg_y / screenHeight;
         displayBottom = displayTop + displayBottom_Top;
-        
+
         float avg_x = 0.5f * (xmax + xmin);
         float dx = xmax - xmin;
         if (dx < minDistance) dx = minDistance;
@@ -171,36 +185,30 @@ class FileSystemView extends View {
           FileSystemEntry.elementWidth = minElementWidth;
         else if (FileSystemEntry.elementWidth > maxElementWidth)
           FileSystemEntry.elementWidth = maxElementWidth;
-        
+
         targetViewDepth = viewDepth = touchPointX - avg_x / FileSystemEntry.elementWidth;
         maxLevels = screenWidth / (float) FileSystemEntry.elementWidth;
-//        Log.d("diskusage", "multitouch " + avg_x + " : " + dx + "(" + old_dx + ")");
-        
+        //          Log.d("diskusage", "multitouch " + avg_x + " : " + dx + "(" + old_dx + ")");
+
         long dt = (displayBottom - displayTop) / 41;
         if (dt < 2) {
           displayBottom += 41 * 2; 
         }
         viewTop = displayTop + dt;
         viewBottom = displayBottom - dt;
-        
+
         targetViewTop = viewTop;
         targetViewBottom = viewBottom;
         animationStartTime = 0;
-        invalidate();
+        FileSystemView.this.invalidate();
         return true;
       }
       return true;
-    } catch (IllegalArgumentException e) {
-      Log.e("diskusage", "multitouch", e);
-    } catch (IllegalAccessException e) {
-      Log.e("diskusage", "multitouch", e);
-    } catch (InvocationTargetException e) {
-      Log.e("diskusage", "multitouch", e);
     }
-    hasMultitouch = false;
-    Log.d("diskusage", "multitouch disabled");
-    return false;
-  }
+  };
+  
+  VersionedMultitouchHandler multitouchHandler =
+    VersionedMultitouchHandler.newInstance(this);
   
   public void onMotion(float newTouchX, float newTouchY, long moveTime) {
     float touchOffsetX = newTouchX - touchX;
@@ -258,7 +266,7 @@ class FileSystemView extends View {
       return true;
     }
     
-    if (hasMultitouch && onMultiTouch(ev))
+    if (multitouchHandler.handleTouch(ev))
       return true;
 
     float newTouchX = ev.getX();
@@ -332,23 +340,6 @@ class FileSystemView extends View {
     return true;
   }
   
-  private void setupMultitouch() {
-    Class<MotionEvent> me = MotionEvent.class;
-    try {
-      getPointerCount = me.getMethod("getPointerCount");
-      me.getMethod("getPointerId", int.class);
-      getX = me.getMethod("getX", int.class);
-      getY = me.getMethod("getY", int.class);
-      me.getMethod("findPointerIndex", int.class);
-      hasMultitouch = true;
-    } catch (SecurityException e) {
-    } catch (NoSuchMethodException e) {
-      Log.e("diskusage", "exception", e);
-    }
-    Log.d("diskusage",
-        "multitouch support " + (hasMultitouch ? "enabled" : "disabled"));
-  }
-
   public FileSystemView(DiskUsage context, FileSystemEntry root) {
     super(context);
     this.context = context;
@@ -361,7 +352,6 @@ class FileSystemView extends View {
     this.setFocusableInTouchMode(true);
     targetViewBottom = root.size;
     cursor = new Cursor(masterRoot);
-    setupMultitouch();
     setBackgroundColor(Color.GRAY);
   }
   
