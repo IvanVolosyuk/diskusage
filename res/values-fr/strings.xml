@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+ * DiskUsage - displays sdcard usage on android.
+ * Copyright (C) 2008 Ivan Volosyuk
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ -->
+ <!-- Translated by Ivan Volosyuk using translate.google.com with zero knowledge of french -->
+<resources>
+ <string name="app_name">DiskUsage</string>
+ <string name="app_description">Utilitaire d\'examiner le contenu SDcard et le nettoyage de l\'espace là-bas.</string>
+ <string name="scaning_directories">Numérisation des répertoires ...</string>
+ <string name="button_show">Afficher</string>
+ <string name="button_delete">Supprimer</string>
+ <string name="button_rescan">Rafraîchir</string>
+ <string name="button_cancel">Annuler</string>
+ <string name="button_background">Contexte</string>
+ <string name="install_oi_file_manager">Installer &quot;OI File Manager&quot; pour afficher des répertoires</string>
+ <string name="title_for_path">%s - DiskUsage</string>
+ <string name="title_in_oi_file_manager">OI File Manager</string>
+ <string name="button_text_in_oi_file_manager">Retour à la DiskUsage</string>
+ <string name="no_viewer_found">Aucun spectateur trouve</string>
+ <string name="ask_to_delete_directory">Supprimer %s répertoire?</string>
+ <string name="ask_to_delete_file">Supprimer %s fichier?</string>
+ <string name="out_of_memory">Pas assez de mémoire!</string>
+ <string name="empty_or_missing_sdcard">sdcard vide ou manquant</string>
+ <string name="path_doesnt_exist">%s n\'existe pas</string>
+ <string name="file_deleted">Fichier supprimé</string>
+ <string name="error_file_wasnt_deleted">Erreur: le fichier n\'a pas été supprimé</string>
+ <string name="deleting_path">La suppression de %s</string>
+ <string name="deleted_n_directories_and_n_files">Supprimé %d répertoires et %d fichiers</string>
+ <string name="deleted_n_directories_and_files_and_canceled">Supprimer annulés: %d répertoires et %d fichiers à ce jour</string>
+ <string name="deleted_n_directories_and_n_files_and_failed">Echec de la suppression!: %d répertoires et %d fichiers a été supprimé</string>
+ <string name="n_bytes">%4.0f octets</string>
+ <string name="n_kilobytes">%4.0f Kio</string>
+ <string name="n_megabytes">%5.2f Mo</string>
+ <string name="n_megabytes10">%5.1f Mo</string>
+ <string name="n_megabytes100">%4.0f Mo</string>
+ <string name="dir_name_size_num_dirs">%s (%s, %d rép)</string>
+ <string name="dir_empty">%s (vide)</string>
+ <string name="dir_name_size">%s (%s)</string>
+ <string name="apps_bulk_uninstall_not_supported">Désinstaller multiples applications non pris en charge</string>
+</resources>

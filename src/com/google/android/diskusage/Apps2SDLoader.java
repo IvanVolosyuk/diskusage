@@ -1,51 +1,87 @@
 package com.google.android.diskusage;
 
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import android.app.Activity;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageStatsObserver;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageStats;
+import android.os.Build;
 import android.os.RemoteException;
 import android.util.Log;
 
 public class Apps2SDLoader {
 
   private Activity activity;
-  private FileSystemEntry rootElement;
-  private ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
+  private int numLookups;
 
-  public Apps2SDLoader(Activity activity, FileSystemEntry rootElement) {
+  public Apps2SDLoader(Activity activity) {
     this.activity = activity;
-    this.rootElement = rootElement;
   }
   
-  int numLookups;
-  int size;
-
   private synchronized void changeNumLookups(int change) {
     numLookups += change;
   }
   
-  public void load() throws Throwable {
-//    File path = Environment.getExternalStorageDirectory();
-//    StatFs stat = new StatFs(path.getPath());
-//    long blockSize = stat.getBlockSize();
-//    long totalBlocks = stat.getBlockCount();
-//    long availableBlocks = stat.getAvailableBlocks();
-//    long allocatedSize = (totalBlocks - availableBlocks) * blockSize;
+  private Map<String, Long> getDfSizes() {
+    Map<String, Long> sizes = new TreeMap<String, Long>();
+    final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+    if (sdkVersion < Build.VERSION_CODES.FROYO) return sizes;
+
+    try {
+      Process proc = Runtime.getRuntime().exec("df");
+      DataInputStream is = new DataInputStream(proc.getInputStream());
+      while (true) {
+        String line = is.readLine();
+        if (line == null) break;
+        String[] parts = line.split(" ");
+        if (parts.length < 5) continue;
+        String pkg = parts[0];
+        if (!pkg.endsWith(":")) continue;
+        pkg = pkg.replaceAll("^.*/", "").replaceAll("-.*$", "");
+        String sizeStr = parts[3];
+        long size = 0;
+        if (sizeStr.endsWith("K")) {
+          size = Integer.parseInt(sizeStr.substring(0, sizeStr.length() - 1)) * 1024;
+        } else if (sizeStr.endsWith("M")) {
+          size = Integer.parseInt(sizeStr.substring(0, sizeStr.length() - 1)) * 1024 * 1024;
+        }
+        Log.d("diskusage", "Override " + pkg + " - " + size);
+        sizes.put(pkg, size);
+      }
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    return sizes;
+  }
+  
+  public FileSystemEntry[] load(boolean sdOnly, final AppFilter appFilter) throws Throwable {
+    final Map<String, Long> dfSizes = getDfSizes();
+    final ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
 
     PackageManager pm = activity.getPackageManager();
     Method getPackageSizeInfo = pm.getClass().getMethod(
         "getPackageSizeInfo", String.class, IPackageStatsObserver.class);
-    final FileSystemEntry apps = new FileSystemEntry(rootElement, "Apps2SD", 0, null);
-    for (final PackageInfo info : pm.getInstalledPackages(PackageManager.GET_META_DATA)) {
-      if (info.applicationInfo == null) continue;
+    for (final PackageInfo info : pm.getInstalledPackages(
+        PackageManager.GET_META_DATA | PackageManager.GET_UNINSTALLED_PACKAGES)) {
+      Log.d("diskusage", "Got package: " + info.packageName);
+      if (info.applicationInfo == null) {
+        Log.d("diskusage", "No applicationInfo");
+        continue;
+      }
       int flag = 0x40000; // ApplicationInfo.FLAG_EXTERNAL_STORAGE
-      if ((info.applicationInfo.flags & flag) != 0) {
+      boolean on_sdcard = (info.applicationInfo.flags & flag) != 0;
+      if (on_sdcard || !sdOnly) {
         changeNumLookups(1);
         final String pkg = info.packageName;
         final String name = pm.getApplicationLabel(info.applicationInfo).toString();
@@ -57,9 +93,11 @@ public class Apps2SDLoader {
             synchronized (Apps2SDLoader.this) {
               changeNumLookups(-1);
               if (succeeded) {
-                entries.add(new FileSystemPackage(apps, name, pkg, (int) pStats.codeSize, null));
+                FileSystemPackage p = new FileSystemPackage(
+                    name, pkg, pStats, info.applicationInfo.flags, dfSizes.get(pkg));
+                p.applyFilter(appFilter);
+                entries.add(p);
                 Log.i("diskusage", "codeSize: " + pStats.codeSize);
-                size += pStats.codeSize;
               }
               Apps2SDLoader.this.notify();
             }
@@ -77,17 +115,9 @@ public class Apps2SDLoader {
         }
       }
     }
-    if (size != 0) {
-      apps.size = size;
-      apps.children = entries.toArray(new FileSystemEntry[] {});
-      Arrays.sort(apps.children, apps);
-
-      FileSystemEntry[] children = new FileSystemEntry[rootElement.children.length + 1];
-      System.arraycopy(rootElement.children, 0, children, 0, rootElement.children.length);
-      children[rootElement.children.length] = apps;
-      java.util.Arrays.sort(children, rootElement);
-      rootElement.children = children;
-      rootElement.size += apps.size;
-    }
+    if (entries.size() == 0) return null;
+    FileSystemEntry[] result = entries.toArray(new FileSystemEntry[] {});
+    Arrays.sort(result, FileSystemEntry.COMPARE);
+    return result;
   }
 }

@@ -15,24 +15,23 @@ import android.widget.TextView;
 
 import com.google.android.diskusage.DiskUsage.AfterLoad;
 
-public class DeleteActivity extends Activity {
+public class DeleteActivity extends DiskUsage {
   @Override
   protected void onCreate(Bundle icicle) {
     super.onCreate(icicle);
     setContentView(new TextView(this));
-    DiskUsage.LoadFiles(this, new AfterLoad() {
+    LoadFiles(this, new AfterLoad() {
       public void run(FileSystemEntry root) {
         setContentView(R.layout.delete_view);
         ListView lv = (ListView) findViewById(R.id.list);
         
-        List<FileSystemEntry> files = new ArrayList<FileSystemEntry>();
+        List<String> files = new ArrayList<String>();
         String path = getIntent().getStringExtra("path");
         final Intent responseIntent = new Intent();
         responseIntent.putExtra("path", path);
-        final FileSystemEntry entry = root.getEntryByName(path);
-        FileSystemEntry.deleteParent = entry;
-        entry.getAllChildren(files);
-        lv.setAdapter(new ArrayAdapter<FileSystemEntry>(
+        final FileSystemEntry deleteRoot = root.getEntryByName(path);
+        deleteRoot.getAllChildren(files, deleteRoot);
+        lv.setAdapter(new ArrayAdapter<String>(
             DeleteActivity.this, R.layout.list_item, R.id.text, files));
         Button ok = (Button) findViewById(R.id.ok_button);
         ok.setOnClickListener(new OnClickListener() {

@@ -21,114 +21,30 @@ package com.google.android.diskusage;
 
 import java.io.File;
 
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.ProgressDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.DialogInterface.OnCancelListener;
-import android.content.DialogInterface.OnClickListener;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 
-public class DiskUsage extends Activity {
-  private FileSystemView view;
-  public static FileSystemPackage pkg_removed;
+public class DiskUsage extends LoadableActivity {
+  protected FileSystemView view;
   private static FileSystemEntry root;
-  private static AfterLoad afterLoad;
-  private static ProgressDialog loading;
   
-  static void LoadFiles(final Activity activity,
-      final AfterLoad runAfterLoad, boolean force) {
-    boolean scanRunning = false;
-    
-    if (force) {
-      root = null;
-    }
-
-    if (root != null) {
-      runAfterLoad.run(root);
-      return;
-    }
-    
-    scanRunning = afterLoad != null;
-    afterLoad = runAfterLoad;
-    loading = new ProgressDialog(activity) {
-      public void onBackPressed() {
-        activity.finish();
-      }
-    };
-    loading.setCancelable(true);
-    loading.setIndeterminate(true);
-    loading.setMessage(activity.getString(R.string.scaning_directories));
-    loading.show();
-
-    if (scanRunning) return;
-    final Handler handler = new Handler();
-    final File sdcard = Environment.getExternalStorageDirectory();
-
-    new Thread() {
-      @Override
-      public void run() {
-        try {
-          FileSystemEntry rootElement =
-            new FileSystemEntry(null, sdcard, 0, 20);
-          loadApps2SD(activity, rootElement);
-          final FileSystemEntry newRoot = new FileSystemEntry(
-              new FileSystemEntry[] { rootElement } );
-
-          handler.post(new Runnable() {
-            public void run() {
-              loading.dismiss();
-              loading = null;
-              AfterLoad runAfterLoad = afterLoad;
-              afterLoad = null;
-              
-              if (newRoot.children[0].children == null) {
-                handleEmptySDCard(activity, runAfterLoad);
-                return;
-              }
-              root = newRoot;
-              pkg_removed = null;
-              runAfterLoad.run(root);
-            }
-          });
-
-        } catch (final OutOfMemoryError e) {
-          root = null;
-          Log.d("DiskUsage", "out of memory!");
-          handler.post(new Runnable() {
-            public void run() {
-              loading.dismiss();
-              handleOutOfMemory(activity);
-            }
-          });
-          return;
-        }
-      }
-    }.start();
+  
+  protected FileSystemView makeView(DiskUsage diskUsage, FileSystemEntry root) {
+    return new FileSystemView(this, root);
   }
   
-  protected static void loadApps2SD(Activity activity,
-      FileSystemEntry rootElement) {
-    try {
-    new Apps2SDLoader(activity, rootElement).load();
-    } catch (Throwable t) {
-      Log.e("diskusage", "problem loading apps2sd info", t);
-    }
-  }
-
   @Override
   protected void onCreate(Bundle icicle) {
     super.onCreate(icicle);
     LoadFiles(this, new AfterLoad() {
       public void run(FileSystemEntry root) {
-        view = new FileSystemView(DiskUsage.this, root);
+        view = makeView(DiskUsage.this, root);
         setContentView(view);
         view.requestFocus();
       }
@@ -169,33 +85,6 @@ public class DiskUsage extends Activity {
     return true;
   }
 
-  private static void handleOutOfMemory(final Activity activity) {
-    new AlertDialog.Builder(activity)
-    .setTitle(activity.getString(R.string.out_of_memory))
-    .setOnCancelListener(new OnCancelListener() {
-      public void onCancel(DialogInterface dialog) {
-        activity.finish();
-      }
-    }).create().show();
-  }
-
-  private static void handleEmptySDCard(final Activity activity,
-      final AfterLoad afterLoad) {
-    new AlertDialog.Builder(activity)
-    .setTitle(activity.getString(R.string.empty_or_missing_sdcard))
-    .setPositiveButton(activity.getString(R.string.button_rescan), new OnClickListener() {
-      public void onClick(DialogInterface dialog, int which) {
-        if (afterLoad == null)
-          throw new RuntimeException("afterLoad is empty");
-        LoadFiles(activity, afterLoad, true);
-      }
-    })
-    .setOnCancelListener(new OnCancelListener() {
-      public void onCancel(DialogInterface dialog) {
-        activity.finish();
-      }
-    }).create().show();
-  }
   final protected void onSaveInstanceState(Bundle outState) {
     if (view != null)
       view.saveState(outState);
@@ -207,5 +96,48 @@ public class DiskUsage extends Activity {
   
   public interface AfterLoad {
     public void run(FileSystemEntry root);
+  }
+
+  @Override
+  FileSystemEntry getRoot() {
+    return root;
+  }
+
+  @Override
+  void setRoot(FileSystemEntry root) {
+    DiskUsage.root = root;
+  }
+
+  @Override
+  FileSystemEntry scan() {
+    final File sdcard = Environment.getExternalStorageDirectory();
+
+    FileSystemEntry rootElement =
+      new FileSystemEntry(null, sdcard, 0, 20);
+    FileSystemEntry[] apps = loadApps2SD(true, AppFilter.getFilterForDiskUsage());
+    if (apps != null) {
+      FileSystemEntry apps2sd = new FileSystemEntry("Apps2SD", apps);
+      FileSystemEntry[] files = rootElement.children;
+      FileSystemEntry[] newFiles = new FileSystemEntry[files.length + 1];
+      System.arraycopy(files, 0, newFiles, 0, files.length);
+      newFiles[files.length] = apps2sd;
+      java.util.Arrays.sort(newFiles, FileSystemEntry.COMPARE);
+      rootElement = new FileSystemEntry("sdcard", newFiles);
+    }
+    FileSystemEntry newRoot = new FileSystemEntry(null,
+        new FileSystemEntry[] { rootElement } );
+    return newRoot;
+  }
+  
+  protected FileSystemEntry[] loadApps2SD(boolean sdOnly, AppFilter appFilter) {
+    final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+    if (sdkVersion < Build.VERSION_CODES.FROYO && sdOnly) return null;
+
+    try {
+      return (new Apps2SDLoader(this).load(sdOnly, appFilter));
+    } catch (Throwable t) {
+      Log.e("diskusage", "problem loading apps2sd info", t);
+      return null;
+    }
   }
 }

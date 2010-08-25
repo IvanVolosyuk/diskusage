@@ -19,14 +19,6 @@
 
 package com.google.android.diskusage;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.zip.GZIPInputStream;
-
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
@@ -41,26 +33,31 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
+import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.Toast;
-
 import com.google.android.diskusage.DiskUsage.AfterLoad;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.zip.GZIPInputStream;
 
 class FileSystemView extends View {
   FileSystemEntry masterRoot;
   //FileSystemEntry viewRoot;
-  private Cursor cursor;
+  protected Cursor cursor;
   boolean titleNeedUpdate = false;
   DiskUsage context;
 
   private float targetViewDepth;
-  private long  targetViewTop;
-  private long  targetViewBottom;
+  protected long  targetViewTop;
+  protected long  targetViewBottom;
 
   private float prevViewDepth;
   private long  prevViewTop;
@@ -88,8 +85,6 @@ class FileSystemView extends View {
   // Enable simple view caching (useful for motions), but labels are painted
   // inconsistently.
   private final boolean useCache = false;
-
-  private FileSystemEntry menuForEntry;
 
   static HashMap<String, String> extensionToMime;
 
@@ -254,7 +249,7 @@ class FileSystemView extends View {
     invalidate();
     return;
   }
-  
+
   @Override
   public final boolean onTouchEvent(MotionEvent ev) {
     if (sdcardIsEmpty())
@@ -565,11 +560,11 @@ class FileSystemView extends View {
       fullZoom = false;
       if (targetViewTop == prevViewTop
           && targetViewBottom == prevViewBottom) {
-        if (!warnOnFileSelect) {
-        Toast.makeText(context,
-            "Press menu to preview or delete", Toast.LENGTH_SHORT).show();
+        if ((!warnOnFileSelect) && (!(entry instanceof FileSystemEmptySpace))) {
+          Toast.makeText(context,
+              "Press menu to preview or delete", Toast.LENGTH_SHORT).show();
+          warnOnFileSelect = true;
         }
-        warnOnFileSelect = true;
       }
       float minRequiredDepth = cursor.depth + 1 + (has_children ? 1 : 0) - maxLevels;
       if (targetViewDepth < minRequiredDepth) {
@@ -607,7 +602,6 @@ class FileSystemView extends View {
     } else if (targetViewDepth > maxRequiredDepth) {
       targetViewDepth = maxRequiredDepth;
     }
-    
     if (fullZoom) {
       targetViewTop = cursor.top;
       targetViewBottom = cursor.top + cursor.position.size;
@@ -704,20 +698,23 @@ class FileSystemView extends View {
     return true;
   }
   
-  public final void onPrepareOptionsMenu(Menu menu) {
+  public void onPrepareOptionsMenu(Menu menu) {
     //Log.d("DiskUsage", "onCreateContextMenu");
     menu.clear();
     boolean showFileMenu = false;
+    FileSystemEntry entry = null;
 
     if (!sdcardIsEmpty()) {
-      menuForEntry = cursor.position;
+      entry = cursor.position;
       // FIXME: hack to disable removal of /sdcard
-      if (menuForEntry == masterRoot.children[0]) {
-        Toast.makeText(context, "Select directory or file first", Toast.LENGTH_SHORT).show();
+      if (entry == masterRoot.children[0]) {
+        // Toast.makeText(context, "Select directory or file first", Toast.LENGTH_SHORT).show();
       } else {
         showFileMenu = true;
       }
     }
+    
+    final FileSystemEntry menuForEntry = entry;
 
     menu.add(str(R.string.button_show))
     .setEnabled(showFileMenu)
@@ -729,17 +726,24 @@ class FileSystemView extends View {
         return true;
       }
     });
+    
+    menu.add(context.getString(R.string.show_internal))
+    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
+      @Override
+      public boolean onMenuItemClick(MenuItem item) {
+        Intent i = new Intent(context, AppUsage.class);
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        context.startActivity(i);
+        return true;
+      }
+    });
 
     menu.add(context.getString(R.string.button_rescan))
     .setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
-        DiskUsage.LoadFiles(context, new AfterLoad() {
-          public void run(FileSystemEntry root) {
-            masterRoot = root;
-            targetViewBottom = root.size;
-            cursor = new Cursor(masterRoot);
-            titleNeedUpdate = true;
-            invalidate();
+        context.LoadFiles(context, new AfterLoad() {
+          public void run(FileSystemEntry newRoot) {
+            rescanFinished(newRoot);
           }
         }, true);
         return true;
@@ -755,6 +759,18 @@ class FileSystemView extends View {
         return true;
       }
     });
+  }
+  
+  public void rescanFinished(FileSystemEntry newRoot) {
+    masterRoot = newRoot;
+    // FIXME: that's probably wrong
+    prepareMotion();
+    targetViewTop = 0;
+    targetViewBottom = newRoot.size;
+    targetViewDepth = 0;
+    cursor = new Cursor(masterRoot);
+    titleNeedUpdate = true;
+    invalidate();
   }
   
   private void view(FileSystemEntry entry) {
@@ -862,7 +878,7 @@ class FileSystemView extends View {
     
     if (entry.children == null || entry.children.length == 0) {
       if (entry instanceof FileSystemPackage) {
-        DiskUsage.pkg_removed = (FileSystemPackage) entry;
+        context.pkg_removed = (FileSystemPackage) entry;
         BackgroundDelete.startDelete(FileSystemView.this, entry);
         return;
       }
@@ -1072,6 +1088,7 @@ class FileSystemView extends View {
     if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
       cursor.right(this);
       zoomCursor();
+
       float requiredDepth = cursor.depth + 1 + (cursor.position.children == null ? 0 : 1) - maxLevels;
       if (viewDepth < requiredDepth) {
         prepareMotion();

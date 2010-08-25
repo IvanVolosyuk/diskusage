@@ -30,7 +30,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
-public class FileSystemEntry implements Comparator<FileSystemEntry> {
+public class FileSystemEntry {
   private static final Paint bg = new Paint();
   private static final Paint cursor_fg = new Paint();
   private static final Paint fg = new Paint();
@@ -48,7 +48,6 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
   private static String dir_name_size_num_dirs;
   private static String dir_empty;
   private static String dir_name_size;
-  static FileSystemEntry deleteParent = null;
   private static final Comparator<FileSystemEntry> alphaComparator =
     new Comparator<FileSystemEntry>() {
       public int compare(FileSystemEntry a, FileSystemEntry b) {
@@ -58,7 +57,7 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
           if (ha) return -1;
           else return 1;
         }
-        return a.relativePath(deleteParent).compareTo(b.relativePath(deleteParent));
+        return a.name.compareTo(b.name);
       }
   };
   
@@ -102,7 +101,8 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
   long size;
 
   /**
-   * Constructor for file object.
+   * Constructor object for ordinary file.
+   * This constructor just fill the fields: parent, name, size.
    * @param parent parent directory object.
    * @param file corresponding File
    */
@@ -113,19 +113,27 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
   }
   
   /**
-   * Constructor for root node.
+   * Special constructor for root node.
+   * Sets children field to specified parameter. Computes root size.
+   * Updates parent pointer for all children.
    */
-  public FileSystemEntry(FileSystemEntry[] children) {
+  public FileSystemEntry(String name, FileSystemEntry[] children) {
+    this.name = name;
     this.children = children;
+    if (children == null) return;
     for (int i = 0; i < children.length; i++) {
       size += children[i].size;
       children[i].parent = this;
     }
   }
   
-  public FileSystemEntry(FileSystemEntry parent,
-      String name, int size, FileSystemEntry[] children) {
-    this.parent = parent;
+  /**
+   * Dummy constructor which sets all fields to specified parameters.
+   * @param name
+   * @param size
+   * @param children
+   */
+  public FileSystemEntry(String name, long size, FileSystemEntry[] children) {
     this.name = name;
     this.size = size;
     this.children = children;
@@ -133,6 +141,9 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
 
   /**
    * Constructor for directory object.
+   * This constructor starts recursive scan to find all descendent files and directories.
+   * Stores parent into field, name obtained from file, size of this directory
+   * is calculated as a sum of all children.
    * @param parent parent directory object.
    * @param file corresponding File object
    * @param depth current directory tree depth
@@ -174,15 +185,19 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     if (nchildren != 0) {
       children = new FileSystemEntry[nchildren];
       System.arraycopy(children0, 0, children, 0, nchildren);
-      java.util.Arrays.sort(children, this);
+      java.util.Arrays.sort(children, COMPARE);
     }
   }
   
-
-  public final int compare(FileSystemEntry aa, FileSystemEntry bb) {
-    if (aa.size == bb.size)	return 0;
-    return aa.size < bb.size ? 1 : -1;
+  public static class Compare implements Comparator<FileSystemEntry> {
+    @Override
+    public final int compare(FileSystemEntry aa, FileSystemEntry bb) {
+      if (aa.size == bb.size)     return 0;
+      return aa.size < bb.size ? 1 : -1;
+    }
   }
+  
+  public static Compare COMPARE = new Compare();
 
   /**
    * Find index of directChild in 'children' field of this entry. 
@@ -405,13 +420,12 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
 
   // FIXME: not a general toString() but specific to deletion activity,
   // need to rename to something else
-  public final String toString() {
+  public final String pathFromRoot(FileSystemEntry root) {
     String res = toTitleString();
-    if (parent == deleteParent) return res;
-    else return parent.relativePath(deleteParent) + "/" + res;
-    
+    if (parent == root) return res;
+    else return parent.relativePath(root) + "/" + res;
   }
-  
+
   public final String toTitleString() {
     String sizeString0 = this.sizeString;
     if (sizeString0 == null) {
@@ -539,7 +553,8 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
       }
       return;
     }
-    throw new RuntimeException("child is not found: " + this);
+    // FIXME: the exception was thrown somehow
+    // throw new RuntimeException("child is not found: " + this);
   }
 
   public final void insert(FileSystemEntry newEntry) {
@@ -551,7 +566,7 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     FileSystemEntry parent0 = this;
     
     while (parent0 != null) {
-      java.util.Arrays.sort(children, this);
+      java.util.Arrays.sort(children, COMPARE);
       parent0.size += newEntry.size;
       parent0.sizeString = null;
       parent0 = parent0.parent;
@@ -600,14 +615,14 @@ public class FileSystemEntry implements Comparator<FileSystemEntry> {
     fontSize = descent - ascent;
   }
 
-  public final void getAllChildren(List<FileSystemEntry> out) {
+  public final void getAllChildren(List<String> out, FileSystemEntry deleteRoot) {
     FileSystemEntry[] sortedChildren = new FileSystemEntry[children.length];
     System.arraycopy(children, 0, sortedChildren, 0, children.length);
     Arrays.sort(sortedChildren, alphaComparator);
     for (int i = 0; i < children.length; i++) {
       FileSystemEntry child = children[i];
-      if (child.children != null) child.getAllChildren(out);
-      else out.add(child);
+      if (child.children != null) child.getAllChildren(out, deleteRoot);
+      else out.add(child.pathFromRoot(deleteRoot));
     }
   }
 }

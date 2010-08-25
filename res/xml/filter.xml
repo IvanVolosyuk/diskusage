@@ -1,0 +1,24 @@
+<PreferenceScreen
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:title="Apps Filter">
+  <CheckBoxPreference
+    android:title="Internal Only"
+    android:summary="Exclude data stored on SD Card"
+    android:defaultValue="true"
+    android:key="internal_only"/>
+  <CheckBoxPreference
+    android:title="Show Apk"
+    android:summary="Display application files."
+    android:defaultValue="true"
+    android:key="show_apk"/>
+  <CheckBoxPreference
+    android:title="Show Data"
+    android:summary="Display storage allocated for application data."
+    android:defaultValue="true"
+    android:key="show_data"/>
+  <CheckBoxPreference
+    android:title="Show Cache"
+    android:defaultValue="false"
+    android:summary="Application cache uses different partition and can't be used by apk and data."
+    android:key="show_cache"/>
+</PreferenceScreen>
