@@ -33,7 +33,7 @@ import android.view.Menu;
 public class DiskUsage extends LoadableActivity {
   protected FileSystemView view;
   private static FileSystemEntry root;
-  
+  private Bundle savedState;
   
   protected FileSystemView makeView(DiskUsage diskUsage, FileSystemEntry root) {
     return new FileSystemView(this, root);
@@ -42,11 +42,18 @@ public class DiskUsage extends LoadableActivity {
   @Override
   protected void onCreate(Bundle icicle) {
     super.onCreate(icicle);
+    Bundle receivedState = getIntent().getBundleExtra(STATE_KEY);
+    if (receivedState != null) onRestoreInstanceState(receivedState);
     LoadFiles(this, new AfterLoad() {
-      public void run(FileSystemEntry root) {
+      public void run(FileSystemEntry root, boolean isCached) {
         view = makeView(DiskUsage.this, root);
+        if (!isCached) view.startZoomAnimation();
         setContentView(view);
         view.requestFocus();
+        if (savedState != null) {
+          onRestoreInstanceState(savedState);
+          savedState = null;
+        }
       }
     }, false);
   }
@@ -85,17 +92,19 @@ public class DiskUsage extends LoadableActivity {
     return true;
   }
 
-  final protected void onSaveInstanceState(Bundle outState) {
+  protected void onSaveInstanceState(Bundle outState) {
     if (view != null)
       view.saveState(outState);
   }
-  final protected void onRestoreInstanceState(Bundle inState) {
+  protected void onRestoreInstanceState(Bundle inState) {
     if (view != null)
-      view.restoreState(inState); 
+      view.restoreState(inState);
+    else
+      savedState = inState;
   }
   
   public interface AfterLoad {
-    public void run(FileSystemEntry root);
+    public void run(FileSystemEntry root, boolean isCached);
   }
 
   @Override
@@ -118,9 +127,15 @@ public class DiskUsage extends LoadableActivity {
     if (apps != null) {
       FileSystemEntry apps2sd = new FileSystemEntry("Apps2SD", apps);
       FileSystemEntry[] files = rootElement.children;
-      FileSystemEntry[] newFiles = new FileSystemEntry[files.length + 1];
-      System.arraycopy(files, 0, newFiles, 0, files.length);
-      newFiles[files.length] = apps2sd;
+      FileSystemEntry[] newFiles;
+      if (files != null) {
+        newFiles = new FileSystemEntry[files.length + 1];  
+        System.arraycopy(files, 0, newFiles, 0, files.length);
+        newFiles[files.length] = apps2sd;
+      } else {
+        newFiles = new FileSystemEntry[] { apps2sd };
+      }
+      
       java.util.Arrays.sort(newFiles, FileSystemEntry.COMPARE);
       rootElement = new FileSystemEntry("sdcard", newFiles);
     }
@@ -140,4 +155,8 @@ public class DiskUsage extends LoadableActivity {
       return null;
     }
   }
+  
+  public static final String STATE_KEY="state";
+  public static final int DISKUSAGE_STATE = 5;
+  public static final int APPUSAGE_STATE = 6;
 }

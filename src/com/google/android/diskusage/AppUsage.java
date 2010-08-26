@@ -3,10 +3,13 @@ package com.google.android.diskusage;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 
+import android.content.Intent;
+import android.os.Bundle;
 import android.os.StatFs;
 
 public class AppUsage extends DiskUsage {
   static FileSystemEntry root;
+  private AppFilter pendingFilter;
 
   @Override
   FileSystemEntry getRoot() {
@@ -72,9 +75,10 @@ public class AppUsage extends DiskUsage {
 
   @Override
   FileSystemEntry scan() {
-    AppFilter filter = AppFilter.loadSavedAppFilter(this);
+    AppFilter filter  = pendingFilter;
     FileSystemEntry[] appsArray = loadApps2SD(false, filter);
     FileSystemSpecial appsElement = new FileSystemSpecial("Applications", appsArray);
+    appsElement.filter = filter;
     return wrapApps(appsElement, filter);
   }
 
@@ -84,27 +88,65 @@ public class AppUsage extends DiskUsage {
   }
   
   @Override
-  protected void onResume() {
-    super.onResume();
-    if (view == null) return;
+  protected void onCreate(Bundle icicle) {
+    pendingFilter = AppFilter.loadSavedAppFilter(this);
+    super.onCreate(icicle);
+  }
+  
+  private FileSystemSpecial getAppsElement(FileSystemView view) {
     FileSystemEntry root = view.masterRoot;
-    if (root == null) return;
     FileSystemEntry apps = root.children[0].children[0];
     if (apps instanceof FileSystemPackage) {
       apps = apps.parent;
     }
-    FileSystemSpecial appsElement = (FileSystemSpecial) apps;
-    AppFilter filter = AppFilter.loadSavedAppFilter(this);
+    return (FileSystemSpecial) apps;
+  }
+  
+  private void updateFilter(AppFilter newFilter) {
+    if (view == null) {
+      pendingFilter = newFilter;
+      return;
+    }
+
+    FileSystemSpecial appsElement = getAppsElement(view);
+    if (newFilter.equals(appsElement.filter)) {
+      return;
+    }
+    appsElement.filter = newFilter;
     long size = 0;
     for (FileSystemEntry entry : appsElement.children) {
       FileSystemPackage pkg = (FileSystemPackage) entry;
-      pkg.applyFilter(filter);
+      pkg.applyFilter(newFilter);
       size += pkg.size;
     }
     java.util.Arrays.sort(appsElement.children, FileSystemEntry.COMPARE);
     appsElement.size = size;
     appsElement.sizeString = null;
-    FileSystemEntry newRoot = wrapApps(appsElement, filter);
+    FileSystemEntry newRoot = wrapApps(appsElement, newFilter);
+    setRoot(newRoot);
     view.rescanFinished(newRoot);
+    view.startZoomAnimation();
+  }
+  
+  @Override
+  protected void onSaveInstanceState(Bundle outState) {
+    super.onSaveInstanceState(outState);
+    if (view == null) return;
+    FileSystemSpecial appsElement = getAppsElement(view);
+    outState.putParcelable("filter", appsElement.filter);
+  }
+  
+  @Override
+  protected void onRestoreInstanceState(Bundle inState) {
+    super.onRestoreInstanceState(inState);
+    AppFilter newFilter = (AppFilter) inState.getParcelable("filter");
+    if (newFilter != null) updateFilter(newFilter);
+  }
+  
+  @Override
+  public void onActivityResult(int a, int result, Intent i) {
+    super.onActivityResult(a, result, i);
+    AppFilter newFilter = AppFilter.loadSavedAppFilter(this);
+    updateFilter(newFilter);
   }
 }

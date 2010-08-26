@@ -18,7 +18,7 @@ public class FileSystemPackage extends FileSystemEntry {
   public FileSystemPackage(
       String name, String pkg, PackageStats stats,
       int flags, Long hackApkSize) {
-    super(name, 0, null);
+    super(name, 0);
     this.pkg = pkg;
     this.cacheSize = (int) stats.cacheSize;
     this.dataSize = (int) stats.dataSize;
@@ -43,16 +43,16 @@ public class FileSystemPackage extends FileSystemEntry {
       
     } else {
       if (filter.useApk) {
-        entries.add(new FileSystemEntry("apk", codeSize, null));
+        entries.add(new FileSystemEntry("apk", codeSize));
         size += codeSize;
       }
     }
     if (filter.useData) {
-      entries.add(new FileSystemEntry("data", dataSize, null));
+      entries.add(new FileSystemEntry("data", dataSize));
       size += dataSize;
     }
     if (filter.useCache) {
-      entries.add(new FileSystemEntry("cache", cacheSize, null));
+      entries.add(new FileSystemEntry("cache", cacheSize));
       size += cacheSize;
     }
     if (filter.enableChildren) {

@@ -133,10 +133,10 @@ public class FileSystemEntry {
    * @param size
    * @param children
    */
-  public FileSystemEntry(String name, long size, FileSystemEntry[] children) {
+  public FileSystemEntry(String name, long size) {
     this.name = name;
     this.size = size;
-    this.children = children;
+    this.children = null;
   }
 
   /**
@@ -623,6 +623,24 @@ public class FileSystemEntry {
       FileSystemEntry child = children[i];
       if (child.children != null) child.getAllChildren(out, deleteRoot);
       else out.add(child.pathFromRoot(deleteRoot));
+    }
+  }
+  
+  public void validate0() {
+    if (parent != null) {
+      parent.getIndexOf(this);
+      validateRecursive();
+      parent.validate0();
+      return;
+    }
+    validateRecursive();
+  }
+  
+  private void validateRecursive() {
+    if (children == null) return;
+    for (int i = 0; i < children.length; i++) {
+      if (children[i].parent != this) throw new RuntimeException("corrupted: " + this.path() + " <> " + children[i].name);
+      children[i].validateRecursive();
     }
   }
 }

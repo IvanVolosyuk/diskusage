@@ -1,10 +1,12 @@
 package com.google.android.diskusage;
 
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 
 public class FilterActivity extends PreferenceActivity {
+  static final String FILTER_RESULT = "res";
   
   @Override
   public void onCreate(Bundle savedInstanceState) {

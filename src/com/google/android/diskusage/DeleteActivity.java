@@ -21,7 +21,7 @@ public class DeleteActivity extends DiskUsage {
     super.onCreate(icicle);
     setContentView(new TextView(this));
     LoadFiles(this, new AfterLoad() {
-      public void run(FileSystemEntry root) {
+      public void run(FileSystemEntry root, boolean isCached) {
         setContentView(R.layout.delete_view);
         ListView lv = (ListView) findViewById(R.id.list);
         

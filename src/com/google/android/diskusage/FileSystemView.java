@@ -55,7 +55,7 @@ class FileSystemView extends View {
   boolean titleNeedUpdate = false;
   DiskUsage context;
 
-  private float targetViewDepth;
+  protected float targetViewDepth;
   protected long  targetViewTop;
   protected long  targetViewBottom;
 
@@ -79,7 +79,7 @@ class FileSystemView extends View {
   private Interpolator interpolator = new DecelerateInterpolator();
   private static long animationDuration = 900; 
   private static long deletionAnimationDuration = 900; 
-  private static float maxLevels = 4;
+  protected float maxLevels = 3.2f;
 
   
   // Enable simple view caching (useful for motions), but labels are painted
@@ -727,23 +727,13 @@ class FileSystemView extends View {
       }
     });
     
-    menu.add(context.getString(R.string.show_internal))
-    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      @Override
-      public boolean onMenuItemClick(MenuItem item) {
-        Intent i = new Intent(context, AppUsage.class);
-        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        context.startActivity(i);
-        return true;
-      }
-    });
-
     menu.add(context.getString(R.string.button_rescan))
     .setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
         context.LoadFiles(context, new AfterLoad() {
-          public void run(FileSystemEntry newRoot) {
+          public void run(FileSystemEntry newRoot, boolean isCached) {
             rescanFinished(newRoot);
+            if (!isCached) startZoomAnimation();
           }
         }, true);
         return true;
@@ -763,11 +753,6 @@ class FileSystemView extends View {
   
   public void rescanFinished(FileSystemEntry newRoot) {
     masterRoot = newRoot;
-    // FIXME: that's probably wrong
-    prepareMotion();
-    targetViewTop = 0;
-    targetViewBottom = newRoot.size;
-    targetViewDepth = 0;
     cursor = new Cursor(masterRoot);
     titleNeedUpdate = true;
     invalidate();
@@ -1054,6 +1039,18 @@ class FileSystemView extends View {
     if (sdcardIsEmpty())
       return super.onKeyDown(keyCode, event);
     
+    if (keyCode == KeyEvent.KEYCODE_BACK) {
+      Bundle outState = new Bundle();
+      context.onSaveInstanceState(outState);
+      Intent result = new Intent();
+      result.putExtra(DiskUsage.STATE_KEY, outState);
+      int code = context instanceof AppUsage ?
+          DiskUsage.APPUSAGE_STATE : DiskUsage.DISKUSAGE_STATE;
+      context.setResult(code, result);
+      context.finish();
+      return true;
+    }
+    
     if (deletingEntry != null) {
       switch (keyCode) {
       case KeyEvent.KEYCODE_DPAD_CENTER:
@@ -1118,7 +1115,6 @@ class FileSystemView extends View {
     super.onLayout(changed, left, top, right, bottom);
     screenHeight = getHeight();
     screenWidth = getWidth();
-    maxLevels = 3.2f;
     minElementWidth = screenWidth / 6;
     maxElementWidth = screenWidth / 2;
 
@@ -1128,7 +1124,7 @@ class FileSystemView extends View {
     titleNeedUpdate = true;
   }
 
-  public final void restoreState(Bundle inState) {
+  public void restoreState(Bundle inState) {
     String cursorName = inState.getString("cursor");
     if (cursorName == null) return;
     FileSystemEntry entry = masterRoot.getEntryByName(cursorName);
@@ -1137,16 +1133,31 @@ class FileSystemView extends View {
     targetViewDepth = prevViewDepth = viewDepth = inState.getFloat("viewDepth");
     targetViewTop = prevViewTop = viewTop = inState.getLong("viewTop");
     targetViewBottom = prevViewBottom = viewBottom = inState.getLong("viewBottom");
+    maxLevels = inState.getFloat("maxLevels");
   }
 
-  public final void saveState(Bundle outState) {
+  public void saveState(Bundle outState) {
     outState.putString("cursor", cursor.position.path());
     outState.putFloat("viewDepth", viewDepth);
     outState.putLong("viewTop", viewTop);
     outState.putLong("viewBottom", viewBottom);
+    outState.putFloat("maxLevels", maxLevels);
   }
 
   public final void resetCursor() {
     cursor.set(this, masterRoot.children[0]);
+  }
+
+  public void startZoomAnimation() {
+    long large = masterRoot.size * 10;
+    long center = masterRoot.size / 2; 
+    viewTop = center - large;
+    viewBottom = center + large;
+    viewDepth = 0;
+    prepareMotion();
+    animationDuration = 300;
+    targetViewTop = 0;
+    targetViewBottom = masterRoot.size;
+    targetViewDepth = 0;
   }
 }

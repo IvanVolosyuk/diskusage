@@ -4,6 +4,7 @@ import java.io.File;
 
 import com.google.android.diskusage.DiskUsage.AfterLoad;
 
+import android.accounts.OnAccountsUpdateListener;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -32,18 +33,20 @@ public abstract class LoadableActivity extends Activity {
     }
 
     if (getRoot() != null) {
-      runAfterLoad.run(getRoot());
+      runAfterLoad.run(getRoot(), true);
       return;
     }
     
     scanRunning = afterLoad != null;
     afterLoad = runAfterLoad;
-    activity.loading = new ProgressDialog(activity) {
-      public void onBackPressed() {
+    activity.loading = new ProgressDialog(activity);
+    activity.loading.setOnCancelListener(new OnCancelListener() {
+      @Override
+      public void onCancel(DialogInterface dialog) {
         activity.loading = null;
         activity.finish();
       }
-    };
+    });
     activity.loading.setCancelable(true);
     activity.loading.setIndeterminate(true);
     activity.loading.setMessage(activity.getString(R.string.scaning_directories));
@@ -72,7 +75,7 @@ public abstract class LoadableActivity extends Activity {
               }
               setRoot(newRoot);
               pkg_removed = null;
-              runAfterLoad.run(getRoot());
+              runAfterLoad.run(getRoot(), false);
             }
           });
 

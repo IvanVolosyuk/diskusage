@@ -2,6 +2,8 @@ package com.google.android.diskusage;
 
 import android.content.ComponentName;
 import android.content.Intent;
+import android.os.Bundle;
+import android.os.Parcelable;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -11,7 +13,6 @@ import android.widget.Toast;
 import com.google.android.diskusage.DiskUsage.AfterLoad;
 
 public class AppView extends FileSystemView {
-  
   AppView(DiskUsage context, FileSystemEntry root) {
     super(context, root);
   }
@@ -46,7 +47,7 @@ public class AppView extends FileSystemView {
   private void showFilterDialog() {
     Intent i = new Intent(context, FilterActivity.class);
     i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-    context.startActivity(i);
+    context.startActivityForResult(i, 0);
   }
 
   
@@ -79,21 +80,13 @@ public class AppView extends FileSystemView {
       }
     });
     
-    menu.add(context.getString(R.string.show_external))
-    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      @Override
-      public boolean onMenuItemClick(MenuItem item) {
-        context.startActivity(new Intent(context, DiskUsage.class));
-        return true;
-      }
-    });
-
     menu.add(context.getString(R.string.button_rescan))
     .setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
         context.LoadFiles(context, new AfterLoad() {
-          public void run(FileSystemEntry newRoot) {
+          public void run(FileSystemEntry newRoot, boolean isCached) {
             rescanFinished(newRoot);
+            if (!isCached) startZoomAnimation();
           }
         }, true);
         return true;

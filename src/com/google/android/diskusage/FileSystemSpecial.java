@@ -1,9 +1,10 @@
 package com.google.android.diskusage;
 
 public class FileSystemSpecial extends FileSystemEntry {
+  AppFilter filter;
 
-  public FileSystemSpecial(String name, long size, FileSystemEntry[] children) {
-    super(name, size, children);
+  public FileSystemSpecial(String name, long size) {
+    super(name, size);
   }
   
   public FileSystemSpecial(String name, FileSystemEntry[] children) {
