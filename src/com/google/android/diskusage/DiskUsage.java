@@ -20,6 +20,8 @@
 package com.google.android.diskusage;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
 
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -27,6 +29,7 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.StatFs;
 import android.util.Log;
 import android.view.Menu;
 
@@ -57,10 +60,22 @@ public class DiskUsage extends LoadableActivity {
       }
     }, false);
   }
+  
+  public static int getExternalBlockSize() {
+    final File sdcard = Environment.getExternalStorageDirectory();
+    StatFs data = new StatFs(sdcard.getAbsolutePath());
+    int blockSize = data.getBlockSize();
+    return blockSize;
+  }
+  
+  public int getBlockSize() {
+    return getExternalBlockSize();
+  }
 
   @Override
   protected void onResume() {
     super.onResume();
+    FileSystemEntry.blockSize = getBlockSize();
     if (pkg_removed == null) return;
     // Check if package removed
     String pkg_name = pkg_removed.pkg;
@@ -120,36 +135,51 @@ public class DiskUsage extends LoadableActivity {
   @Override
   FileSystemEntry scan() {
     final File sdcard = Environment.getExternalStorageDirectory();
+    StatFs data = new StatFs(sdcard.getAbsolutePath());
+    int blockSize = data.getBlockSize();
+    FileSystemEntry.blockSize = blockSize;
+    long freeBlocks = data.getAvailableBlocks();
+    long totalBlocks = data.getBlockCount();
+    
 
     FileSystemEntry rootElement =
-      new FileSystemEntry(null, sdcard, 0, 20);
-    FileSystemEntry[] apps = loadApps2SD(true, AppFilter.getFilterForDiskUsage());
-    if (apps != null) {
-      FileSystemEntry apps2sd = new FileSystemEntry("Apps2SD", apps);
-      FileSystemEntry[] files = rootElement.children;
-      FileSystemEntry[] newFiles;
-      if (files != null) {
-        newFiles = new FileSystemEntry[files.length + 1];  
-        System.arraycopy(files, 0, newFiles, 0, files.length);
-        newFiles[files.length] = apps2sd;
-      } else {
-        newFiles = new FileSystemEntry[] { apps2sd };
+      new FileSystemEntry(null, sdcard, 0, 20, blockSize);
+    ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
+    
+    if (rootElement.children != null) {
+      for (FileSystemEntry e : rootElement.children) {
+        entries.add(e);
       }
-      
-      java.util.Arrays.sort(newFiles, FileSystemEntry.COMPARE);
-      rootElement = new FileSystemEntry("sdcard", newFiles);
     }
+    
+    FileSystemEntry[] apps = loadApps2SD(true, AppFilter.getFilterForDiskUsage(), blockSize);
+    if (apps != null) {
+      FileSystemEntry apps2sd = new FileSystemEntry("Apps2SD", apps, blockSize);
+      entries.add(apps2sd);
+    }
+    
+    long visibleBlocks = 0;
+    for (FileSystemEntry e : entries) {
+      visibleBlocks += e.getSizeInBlocks();
+    }
+    
+    long systemBlocks = totalBlocks - freeBlocks - visibleBlocks;
+    Collections.sort(entries, FileSystemEntry.COMPARE);
+    entries.add(new FileSystemSystemSpace("System data", systemBlocks * blockSize, blockSize));
+    entries.add(new FileSystemFreeSpace("Free space", freeBlocks * blockSize, blockSize));
+    
+    rootElement = new FileSystemEntry("sdcard", entries.toArray(new FileSystemEntry[0]), blockSize);
     FileSystemEntry newRoot = new FileSystemEntry(null,
-        new FileSystemEntry[] { rootElement } );
+        new FileSystemEntry[] { rootElement }, blockSize);
     return newRoot;
   }
   
-  protected FileSystemEntry[] loadApps2SD(boolean sdOnly, AppFilter appFilter) {
+  protected FileSystemEntry[] loadApps2SD(boolean sdOnly, AppFilter appFilter, int blockSize) {
     final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
     if (sdkVersion < Build.VERSION_CODES.FROYO && sdOnly) return null;
 
     try {
-      return (new Apps2SDLoader(this).load(sdOnly, appFilter));
+      return (new Apps2SDLoader(this).load(sdOnly, appFilter, blockSize));
     } catch (Throwable t) {
       Log.e("diskusage", "problem loading apps2sd info", t);
       return null;

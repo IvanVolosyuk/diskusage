@@ -45,6 +45,7 @@ import com.google.android.diskusage.DiskUsage.AfterLoad;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.zip.GZIPInputStream;
 
@@ -54,6 +55,10 @@ class FileSystemView extends View {
   protected Cursor cursor;
   boolean titleNeedUpdate = false;
   DiskUsage context;
+  
+  private int numSpecialEntries = 0;
+  private long freeSpace = 0;
+  private long freeSpaceZoom = 0;
 
   protected float targetViewDepth;
   protected long  targetViewTop;
@@ -236,9 +241,9 @@ class FileSystemView extends View {
       viewBottom += viewTop - oldTop;
     }
 
-    if (viewBottom > masterRoot.size + allowedOverflow) {
+    if (viewBottom > masterRoot.encodedSize + allowedOverflow) {
       long oldBottom = viewBottom;
-      viewBottom = masterRoot.size + allowedOverflow;
+      viewBottom = masterRoot.encodedSize + allowedOverflow;
       viewTop += viewBottom - oldBottom;
     }
     targetViewTop = viewTop;
@@ -320,9 +325,9 @@ class FileSystemView extends View {
           targetViewBottom += targetViewTop - oldTop;
         }
 
-        if (targetViewBottom > masterRoot.size + allowedOverflow) {
+        if (targetViewBottom > masterRoot.encodedSize + allowedOverflow) {
           long oldBottom = targetViewBottom;
-          targetViewBottom = masterRoot.size + allowedOverflow;
+          targetViewBottom = masterRoot.encodedSize + allowedOverflow;
           targetViewTop += targetViewBottom - oldBottom;
         }
       }
@@ -341,13 +346,32 @@ class FileSystemView extends View {
 
     //this.viewRoot = root;
     this.masterRoot = root;
+    updateSpecialEntries();
+    zoomState = ZoomState.ZOOM_ALLOCATED;
 //    this.setBackgroundColor(0x80000000);
 //    this.setBackgroundDrawable(null);
     this.setFocusable(true);
     this.setFocusableInTouchMode(true);
-    targetViewBottom = root.size;
+    targetViewBottom = root.encodedSize;
     cursor = new Cursor(masterRoot);
     setBackgroundColor(Color.GRAY);
+  }
+  
+  private void updateSpecialEntries() {
+    numSpecialEntries = 0;
+    freeSpace = 0;
+    freeSpaceZoom = 0;
+    if (masterRoot.children == null) return;
+    FileSystemEntry root = masterRoot.children[0];
+    if (root.children == null) return;
+    for (FileSystemEntry e : root.children) {
+      if (e instanceof FileSystemSystemSpace) {
+        numSpecialEntries++;
+      }
+      if (e instanceof FileSystemFreeSpace) {
+        freeSpace = e.encodedSize;
+      }
+    }
   }
   
   private Bitmap cacheBitmap;
@@ -428,10 +452,10 @@ class FileSystemView extends View {
 //    canvas.drawColor(p.getColor());
     if (bounds.bottom != 0 || bounds.top != 0 || bounds.left != 0 || bounds.right != 0) {
       // Log.d("DiskUsage", "bounds: " + bounds);
-      masterRoot.paint(canvas, bounds, cursor, viewTop, viewDepth, yscale, screenHeight);
+      masterRoot.paint(canvas, bounds, cursor, viewTop, viewDepth, yscale, screenHeight, numSpecialEntries);
     } else {
       Rect bounds2 = new Rect(0, 0, screenWidth, screenHeight);
-      masterRoot.paint(canvas, bounds2, cursor, viewTop, viewDepth, yscale, screenHeight);
+      masterRoot.paint(canvas, bounds2, cursor, viewTop, viewDepth, yscale, screenHeight, numSpecialEntries);
     }
   }
   
@@ -477,7 +501,7 @@ class FileSystemView extends View {
       if (animation) {
         invalidate();
       } else {
-        if (targetViewTop < 0 || targetViewBottom > masterRoot.size
+        if (targetViewTop < 0 || targetViewBottom > masterRoot.encodedSize
             || viewDepth < 0) {
           prepareMotion();
           animationDuration = 300;
@@ -486,17 +510,17 @@ class FileSystemView extends View {
             long oldTop = targetViewTop;
             targetViewTop = 0;
             targetViewBottom += targetViewTop - oldTop;
-          } else if (targetViewBottom > masterRoot.size) {
+          } else if (targetViewBottom > masterRoot.encodedSize) {
             long oldBottom = targetViewBottom;
-            targetViewBottom = masterRoot.size;
+            targetViewBottom = masterRoot.encodedSize;
             targetViewTop += targetViewBottom - oldBottom;
           }
           if (targetViewTop < 0) {
             targetViewTop = 0;
           }
           
-          if (targetViewBottom > masterRoot.size) {
-            targetViewBottom = masterRoot.size;
+          if (targetViewBottom > masterRoot.encodedSize) {
+            targetViewBottom = masterRoot.encodedSize;
           }
 
           if (viewDepth < 0) {
@@ -533,7 +557,7 @@ class FileSystemView extends View {
     float cursorx0 = (cursor.depth - viewDepth) * FileSystemEntry.elementWidth;
     float cursory0 = (cursor.top - viewTop) * yscale;
     float cursorx1 = cursorx0 + FileSystemEntry.elementWidth;
-    float cursory1 = cursory0 + cursor.position.size * yscale;
+    float cursory1 = cursory0 + cursor.position.encodedSize * yscale;
     invalidate((int)cursorx0, (int)cursory0, (int)cursorx1 + 1, (int)cursory1 + 1);
   }
   
@@ -552,6 +576,14 @@ class FileSystemView extends View {
     cursor.set(this, entry);
     int currDepth = cursor.depth;
     prepareMotion();
+    
+    if ((entry == masterRoot.children[0]) || (entry instanceof FileSystemFreeSpace)) {
+      toggleZoomState();
+      return;
+    }
+    
+    zoomState = ZoomState.ZOOM_OTHER;
+    
     zoomCursor();
     zoomOutCursor();
     boolean has_children = entry.children != null && entry.children.length != 0; 
@@ -560,7 +592,7 @@ class FileSystemView extends View {
       fullZoom = false;
       if (targetViewTop == prevViewTop
           && targetViewBottom == prevViewBottom) {
-        if ((!warnOnFileSelect) && (!(entry instanceof FileSystemEmptySpace))) {
+        if ((!warnOnFileSelect) && (!(entry instanceof FileSystemSystemSpace))) {
           Toast.makeText(context,
               "Press menu to preview or delete", Toast.LENGTH_SHORT).show();
           warnOnFileSelect = true;
@@ -578,7 +610,7 @@ class FileSystemView extends View {
       Log.d("diskusage", "zoom false");
       fullZoom = false;
     } else {
-      if (entry.size * yscale > FileSystemEntry.fontSize * 2) {
+      if (entry.encodedSize * yscale > FileSystemEntry.fontSize * 2) {
         fullZoom = true;
       } else {
         fullZoom = false;
@@ -604,29 +636,35 @@ class FileSystemView extends View {
     }
     if (fullZoom) {
       targetViewTop = cursor.top;
-      targetViewBottom = cursor.top + cursor.position.size;
+      targetViewBottom = cursor.top + cursor.position.encodedSize;
+    } else {
     }
     if (targetViewBottom == prevViewBottom && targetViewTop == prevViewTop) {
       fullZoom = false;
       targetViewTop = cursor.top + 1;
-      targetViewBottom = cursor.top + cursor.position.size - 1;
+      targetViewBottom = cursor.top + cursor.position.encodedSize - 1;
       zoomCursor();
       zoomOutCursor();
+    }
+    long freeSpaceClip = getFreeSpaceZoom();
+    if (targetViewBottom > freeSpaceClip) {
+      targetViewBottom = freeSpaceClip;
+      if (targetViewTop == 0) zoomState = ZoomState.ZOOM_ALLOCATED;
     }
   }
 
   public final void zoomCursor() {
-    if (cursor.position.size == 0) {
+    if (cursor.position.encodedSize == 0) {
       //Log.d("DiskUsage", "position is of zero size");
       return;
     }
     float yscale = screenHeight / (float)(targetViewBottom - targetViewTop);
 
-    if (cursor.position.size * yscale > FileSystemEntry.fontSize * 2 + 2) {
+    if (cursor.position.encodedSize * yscale > FileSystemEntry.fontSize * 2 + 2) {
       //Log.d("DiskUsage", "position large enough to contain label");
     } else {
       //Log.d("DiskUsage", "zoom in");
-      float new_yscale = FileSystemEntry.fontSize * 2.5f / cursor.position.size;
+      float new_yscale = FileSystemEntry.fontSize * 2.5f / cursor.position.encodedSize;
       prepareMotion();
 
       targetViewTop = targetViewBottom - (long) (screenHeight / new_yscale);
@@ -646,17 +684,17 @@ class FileSystemView extends View {
       }
     }
 
-    if (targetViewBottom < cursor.top + cursor.position.size) {
+    if (targetViewBottom < cursor.top + cursor.position.encodedSize) {
       //Log.d("DiskUsage", "move up as needed");
       prepareMotion();
 
-      long offset = cursor.top + cursor.position.size 
+      long offset = cursor.top + cursor.position.encodedSize 
       - (long)(targetViewTop * 0.2 + targetViewBottom * 0.8);
       targetViewTop += offset;
       targetViewBottom += offset;
-      if (targetViewBottom > masterRoot.size) {
-        long diff = targetViewBottom - masterRoot.size;
-        targetViewBottom = masterRoot.size;
+      if (targetViewBottom > masterRoot.encodedSize) {
+        long diff = targetViewBottom - masterRoot.encodedSize;
+        targetViewBottom = masterRoot.encodedSize;
         targetViewTop -= diff;
       }
     }
@@ -665,7 +703,7 @@ class FileSystemView extends View {
 
   public final void zoomOutCursor() {
     if (targetViewTop < cursor.top &&
-        targetViewBottom > cursor.top + cursor.position.size) {
+        targetViewBottom > cursor.top + cursor.position.encodedSize) {
 
       // Log.d("DiskUsage", "fits in, no need for zoom out");
       return;
@@ -677,7 +715,7 @@ class FileSystemView extends View {
 
     FileSystemEntry viewRoot = cursor.position.parent;
     targetViewTop = masterRoot.getOffset(viewRoot);
-    long size = viewRoot.size;
+    long size = viewRoot.encodedSize;
     targetViewBottom = targetViewTop + size;
     zoomCursor();
     invalidate();
@@ -687,6 +725,13 @@ class FileSystemView extends View {
     FileSystemEntry newpos = cursor.position.parent;
     if (newpos == masterRoot) return false;
     cursor.set(this, newpos);
+    
+    if (masterRoot.children != null && newpos == masterRoot.children[0]) {
+      prepareMotion();
+      toggleZoomState();
+      titleNeedUpdate = true;
+      return true;
+    }
 
     int requiredDepth = cursor.depth - (cursor.position.parent == masterRoot ? 0 : 1); 
     if (targetViewDepth > requiredDepth) {
@@ -753,6 +798,7 @@ class FileSystemView extends View {
   
   public void rescanFinished(FileSystemEntry newRoot) {
     masterRoot = newRoot;
+    updateSpecialEntries();
     cursor = new Cursor(masterRoot);
     titleNeedUpdate = true;
     invalidate();
@@ -947,7 +993,7 @@ class FileSystemView extends View {
     }
     deletingAnimationStartTime = 0;
     deletingEntry = entry;
-    deletingInitialSize = entry.size;
+    deletingInitialSize = entry.getSizeInBlocks();
   }
   
   public final void fadeAwayEntry(FileSystemView view) {
@@ -969,38 +1015,39 @@ class FileSystemView extends View {
     this.invalidate();
     float f = interpolator.getInterpolation(dt / (float) animationDuration);
 //    Log.d("diskusage", "f = + " + f);
-    long prevSize = entry.size;
-    long newSize = (long)((1 - f) * deletingInitialSize);
+    long prevSize = entry.getSizeInBlocks();
+    long newBlocks = (long)((1 - f) * deletingInitialSize);
 //    Log.d("diskusage", "newSize = + " + newSize);
-    long dSize = newSize - prevSize;
+    long dSize = newBlocks - prevSize;
     
     if (dSize >= 0) return;
     
     FileSystemEntry parent = entry.parent;
     
     while (parent != null) {
-      parent.size += dSize;
+      parent.encodedSize += dSize << FileSystemEntry.blockOffset;
       parent = parent.parent;
     }
     // truncate children
     while (true) {
-      if (newSize == entry.size) return;
-      entry.size = newSize;
+      long deltaBlocks = newBlocks - entry.getSizeInBlocks();
+      if (deltaBlocks == 0) return;
+      entry.encodedSize += (deltaBlocks << FileSystemEntry.blockOffset);
       if (entry.children == null || entry.children.length == 0)
         return;
       FileSystemEntry[] children = entry.children;
-      long size = 0;
+      long blocks = 0;
       FileSystemEntry prevEntry = entry;
       for (int i = 0; i < children.length; i++) {
-        size += children[i].size;
+        blocks += children[i].getSizeInBlocks();
         // if sum of sizes of children less then newSize continue
-        if (newSize > size) continue;
+        if (newBlocks > blocks) continue;
         
         // size of children larger than newSize, need to trunc last child
-        long lastChildSizeChange = size - newSize;
-        long newChildSize = children[i].size - lastChildSizeChange;
+        long lastChildSizeChange = blocks - newBlocks;
+        long newChildSize = children[i].getSizeInBlocks() - lastChildSizeChange;
         // size of last child will be updated at the begining of while loop
-        newSize = newChildSize;
+        newBlocks = newChildSize;
         
         FileSystemEntry[] newChildren = new FileSystemEntry[i + 1];
         System.arraycopy(children, 0, newChildren, 0, i + 1);
@@ -1010,8 +1057,8 @@ class FileSystemView extends View {
       }
       if (prevEntry == entry) {
         String msg = "f = " + f;
-        msg += " newSize = " + newSize;
-        msg += " size = " + size;
+        msg += " newBlocks = " + newBlocks;
+        msg += " blocks = " + blocks;
         msg += " nchildren = " + children.length;
         msg += " stats_num_deletions = " + stats_num_deletions;
         throw new RuntimeException("loop protection " + msg);
@@ -1122,6 +1169,7 @@ class FileSystemView extends View {
     Log.d("diskusage", "screen = " + screenWidth + "x" + screenHeight);
     FileSystemEntry.elementWidth = (int) (screenWidth / maxLevels);
     titleNeedUpdate = true;
+    setZoomState();
   }
 
   public void restoreState(Bundle inState) {
@@ -1133,6 +1181,11 @@ class FileSystemView extends View {
     targetViewDepth = prevViewDepth = viewDepth = inState.getFloat("viewDepth");
     targetViewTop = prevViewTop = viewTop = inState.getLong("viewTop");
     targetViewBottom = prevViewBottom = viewBottom = inState.getLong("viewBottom");
+    switch (inState.getInt("zoomState")) {
+    case 0: zoomState = ZoomState.ZOOM_ALLOCATED; break;
+    case 1: zoomState = ZoomState.ZOOM_FULL; break;
+    default: zoomState = ZoomState.ZOOM_OTHER; break;
+    }
     maxLevels = inState.getFloat("maxLevels");
   }
 
@@ -1142,6 +1195,9 @@ class FileSystemView extends View {
     outState.putLong("viewTop", viewTop);
     outState.putLong("viewBottom", viewBottom);
     outState.putFloat("maxLevels", maxLevels);
+    outState.putInt("zoomState",
+        zoomState == ZoomState.ZOOM_ALLOCATED ? 0 : (
+            zoomState == ZoomState.ZOOM_FULL ? 1 : 2));
   }
 
   public final void resetCursor() {
@@ -1149,15 +1205,58 @@ class FileSystemView extends View {
   }
 
   public void startZoomAnimation() {
-    long large = masterRoot.size * 10;
-    long center = masterRoot.size / 2; 
+    long large = masterRoot.encodedSize * 10;
+    long center = masterRoot.encodedSize / 2; 
     viewTop = center - large;
     viewBottom = center + large;
     viewDepth = 0;
     prepareMotion();
     animationDuration = 300;
     targetViewTop = 0;
-    targetViewBottom = masterRoot.size;
+    targetViewBottom = masterRoot.encodedSize;
     targetViewDepth = 0;
+    zoomState = ZoomState.ZOOM_ALLOCATED;
+    setZoomState();
   }
+  
+  private long getFreeSpaceZoom() {
+    if (freeSpaceZoom != 0) return freeSpaceZoom;
+    if (freeSpace == 0) return masterRoot.encodedSize;
+    
+    freeSpaceZoom = masterRoot.encodedSize;
+    FileSystemEntry.setupStrings(context);
+    long busy = masterRoot.encodedSize - freeSpace;
+    float message = FileSystemEntry.fontSize * 2 + 1f;
+    float height = screenHeight / 41f * 40f;
+    long required = (long)(busy * (height / (height - message)));
+    required *= 40f / 40.5f;
+    if (required < freeSpaceZoom * 0.9f)
+      freeSpaceZoom = required;
+    return freeSpaceZoom;
+  }
+  
+  private void setZoomState() {
+    if (screenHeight == 0) return;
+    if (zoomState == ZoomState.ZOOM_ALLOCATED) {
+      targetViewDepth = 0;
+      targetViewTop = 0;
+      targetViewBottom = getFreeSpaceZoom();
+    } else if (zoomState == ZoomState.ZOOM_FULL) {
+      targetViewDepth = 0;
+      targetViewTop = 0;
+      targetViewBottom = masterRoot.encodedSize;
+    }
+  }
+  private void toggleZoomState() {
+    zoomState = (zoomState == ZoomState.ZOOM_ALLOCATED) ?
+      ZoomState.ZOOM_FULL : ZoomState.ZOOM_ALLOCATED;
+    setZoomState();
+  }
+  
+  private enum ZoomState {
+    ZOOM_FULL,
+    ZOOM_ALLOCATED,
+    ZOOM_OTHER
+  };
+  ZoomState zoomState = ZoomState.ZOOM_OTHER;
 }

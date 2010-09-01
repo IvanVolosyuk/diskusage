@@ -62,7 +62,7 @@ public class AppView extends FileSystemView {
       // FIXME: hack to disable removal of /sdcard
       if (entry == masterRoot.children[0]) {
 //        Toast.makeText(context, "Select directory or file first", Toast.LENGTH_SHORT).show();
-      } else if (!(cursor.position instanceof FileSystemEmptySpace)) {
+      } else if (!(cursor.position instanceof FileSystemSystemSpace)) {
         showFileMenu = true;
       }
     }

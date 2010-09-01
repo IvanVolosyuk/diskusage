@@ -65,7 +65,7 @@ public class Apps2SDLoader {
     return sizes;
   }
   
-  public FileSystemEntry[] load(boolean sdOnly, final AppFilter appFilter) throws Throwable {
+  public FileSystemEntry[] load(boolean sdOnly, final AppFilter appFilter, final int blockSize) throws Throwable {
     final Map<String, Long> dfSizes = getDfSizes();
     final ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
 
@@ -94,7 +94,7 @@ public class Apps2SDLoader {
               changeNumLookups(-1);
               if (succeeded) {
                 FileSystemPackage p = new FileSystemPackage(
-                    name, pkg, pStats, info.applicationInfo.flags, dfSizes.get(pkg));
+                    name, pkg, pStats, info.applicationInfo.flags, dfSizes.get(pkg), blockSize);
                 p.applyFilter(appFilter);
                 entries.add(p);
                 Log.i("diskusage", "codeSize: " + pStats.codeSize);

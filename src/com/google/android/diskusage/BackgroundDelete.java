@@ -131,13 +131,13 @@ public class BackgroundDelete extends Thread {
   public void restore() {
     Log.d("DiskUsage", "restore started for " + path);
     FileSystemEntry newEntry = new FileSystemEntry(null,
-        new File(path), 0, 20);
+        new File(path), 0, 20, DiskUsage.getExternalBlockSize());
     // FIXME: may be problems in case of two deletions
     entry.parent.insert(newEntry);
     view.restore(newEntry);
     
     Log.d("DiskUsage", "restoring undeleted: "
-        + newEntry.name + " " +newEntry.size);
+        + newEntry.name + " " +newEntry.getSizeInBytes());
   }
   
   public void notifyUser() {

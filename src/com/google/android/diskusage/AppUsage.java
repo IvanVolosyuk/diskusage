@@ -1,15 +1,18 @@
 package com.google.android.diskusage;
 
+import java.io.File;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.StatFs;
 
 public class AppUsage extends DiskUsage {
   static FileSystemEntry root;
   private AppFilter pendingFilter;
+  private static int blockSizeCache;
 
   @Override
   FileSystemEntry getRoot() {
@@ -21,10 +24,24 @@ public class AppUsage extends DiskUsage {
     AppUsage.root = root;
   }
   
+  public static int getDataBlockSize() {
+    if (blockSizeCache != 0) return blockSizeCache;
+    final File dataDir = Environment.getDataDirectory();
+    StatFs data = new StatFs(dataDir.getAbsolutePath());
+    int blockSize = data.getBlockSize();
+    return blockSize;
+  }
+  
+  @Override
+  public int getBlockSize() {
+    return getDataBlockSize();
+  }
+  
   FileSystemEntry wrapApps(FileSystemSpecial appsElement, AppFilter filter) {
     long freeSize = 0;
     long allocatedSpace = 0;
     long systemSize = 0;
+    long entryBlockSize = getBlockSize();
     if ((filter.useApk || filter.useData) && !filter.useSD) {
       StatFs data = new StatFs("/data");
       long blockSize = data.getBlockSize();
@@ -40,22 +57,22 @@ public class AppUsage extends DiskUsage {
     }
     
     if (allocatedSpace > 0) {
-      systemSize = allocatedSpace - appsElement.size;
+      systemSize = allocatedSpace - appsElement.getSizeInBlocks() * FileSystemEntry.blockSize;
     }
     
     if (filter.useSD) {
       FileSystemEntry newRoot = new FileSystemEntry(null,
-          new FileSystemEntry[] { appsElement } );
+          new FileSystemEntry[] { appsElement }, entryBlockSize);
       return newRoot;
     }
     
     ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
     entries.add(appsElement);
     if (systemSize > 0) {
-      entries.add(new FileSystemEmptySpace("System data", systemSize));
+      entries.add(new FileSystemSystemSpace("System data", systemSize, entryBlockSize));
     }
     if (freeSize > 0) {
-      entries.add(new FileSystemEmptySpace("Free space", freeSize));
+      entries.add(new FileSystemFreeSpace("Free space", freeSize, entryBlockSize));
     }
 
     FileSystemEntry[] internalArray = entries.toArray(new FileSystemEntry[] {});
@@ -66,18 +83,19 @@ public class AppUsage extends DiskUsage {
         name = "Data and Cache";
       }
     }
-    FileSystemEntry internalElement = new FileSystemEntry(name, internalArray);
+    FileSystemEntry internalElement = new FileSystemEntry(name, internalArray, entryBlockSize);
     
     FileSystemEntry newRoot = new FileSystemEntry(null,
-        new FileSystemEntry[] { internalElement } );
+        new FileSystemEntry[] { internalElement }, entryBlockSize);
     return newRoot;
   }
 
   @Override
   FileSystemEntry scan() {
     AppFilter filter  = pendingFilter;
-    FileSystemEntry[] appsArray = loadApps2SD(false, filter);
-    FileSystemSpecial appsElement = new FileSystemSpecial("Applications", appsArray);
+    int blockSize = AppUsage.getDataBlockSize();
+    FileSystemEntry[] appsArray = loadApps2SD(false, filter, blockSize);
+    FileSystemSpecial appsElement = new FileSystemSpecial("Applications", appsArray, blockSize);
     appsElement.filter = filter;
     return wrapApps(appsElement, filter);
   }
@@ -112,16 +130,15 @@ public class AppUsage extends DiskUsage {
     if (newFilter.equals(appsElement.filter)) {
       return;
     }
-    appsElement.filter = newFilter;
-    long size = 0;
     for (FileSystemEntry entry : appsElement.children) {
       FileSystemPackage pkg = (FileSystemPackage) entry;
       pkg.applyFilter(newFilter);
-      size += pkg.size;
     }
     java.util.Arrays.sort(appsElement.children, FileSystemEntry.COMPARE);
-    appsElement.size = size;
-    appsElement.sizeString = null;
+    
+    appsElement = new FileSystemSpecial(appsElement.name, appsElement.children, getDataBlockSize());
+    appsElement.filter = newFilter;
+    
     FileSystemEntry newRoot = wrapApps(appsElement, newFilter);
     setRoot(newRoot);
     view.rescanFinished(newRoot);

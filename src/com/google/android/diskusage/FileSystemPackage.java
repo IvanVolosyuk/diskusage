@@ -17,8 +17,8 @@ public class FileSystemPackage extends FileSystemEntry {
   
   public FileSystemPackage(
       String name, String pkg, PackageStats stats,
-      int flags, Long hackApkSize) {
-    super(name, 0);
+      int flags, Long hackApkSize, long blockSize) {
+    super(name, 0, blockSize);
     this.pkg = pkg;
     this.cacheSize = (int) stats.cacheSize;
     this.dataSize = (int) stats.dataSize;
@@ -36,25 +36,27 @@ public class FileSystemPackage extends FileSystemEntry {
   
   public void applyFilter(AppFilter filter) {
     sizeString = null;
-    size = 0;
+    long blocks = 0;
     ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
     
     if (onSD() && !filter.useSD) {
       
     } else {
       if (filter.useApk) {
-        entries.add(new FileSystemEntry("apk", codeSize));
-        size += codeSize;
+        entries.add(new FileSystemEntry("apk", codeSize, blockSize));
       }
     }
     if (filter.useData) {
-      entries.add(new FileSystemEntry("data", dataSize));
-      size += dataSize;
+      entries.add(new FileSystemEntry("data", dataSize, blockSize));
     }
     if (filter.useCache) {
-      entries.add(new FileSystemEntry("cache", cacheSize));
-      size += cacheSize;
+      entries.add(new FileSystemEntry("cache", cacheSize, blockSize));
     }
+    for (FileSystemEntry e : entries) {
+      blocks += e.getSizeInBlocks();
+    }
+    setSizeInBlocks(blocks);
+    
     if (filter.enableChildren) {
       for (FileSystemEntry e : entries) {
         e.parent = this;

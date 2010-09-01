@@ -20,7 +20,9 @@
 package com.google.android.diskusage;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 
@@ -29,9 +31,11 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.os.StatFs;
 
 public class FileSystemEntry {
   private static final Paint bg = new Paint();
+  private static final Paint bg_emptySpace = new Paint();
   private static final Paint cursor_fg = new Paint();
   private static final Paint fg = new Paint();
   private static final Paint fg_rect = fg;
@@ -77,6 +81,7 @@ public class FileSystemEntry {
   
   static {
     bg.setColor(Color.parseColor("#060118"));
+    bg_emptySpace.setColor(Color.parseColor("#063A43"));
     bg.setStyle(Paint.Style.FILL);
 //    bg.setAlpha(255);
     fg.setColor(Color.WHITE);
@@ -98,34 +103,35 @@ public class FileSystemEntry {
   FileSystemEntry[] children;
   String name;
   String sizeString;
-  long size;
+  
+  // The size suitable for painting without any operations (and sorting)
+  // Bit layout:
+  // 40 bits      | 24 bits
+  // sizeInBlocks | reminder
+  // reminder can be 0..blockSize (inclusive)
+  // size in bytes = (size in blocks * blockSize) + reminder - blockSize; 
+  long encodedSize;
+  
+  static int blockSize;
+  // will take for a while to make this break
+  // 16Mb block size on mobile device... probably in year 2020.
+  // probably 32 bits for maximum number of block will break before ~2016
+  static final int blockOffset = 24;
+  static final long blockMask = (1l << blockOffset) - 1;  
+  
+  long getSizeInBytes() {
+    return ((encodedSize >> blockOffset) * blockSize) - blockSize + (encodedSize & blockMask);
+  }
 
-  /**
-   * Constructor object for ordinary file.
-   * This constructor just fill the fields: parent, name, size.
-   * @param parent parent directory object.
-   * @param file corresponding File
-   */
-  FileSystemEntry(FileSystemEntry parent, File file) {
-    this.parent = parent;
-    this.name = file.getName();
-    this.size = file.length();
+  long getSizeInBlocks() {
+    return encodedSize >> blockOffset;
   }
   
-  /**
-   * Special constructor for root node.
-   * Sets children field to specified parameter. Computes root size.
-   * Updates parent pointer for all children.
-   */
-  public FileSystemEntry(String name, FileSystemEntry[] children) {
-    this.name = name;
-    this.children = children;
-    if (children == null) return;
-    for (int i = 0; i < children.length; i++) {
-      size += children[i].size;
-      children[i].parent = this;
-    }
+  void setSizeInBlocks(long blocks) {
+    if (blocks > (1 << 28)) throw new RuntimeException("FIXME");
+    encodedSize = (blocks << blockOffset) + blockSize;
   }
+
   
   /**
    * Dummy constructor which sets all fields to specified parameters.
@@ -133,12 +139,47 @@ public class FileSystemEntry {
    * @param size
    * @param children
    */
-  public FileSystemEntry(String name, long size) {
+  public FileSystemEntry(String name, long size, long blockSize) {
     this.name = name;
-    this.size = size;
-    this.children = null;
+    initSize(size, blockSize);
+  }
+  
+  private void initSize(long size, long BlockSize) {
+    long blocks = ((size + (blockSize - 1)) / blockSize);
+    long bytes = (int)(size + blockSize - blocks * blockSize);
+    if (blocks > (1 << 28)) throw new RuntimeException("FIXME");
+
+    this.encodedSize = (blocks << blockOffset) + bytes;
   }
 
+  /**
+   * Constructor object for ordinary file.
+   * This constructor just fill the fields: parent, name, size.
+   * @param parent parent directory object.
+   * @param file corresponding File
+   */
+  FileSystemEntry(FileSystemEntry parent, File file, long blockSize) {
+    this(file.getName(), file.length(), blockSize);
+    this.parent = parent;
+  }
+  
+  /**
+   * Special constructor for root node.
+   * Sets children field to specified parameter. Computes root size.
+   * Updates parent pointer for all children.
+   */
+  public FileSystemEntry(String name, FileSystemEntry[] children, long blockSize) {
+    this.name = name;
+    this.children = children;
+    long blocks = 0;
+    if (children == null) return;
+    for (int i = 0; i < children.length; i++) {
+      blocks += children[i].getSizeInBlocks();
+      children[i].parent = this;
+    }
+    setSizeInBlocks(blocks);
+  }
+  
   /**
    * Constructor for directory object.
    * This constructor starts recursive scan to find all descendent files and directories.
@@ -149,12 +190,12 @@ public class FileSystemEntry {
    * @param depth current directory tree depth
    * @param maxdepth maximum directory tree depth
    */
-  FileSystemEntry(FileSystemEntry parent, File file, int depth, int maxdepth) {
+  FileSystemEntry(FileSystemEntry parent, File file, int depth, int maxdepth, long blockSize) {
     this.parent = parent;
     this.name = file.getName();
 
     if (depth == maxdepth) {
-      size = calculateSize(file);
+      initSize(calculateSize(file), blockSize);
       return;
     }
 
@@ -163,6 +204,7 @@ public class FileSystemEntry {
 
     FileSystemEntry[] children0 = new FileSystemEntry[list.length];
     int nchildren = 0;
+    long blocks = 0;
 
     for (int i = 0; i < list.length; i++) {
       File child = list[i];
@@ -173,14 +215,15 @@ public class FileSystemEntry {
       FileSystemEntry c = null;
 
       if (child.isFile()) {
-        c = new FileSystemEntry(this, child);
+        c = new FileSystemEntry(this, child, blockSize);
       } else {
         // directory
-        c = new FileSystemEntry(this, child, depth + 1, maxdepth);
+        c = new FileSystemEntry(this, child, depth + 1, maxdepth, blockSize);
       }
       children0[nchildren++] = c;
-      size += c.size;
+      blocks += c.getSizeInBlocks();
     }
+    setSizeInBlocks(blocks);
 
     if (nchildren != 0) {
       children = new FileSystemEntry[nchildren];
@@ -192,8 +235,10 @@ public class FileSystemEntry {
   public static class Compare implements Comparator<FileSystemEntry> {
     @Override
     public final int compare(FileSystemEntry aa, FileSystemEntry bb) {
-      if (aa.size == bb.size)     return 0;
-      return aa.size < bb.size ? 1 : -1;
+      if (aa.encodedSize == bb.encodedSize) {
+        return 0;
+      }
+      return aa.encodedSize < bb.encodedSize ? 1 : -1;
     }
   }
   
@@ -262,6 +307,117 @@ public class FileSystemEntry {
     } catch(Throwable t) {}
     return true;
   }
+  
+  
+  // Copy pasted from paint() and changed to lower overhead on generic drawing code
+  private static void paintSpecial(long parent_size, FileSystemEntry[] entries,
+      Canvas canvas, float xoffset, float yoffset, float yscale,
+      long clipLeft, long clipRight, long clipTop, long clipBottom,
+      int screenHeight, int numSpecial) {
+    
+    // Deep one level in hierarchy:
+    entries = entries[0].children;
+    xoffset += elementWidth;
+    clipLeft -= elementWidth;
+    clipRight -= elementWidth;
+
+    // Paint as paint():
+    FileSystemEntry children[] = entries;
+    int len = children.length;
+    long child_clipTop = clipTop;
+    long child_clipBottom = clipBottom;
+    float child_xoffset = xoffset + elementWidth;
+    
+    // Fast skip ordinary entries, FIXME: make root node special node with extra
+    // field to get rid of this
+    for (int i = 0; i < len - numSpecial; i++) {
+      FileSystemEntry c = children[i];
+      long csize = c.encodedSize;
+      parent_size -= csize;
+      
+      float top = yoffset;
+      float bottom = top + csize * yscale;
+
+      if (child_clipBottom < 0) {
+        return;
+      }
+      child_clipTop -= csize;
+      child_clipBottom -= csize;
+      yoffset = bottom;
+    }
+    
+    for (int i = len - numSpecial; i < len; i++) {
+      FileSystemEntry c = children[i];
+      long csize = c.encodedSize;
+      parent_size -= csize;
+
+      float top = yoffset;
+      float bottom = top + csize * yscale;
+      ///Log.d("DiskUsage", "child: child_clip_y0 = " + child_clip_y0);
+      ///Log.d("DiskUsage", "child: child_clip_y1 = " + child_clip_y1);
+
+      if (child_clipTop > csize) {
+
+        child_clipTop -= csize;
+        child_clipBottom -= csize;
+        yoffset = bottom;
+        continue;
+      }
+
+      if (child_clipBottom < 0) {
+        ///Log.d("DiskUsage", "skipped rest starting from " + c.name);
+        return;
+      }
+
+      if (clipLeft < elementWidth) {
+          // FIXME
+          float windowHeight0 = screenHeight;
+          float fontSize0 = fontSize;
+          float top0 = top < -1 ? -1 : top;
+          float bottom0 = bottom > windowHeight0 ? windowHeight0 : bottom;
+          
+          canvas.drawRect(xoffset, top0, child_xoffset, bottom0, bg_emptySpace);
+          canvas.drawRect(xoffset, top0, child_xoffset, bottom0, fg_rect);
+
+          if (bottom - top > fontSize0 * 2) {
+            float pos = (top + bottom) * 0.5f;
+            if (pos < fontSize0) {
+              if (bottom > 2 * fontSize0) {
+                pos = fontSize0;
+              } else {
+                pos = bottom - fontSize0;
+              }
+            } else if (pos > windowHeight0 - fontSize0) {
+              if (top < windowHeight0 - 2 * fontSize0) {
+                pos = windowHeight0 - fontSize0;
+              } else {
+                pos = top + fontSize0;
+              }
+            }
+            float pos1 = pos - descent;
+            float pos2 = pos - ascent;
+
+            String sizeString0 = c.sizeString;
+            if (sizeString0 == null) {
+              c.sizeString = sizeString0 = calcSizeString(c.getSizeInBytes());
+            }
+            int cliplen = fg2.breakText(c.name, true, elementWidth - 4, null);
+            String clippedName = c.name.substring(0, cliplen);
+            canvas.drawText(clippedName,  xoffset + 2, pos1, fg);
+            canvas.drawText(sizeString0, xoffset + 2, pos2, fg);
+          } else if (bottom - top > fontSize0) {
+            int cliplen = fg2.breakText(c.name, true, elementWidth - 4, null);
+            String clippedName = c.name.substring(0, cliplen);
+            canvas.drawText(clippedName, xoffset + 2, (top + bottom - ascent - descent) / 2, c.children == null ? fg2 : fg);
+          }
+      }
+
+      child_clipTop -= csize;
+      child_clipBottom -= csize;
+      yoffset = bottom;
+    }
+  }
+
 
   private static void paint(long parent_size, FileSystemEntry[] entries,
       Canvas canvas, float xoffset, float yoffset, float yscale,
@@ -278,7 +434,7 @@ public class FileSystemEntry {
 
     for (int i = 0; i < len; i++) {
       FileSystemEntry c = children[i];
-      long csize = c.size;
+      long csize = c.encodedSize;
       parent_size -= csize;
 
       float top = yoffset;
@@ -302,7 +458,7 @@ public class FileSystemEntry {
       FileSystemEntry[] cchildren = c.children;
 
       if (cchildren != null)
-        FileSystemEntry.paint(c.size, cchildren, canvas,
+        FileSystemEntry.paint(c.encodedSize, cchildren, canvas,
             child_xoffset, yoffset, yscale,
             child_clipLeft, child_clipRight, child_clipTop, child_clipBottom, screenHeight);
 
@@ -343,7 +499,7 @@ public class FileSystemEntry {
 
             String sizeString0 = c.sizeString;
             if (sizeString0 == null) {
-              c.sizeString = sizeString0 = calcSizeString(c.size);
+              c.sizeString = sizeString0 = calcSizeString(c.getSizeInBytes());
             }
             int cliplen = fg2.breakText(c.name, true, elementWidth - 4, null);
             String clippedName = c.name.substring(0, cliplen);
@@ -360,11 +516,10 @@ public class FileSystemEntry {
       child_clipBottom -= csize;
       yoffset = bottom;
     }
-
   }
 
   final void paint(Canvas canvas, Rect bounds, Cursor cursor, long viewTop,
-      float viewDepth, float yscale, int screenHeight) {
+      float viewDepth, float yscale, int screenHeight, int numSpecialEntries) {
     // scale conversion:
     // window_y = yscale * world_y
     // world_y  = window_y / yscale
@@ -398,14 +553,17 @@ public class FileSystemEntry {
     // screen_clip_y0 = yscale * (clip_y0 - elementOffset)
     // screen_clip_y1 = yscale * (clip_y1 - elementOffset)
 
-    paint(size, children, canvas, xoffset, yoffset, yscale, clipLeft, clipRight,
+    paint(encodedSize, children, canvas, xoffset, yoffset, yscale, clipLeft, clipRight,
         clipTop, clipBottom, screenHeight);
+    
+    paintSpecial(encodedSize, children, canvas, xoffset, yoffset, yscale, clipLeft, clipRight,
+        clipTop, clipBottom, screenHeight, numSpecialEntries);
 
     // paint position
     float cursorLeft = cursor.depth * elementWidth + xoffset;
     float cursorTop = (cursor.top - viewTop) * yscale;
     float cursorRight = cursorLeft + elementWidth;
-    float cursorBottom = cursorTop + cursor.position.size * yscale;
+    float cursorBottom = cursorTop + cursor.position.encodedSize * yscale;
     canvas.drawRect(cursorLeft, cursorTop, cursorRight, cursorBottom, cursor_fg);
   }
   
@@ -429,11 +587,11 @@ public class FileSystemEntry {
   public final String toTitleString() {
     String sizeString0 = this.sizeString;
     if (sizeString0 == null) {
-      sizeString0 = sizeString = calcSizeString(size);
+      sizeString0 = sizeString = calcSizeString(getSizeInBytes());
     }
     if (children != null && children.length != 0)
       return String.format(dir_name_size_num_dirs, name, sizeString0, children.length);
-    else if (size == 0) {
+    else if (getSizeInBlocks() == 0) {
       return String.format(dir_empty, name);
     } else {
       return String.format(dir_name_size, name, sizeString0);
@@ -483,7 +641,7 @@ public class FileSystemEntry {
       // Log.d("DiskUsage", "  Entry = " + entry.name);
       for (int c = 0; c < nchildren; c++) {
         FileSystemEntry e = children0[c];
-        long size = e.size;
+        long size = e.encodedSize;
         if (currOffset + size < offset) {
           currOffset += size;
           continue;
@@ -523,7 +681,7 @@ public class FileSystemEntry {
       for (int i = 0; i < len; i++) {
         FileSystemEntry e = children[i];
         if (e == cursor) break;
-        offset += e.size;
+        offset += e.encodedSize;
       }
       cursor = dir;
     }
@@ -545,8 +703,10 @@ public class FileSystemEntry {
       
       FileSystemEntry parent0 = parent;
       
+      long encodedSizeMasked = encodedSize & ~blockMask;
+      
       while (parent0 != null) {
-        parent0.size -= size;
+        parent0.encodedSize -= encodedSizeMasked;
         parent0.sizeString = null;
 //        java.util.Arrays.sort(parent0.children, this);
         parent0 = parent0.parent;
@@ -564,10 +724,11 @@ public class FileSystemEntry {
     children = children0;
     newEntry.parent = this;
     FileSystemEntry parent0 = this;
+    long encodedSizeMasked = newEntry.encodedSize & ~blockMask;
     
     while (parent0 != null) {
       java.util.Arrays.sort(children, COMPARE);
-      parent0.size += newEntry.size;
+      parent0.encodedSize += encodedSizeMasked;
       parent0.sizeString = null;
       parent0 = parent0.parent;
     }
