@@ -20,9 +20,7 @@
 package com.google.android.diskusage;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 
@@ -31,7 +29,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.os.StatFs;
 
 public class FileSystemEntry {
   private static final Paint bg = new Paint();
@@ -52,6 +49,8 @@ public class FileSystemEntry {
   private static String dir_name_size_num_dirs;
   private static String dir_empty;
   private static String dir_name_size;
+  public static FileSystemEntry deletedEntry;
+  
   private static final Comparator<FileSystemEntry> alphaComparator =
     new Comparator<FileSystemEntry>() {
       public int compare(FileSystemEntry a, FileSystemEntry b) {
@@ -128,7 +127,10 @@ public class FileSystemEntry {
   }
   
   void setSizeInBlocks(long blocks) {
-    if (blocks > (1 << 28)) throw new RuntimeException("FIXME");
+    if (blocks == 0) {
+      encodedSize = 0;
+      return;
+    }
     encodedSize = (blocks << blockOffset) + blockSize;
   }
 
@@ -147,7 +149,10 @@ public class FileSystemEntry {
   private void initSize(long size, long BlockSize) {
     long blocks = ((size + (blockSize - 1)) / blockSize);
     long bytes = (int)(size + blockSize - blocks * blockSize);
-    if (blocks > (1 << 28)) throw new RuntimeException("FIXME");
+    if (blocks == 0) {
+      this.encodedSize = 0;
+      return;
+    }
 
     this.encodedSize = (blocks << blockOffset) + bytes;
   }
@@ -243,6 +248,23 @@ public class FileSystemEntry {
   }
   
   public static Compare COMPARE = new Compare();
+  
+  public static class SpecialCompare implements Comparator<FileSystemEntry> {
+    @Override
+    public final int compare(FileSystemEntry aa, FileSystemEntry bb) {
+      if (aa instanceof FileSystemFreeSpace) return 1;
+      if (bb instanceof FileSystemFreeSpace) return -1;
+      if (aa instanceof FileSystemSystemSpace) return 1;
+      if (bb instanceof FileSystemSystemSpace) return -1;
+      
+      if (aa.encodedSize == bb.encodedSize) {
+        return 0;
+      }
+      return aa.encodedSize < bb.encodedSize ? 1 : -1;
+    }
+  }
+  
+  public static SpecialCompare SPECIAL_COMPARE = new SpecialCompare();
 
   /**
    * Find index of directChild in 'children' field of this entry. 
@@ -373,8 +395,8 @@ public class FileSystemEntry {
           // FIXME
           float windowHeight0 = screenHeight;
           float fontSize0 = fontSize;
-          float top0 = top < -1 ? -1 : top;
-          float bottom0 = bottom > windowHeight0 ? windowHeight0 : bottom;
+          float top0 = top;
+          float bottom0 = bottom;
           
           canvas.drawRect(xoffset, top0, child_xoffset, bottom0, bg_emptySpace);
           canvas.drawRect(xoffset, top0, child_xoffset, bottom0, fg_rect);
@@ -399,7 +421,7 @@ public class FileSystemEntry {
 
             String sizeString0 = c.sizeString;
             if (sizeString0 == null) {
-              c.sizeString = sizeString0 = calcSizeString(c.getSizeInBytes());
+              c.sizeString = sizeString0 = calcSizeString(c.encodedSize);
             }
             int cliplen = fg2.breakText(c.name, true, elementWidth - 4, null);
             String clippedName = c.name.substring(0, cliplen);
@@ -462,7 +484,7 @@ public class FileSystemEntry {
             child_xoffset, yoffset, yscale,
             child_clipLeft, child_clipRight, child_clipTop, child_clipBottom, screenHeight);
 
-      if (bottom - top < 2) {
+      if (bottom - top < 2 && deletedEntry != c) {
         bottom += parent_size * yscale;
         canvas.drawRect(xoffset, top, child_xoffset, bottom, fill_bg);
         canvas.drawRect(xoffset, top, child_xoffset, bottom, fg_rect);
@@ -473,8 +495,9 @@ public class FileSystemEntry {
           // FIXME
           float windowHeight0 = screenHeight;
           float fontSize0 = fontSize;
-          float top0 = top < -1 ? -1 : top;
-          float bottom0 = bottom > windowHeight0 ? windowHeight0 : bottom;
+          
+          float top0 = top;
+          float bottom0 = bottom;
           
           canvas.drawRect(xoffset, top0, child_xoffset, bottom0, bg);
           canvas.drawRect(xoffset, top0, child_xoffset, bottom0, fg_rect);
@@ -499,7 +522,7 @@ public class FileSystemEntry {
 
             String sizeString0 = c.sizeString;
             if (sizeString0 == null) {
-              c.sizeString = sizeString0 = calcSizeString(c.getSizeInBytes());
+              c.sizeString = sizeString0 = calcSizeString(c.encodedSize);
             }
             int cliplen = fg2.breakText(c.name, true, elementWidth - 4, null);
             String clippedName = c.name.substring(0, cliplen);
@@ -567,13 +590,24 @@ public class FileSystemEntry {
     canvas.drawRect(cursorLeft, cursorTop, cursorRight, cursorBottom, cursor_fg);
   }
   
-  private static String calcSizeString(long size) {
-    float sz = size;
-    if (sz < 1024) return String.format(n_bytes, sz);
-    if (sz < 1024 * 1024) return String.format(n_kilobytes, sz / 1024);
-    if (sz < 1024 * 1024 * 10) return String.format(n_megabytes, sz / (1024 * 1024));
-    if (sz < 1024 * 1024 * 200) return String.format(n_megabytes10, sz / (1024 * 1024));
-    return String.format(n_megabytes100, sz / (1024 * 1024));
+  private static String calcSizeString(long encodedSize) {
+    float sz = (encodedSize >> blockOffset) * blockSize;
+
+    if (sz < 1024 * 1024 * 10) {
+      if (sz < 1024 * 1024) {
+        if (sz < 1024) {
+          sz += - blockSize + (encodedSize & blockMask);
+          if (sz < 0) sz = 0;
+          return String.format(n_bytes, sz);
+        }
+        return String.format(n_kilobytes, sz * (1f / 1024));
+      }
+      return String.format(n_megabytes, sz * (1f / 1024 / 1024));
+    }
+    if (sz < 1024 * 1024 * 200) {
+      return String.format(n_megabytes10, sz * (1f / 1024 / 1024));
+    }
+    return String.format(n_megabytes100, sz * (1f / 1024 / 1024));
   }
 
   // FIXME: not a general toString() but specific to deletion activity,
@@ -587,7 +621,7 @@ public class FileSystemEntry {
   public final String toTitleString() {
     String sizeString0 = this.sizeString;
     if (sizeString0 == null) {
-      sizeString0 = sizeString = calcSizeString(getSizeInBytes());
+      sizeString0 = sizeString = calcSizeString(encodedSize);
     }
     if (children != null && children.length != 0)
       return String.format(dir_name_size_num_dirs, name, sizeString0, children.length);

@@ -1,19 +1,15 @@
 package com.google.android.diskusage;
 
-import java.io.File;
-
-import com.google.android.diskusage.DiskUsage.AfterLoad;
-
-import android.accounts.OnAccountsUpdateListener;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
-import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
+
+import com.google.android.diskusage.DiskUsage.AfterLoad;
 
 public abstract class LoadableActivity extends Activity {
   private ProgressDialog loading;

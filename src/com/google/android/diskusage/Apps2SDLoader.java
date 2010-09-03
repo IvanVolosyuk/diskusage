@@ -6,11 +6,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.TreeMap;
 
 import android.app.Activity;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageStatsObserver;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -55,7 +53,7 @@ public class Apps2SDLoader {
         } else if (sizeStr.endsWith("M")) {
           size = Integer.parseInt(sizeStr.substring(0, sizeStr.length() - 1)) * 1024 * 1024;
         }
-        Log.d("diskusage", "Override " + pkg + " - " + size);
+//        Log.d("diskusage", "Override " + pkg + " - " + size);
         sizes.put(pkg, size);
       }
     } catch (IOException e) {
@@ -74,7 +72,7 @@ public class Apps2SDLoader {
         "getPackageSizeInfo", String.class, IPackageStatsObserver.class);
     for (final PackageInfo info : pm.getInstalledPackages(
         PackageManager.GET_META_DATA | PackageManager.GET_UNINSTALLED_PACKAGES)) {
-      Log.d("diskusage", "Got package: " + info.packageName);
+//      Log.d("diskusage", "Got package: " + info.packageName);
       if (info.applicationInfo == null) {
         Log.d("diskusage", "No applicationInfo");
         continue;
@@ -97,7 +95,7 @@ public class Apps2SDLoader {
                     name, pkg, pStats, info.applicationInfo.flags, dfSizes.get(pkg), blockSize);
                 p.applyFilter(appFilter);
                 entries.add(p);
-                Log.i("diskusage", "codeSize: " + pStats.codeSize);
+//                Log.i("diskusage", "codeSize: " + pStats.codeSize);
               }
               Apps2SDLoader.this.notify();
             }

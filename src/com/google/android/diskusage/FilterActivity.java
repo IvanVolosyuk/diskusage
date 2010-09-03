@@ -1,6 +1,5 @@
 package com.google.android.diskusage;
 
-import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;

@@ -19,6 +19,13 @@
 
 package com.google.android.diskusage;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.zip.GZIPInputStream;
+
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
@@ -33,21 +40,15 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
-import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.Toast;
-import com.google.android.diskusage.DiskUsage.AfterLoad;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.zip.GZIPInputStream;
+import com.google.android.diskusage.DiskUsage.AfterLoad;
 
 class FileSystemView extends View {
   FileSystemEntry masterRoot;
@@ -93,7 +94,6 @@ class FileSystemView extends View {
 
   static HashMap<String, String> extensionToMime;
 
-  private boolean hasMultitouch;
   private boolean fullZoom;
   private boolean warnOnFileSelect;
   
@@ -295,7 +295,8 @@ class FileSystemView extends View {
       onMotion(newTouchX, newTouchY, moveTime);
       return true;
     } else if (action == MotionEvent.ACTION_UP) {
-      if (multiNumTouches != 1) return true;
+      // This prevents first touch after pinch-zoom, removed
+      //      if (multiNumTouches != 1) return true;
       
       if (!touchMovement) {
         if (touchEntry == null) {
@@ -453,6 +454,10 @@ class FileSystemView extends View {
     if (bounds.bottom != 0 || bounds.top != 0 || bounds.left != 0 || bounds.right != 0) {
       // Log.d("DiskUsage", "bounds: " + bounds);
       masterRoot.paint(canvas, bounds, cursor, viewTop, viewDepth, yscale, screenHeight, numSpecialEntries);
+//      Paint p = new Paint();
+//      p.setColor(Color.RED);
+//      p.setStyle(Style.STROKE);
+//      canvas.drawRect(bounds, p);
     } else {
       Rect bounds2 = new Rect(0, 0, screenWidth, screenHeight);
       masterRoot.paint(canvas, bounds2, cursor, viewTop, viewDepth, yscale, screenHeight, numSpecialEntries);
@@ -555,10 +560,10 @@ class FileSystemView extends View {
   
   final void invalidate(Cursor cursor) {
     float cursorx0 = (cursor.depth - viewDepth) * FileSystemEntry.elementWidth;
-    float cursory0 = (cursor.top - viewTop) * yscale;
+    float cursory0 = (cursor.top - displayTop) * yscale;
     float cursorx1 = cursorx0 + FileSystemEntry.elementWidth;
     float cursory1 = cursory0 + cursor.position.encodedSize * yscale;
-    invalidate((int)cursorx0, (int)cursory0, (int)cursorx1 + 1, (int)cursory1 + 1);
+    invalidate((int)cursorx0, (int)cursory0, (int)cursorx1 + 2, (int)cursory1 + 2);
   }
   
   long prevMoveTime;
@@ -578,6 +583,7 @@ class FileSystemView extends View {
     prepareMotion();
     
     if ((entry == masterRoot.children[0]) || (entry instanceof FileSystemFreeSpace)) {
+      Log.d("diskusage", "special case for " + entry.name);
       toggleZoomState();
       return;
     }
@@ -723,12 +729,15 @@ class FileSystemView extends View {
 
   final boolean back() {
     FileSystemEntry newpos = cursor.position.parent;
-    if (newpos == masterRoot) return false;
+    if (newpos == masterRoot) {
+      return false;
+    }
     cursor.set(this, newpos);
     
     if (masterRoot.children != null && newpos == masterRoot.children[0]) {
       prepareMotion();
-      toggleZoomState();
+      zoomState = ZoomState.ZOOM_FULL;
+      setZoomState();
       titleNeedUpdate = true;
       return true;
     }
@@ -984,6 +993,19 @@ class FileSystemView extends View {
     }
     moveAwayCursor(deletingEntry);
     deletingEntry.remove();
+    FileSystemEntry.deletedEntry = null;
+    FileSystemEntry parent = deletingEntry.parent;
+    // Sort elements otherwise painting code works incorrect
+    while (true) {
+      Arrays.sort(parent.children, FileSystemEntry.COMPARE);
+      if (parent.parent == null) {
+        // Special sort to keep Free and System space at bottom
+        Arrays.sort(parent.children[0].children, FileSystemEntry.SPECIAL_COMPARE);
+        break;
+      }
+      parent = parent.parent;
+    }
+    
     deletingEntry = null;
   }
   
@@ -993,6 +1015,7 @@ class FileSystemView extends View {
     }
     deletingAnimationStartTime = 0;
     deletingEntry = entry;
+    FileSystemEntry.deletedEntry = entry;
     deletingInitialSize = entry.getSizeInBlocks();
   }
   

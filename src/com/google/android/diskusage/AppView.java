@@ -2,13 +2,10 @@ package com.google.android.diskusage;
 
 import android.content.ComponentName;
 import android.content.Intent;
-import android.os.Bundle;
-import android.os.Parcelable;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
-import android.widget.Toast;
 
 import com.google.android.diskusage.DiskUsage.AfterLoad;
 

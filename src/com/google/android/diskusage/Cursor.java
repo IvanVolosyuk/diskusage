@@ -19,7 +19,6 @@
 
 package com.google.android.diskusage;
 
-
 class Cursor {
 	FileSystemEntry root;
 	FileSystemEntry position;
