@@ -248,23 +248,6 @@ public class FileSystemEntry {
   }
   
   public static Compare COMPARE = new Compare();
-  
-  public static class SpecialCompare implements Comparator<FileSystemEntry> {
-    @Override
-    public final int compare(FileSystemEntry aa, FileSystemEntry bb) {
-      if (aa instanceof FileSystemFreeSpace) return 1;
-      if (bb instanceof FileSystemFreeSpace) return -1;
-      if (aa instanceof FileSystemSystemSpace) return 1;
-      if (bb instanceof FileSystemSystemSpace) return -1;
-      
-      if (aa.encodedSize == bb.encodedSize) {
-        return 0;
-      }
-      return aa.encodedSize < bb.encodedSize ? 1 : -1;
-    }
-  }
-  
-  public static SpecialCompare SPECIAL_COMPARE = new SpecialCompare();
 
   /**
    * Find index of directChild in 'children' field of this entry. 

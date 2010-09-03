@@ -58,7 +58,8 @@ class FileSystemView extends View {
   DiskUsage context;
   
   private int numSpecialEntries = 0;
-  private long freeSpace = 0;
+  private FileSystemFreeSpace freeSpace;
+  private FileSystemSystemSpace systemSpace;
   private long freeSpaceZoom = 0;
 
   protected float targetViewDepth;
@@ -360,17 +361,20 @@ class FileSystemView extends View {
   
   private void updateSpecialEntries() {
     numSpecialEntries = 0;
-    freeSpace = 0;
+    freeSpace = null;
+    systemSpace = null;
     freeSpaceZoom = 0;
     if (masterRoot.children == null) return;
     FileSystemEntry root = masterRoot.children[0];
     if (root.children == null) return;
     for (FileSystemEntry e : root.children) {
       if (e instanceof FileSystemSystemSpace) {
+        systemSpace = (FileSystemSystemSpace) e;
         numSpecialEntries++;
       }
       if (e instanceof FileSystemFreeSpace) {
-        freeSpace = e.encodedSize;
+        numSpecialEntries++;
+        freeSpace = (FileSystemFreeSpace) e;
       }
     }
   }
@@ -590,8 +594,8 @@ class FileSystemView extends View {
     
     zoomState = ZoomState.ZOOM_OTHER;
     
-    zoomCursor();
-    zoomOutCursor();
+    zoomFitLabelMoveUp();
+    zoomFitToScreen();
     boolean has_children = entry.children != null && entry.children.length != 0; 
     if (!has_children) {
       Log.d("diskusage", "zoom file");
@@ -649,8 +653,8 @@ class FileSystemView extends View {
       fullZoom = false;
       targetViewTop = cursor.top + 1;
       targetViewBottom = cursor.top + cursor.position.encodedSize - 1;
-      zoomCursor();
-      zoomOutCursor();
+      zoomFitLabelMoveUp();
+      zoomFitToScreen();
     }
     long freeSpaceClip = getFreeSpaceZoom();
     if (targetViewBottom > freeSpaceClip) {
@@ -658,12 +662,13 @@ class FileSystemView extends View {
       if (targetViewTop == 0) zoomState = ZoomState.ZOOM_ALLOCATED;
     }
   }
-
-  public final void zoomCursor() {
+  
+  public final void zoomFitLabel() {
     if (cursor.position.encodedSize == 0) {
       //Log.d("DiskUsage", "position is of zero size");
       return;
     }
+    
     float yscale = screenHeight / (float)(targetViewBottom - targetViewTop);
 
     if (cursor.position.encodedSize * yscale > FileSystemEntry.fontSize * 2 + 2) {
@@ -689,6 +694,15 @@ class FileSystemView extends View {
         }
       }
     }
+  }
+
+  public final void zoomFitLabelMoveUp() {
+    if (cursor.position.encodedSize == 0) {
+      //Log.d("DiskUsage", "position is of zero size");
+      return;
+    }
+    
+    zoomFitLabel();
 
     if (targetViewBottom < cursor.top + cursor.position.encodedSize) {
       //Log.d("DiskUsage", "move up as needed");
@@ -707,7 +721,7 @@ class FileSystemView extends View {
     invalidate();
   }
 
-  public final void zoomOutCursor() {
+  public final void zoomFitToScreen() {
     if (targetViewTop < cursor.top &&
         targetViewBottom > cursor.top + cursor.position.encodedSize) {
 
@@ -723,7 +737,7 @@ class FileSystemView extends View {
     targetViewTop = masterRoot.getOffset(viewRoot);
     long size = viewRoot.encodedSize;
     targetViewBottom = targetViewTop + size;
-    zoomCursor();
+    zoomFitLabelMoveUp();
     invalidate();
   }
 
@@ -747,7 +761,7 @@ class FileSystemView extends View {
       prepareMotion();
       targetViewDepth = requiredDepth;
     }
-    zoomOutCursor();
+    zoomFitToScreen();
     titleNeedUpdate = true;
     return true;
   }
@@ -993,19 +1007,39 @@ class FileSystemView extends View {
     }
     moveAwayCursor(deletingEntry);
     deletingEntry.remove();
+    long encodedSizeMasked = deletingEntry.encodedSize & ~FileSystemEntry.blockMask;
+    if (freeSpace != null) {
+      freeSpace.encodedSize += encodedSizeMasked;
+      masterRoot.encodedSize += encodedSizeMasked;
+      masterRoot.children[0].encodedSize += encodedSizeMasked;
+      freeSpace.sizeString = null;
+    }
+
     FileSystemEntry.deletedEntry = null;
     FileSystemEntry parent = deletingEntry.parent;
+    
+    long freeSpaceSize = 0, systemSpaceSize = 0;
+    if (freeSpace != null) {
+      freeSpaceSize = freeSpace.encodedSize;
+      systemSpaceSize = systemSpace.encodedSize;
+      freeSpace.setSizeInBlocks(-100);
+      systemSpace.setSizeInBlocks(-90);
+      Log.d("diskusage", "system = " + systemSpace.encodedSize);
+    }
     // Sort elements otherwise painting code works incorrect
-    while (true) {
+    while (parent != null) {
       Arrays.sort(parent.children, FileSystemEntry.COMPARE);
-      if (parent.parent == null) {
-        // Special sort to keep Free and System space at bottom
-        Arrays.sort(parent.children[0].children, FileSystemEntry.SPECIAL_COMPARE);
-        break;
-      }
       parent = parent.parent;
     }
     
+    for (FileSystemEntry e : masterRoot.children[0].children) {
+      Log.d("diskusage", "entry = " + e.name + " " + e.encodedSize);
+    }
+    
+    if (freeSpace != null) {
+      freeSpace.encodedSize = freeSpaceSize;
+      systemSpace.encodedSize = systemSpaceSize;
+    }
     deletingEntry = null;
   }
   
@@ -1047,9 +1081,15 @@ class FileSystemView extends View {
     
     FileSystemEntry parent = entry.parent;
     
+    long dSizeEncoded = dSize << FileSystemEntry.blockOffset;
     while (parent != null) {
-      parent.encodedSize += dSize << FileSystemEntry.blockOffset;
+      parent.encodedSize += dSizeEncoded;
       parent = parent.parent;
+    }
+    if (freeSpace != null) {
+      masterRoot.encodedSize -= dSizeEncoded;
+      masterRoot.children[0].encodedSize -= dSizeEncoded;
+      freeSpace.encodedSize -= dSizeEncoded;
     }
     // truncate children
     while (true) {
@@ -1135,14 +1175,16 @@ class FileSystemView extends View {
     
     if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
       cursor.down(this);
-      zoomCursor();
+      zoomFitLabelMoveUp();
+      zoomFitToScreen();
       titleNeedUpdate = true;
       return true; 
     }
 
     if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
       cursor.up(this);
-      zoomOutCursor();
+      zoomFitLabel();
+      zoomFitToScreen();
       titleNeedUpdate = true;
       return true;
     }
@@ -1154,7 +1196,7 @@ class FileSystemView extends View {
 
     if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
       cursor.right(this);
-      zoomCursor();
+      zoomFitLabelMoveUp();
 
       float requiredDepth = cursor.depth + 1 + (cursor.position.children == null ? 0 : 1) - maxLevels;
       if (viewDepth < requiredDepth) {
@@ -1244,11 +1286,11 @@ class FileSystemView extends View {
   
   private long getFreeSpaceZoom() {
     if (freeSpaceZoom != 0) return freeSpaceZoom;
-    if (freeSpace == 0) return masterRoot.encodedSize;
+    if (freeSpace == null) return masterRoot.encodedSize;
     
     freeSpaceZoom = masterRoot.encodedSize;
     FileSystemEntry.setupStrings(context);
-    long busy = masterRoot.encodedSize - freeSpace;
+    long busy = masterRoot.encodedSize - freeSpace.encodedSize;
     float message = FileSystemEntry.fontSize * 2 + 1f;
     float height = screenHeight / 41f * 40f;
     long required = (long)(busy * (height / (height - message)));
