@@ -165,8 +165,15 @@ public class DiskUsage extends LoadableActivity {
     
     long systemBlocks = totalBlocks - freeBlocks - visibleBlocks;
     Collections.sort(entries, FileSystemEntry.COMPARE);
-    entries.add(new FileSystemSystemSpace("System data", systemBlocks * blockSize, blockSize));
-    entries.add(new FileSystemFreeSpace("Free space", freeBlocks * blockSize, blockSize));
+    if (systemBlocks > 0) {
+      entries.add(new FileSystemSystemSpace("System data", systemBlocks * blockSize, blockSize));
+      entries.add(new FileSystemFreeSpace("Free space", freeBlocks * blockSize, blockSize));
+    } else {
+      freeBlocks += systemBlocks;
+      if (freeBlocks > 0) {
+        entries.add(new FileSystemFreeSpace("Free space", freeBlocks * blockSize, blockSize));
+      }
+    }
     
     rootElement = new FileSystemEntry("sdcard", entries.toArray(new FileSystemEntry[0]), blockSize);
     FileSystemEntry newRoot = new FileSystemEntry(null,
