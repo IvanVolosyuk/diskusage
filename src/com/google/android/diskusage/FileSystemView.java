@@ -22,6 +22,7 @@ package com.google.android.diskusage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.zip.GZIPInputStream;
@@ -112,10 +113,12 @@ class FileSystemView extends View {
   float touchWidth;
   float touchPointX; 
   float minDistance;
+  float minDistanceX;
   int minElementWidth;
   int maxElementWidth;
   
   private int stats_num_deletions = 0;
+  private boolean screenTouched;
   
    static class VersionedMultitouchHandler {
      boolean handleTouch(MotionEvent ev) {
@@ -134,6 +137,21 @@ class FileSystemView extends View {
   }
   
   class MultiTouchHandler extends VersionedMultitouchHandler {
+    ArrayList<MotionFilter> filterX = new ArrayList<MotionFilter>();
+    ArrayList<MotionFilter> filterY = new ArrayList<MotionFilter>();
+    
+    private MotionFilter getFilterX(int i) {
+      if (filterX.size() <= i)
+        filterX.add(new MotionFilter());
+      return filterX.get(i);      
+    }
+    
+    private MotionFilter getFilterY(int i) {
+      if (filterY.size() <= i)
+        filterY.add(new MotionFilter());
+      return filterY.get(i);      
+    }
+    
     boolean handleTouch(MotionEvent ev) {
       int action = ev.getAction();
       Integer num = (Integer) ev.getPointerCount();
@@ -141,13 +159,20 @@ class FileSystemView extends View {
         return false;
       }
 
+      if (action == MotionEvent.ACTION_DOWN && num >= 2) {
+        for (int i = 0; i < num; i++) {
+          getFilterX(i).noFilter(ev.getX(i));
+          getFilterY(i).noFilter(ev.getY(i));
+        }
+      }
+
       if (action == MotionEvent.ACTION_MOVE && num >= 2) {
         float xmin, xmax, ymin, ymax;
-        ymin = ymax = (Float) ev.getY(0);
-        xmin = xmax = (Float) ev.getX(0);
+        ymin = ymax = getFilterX(0).doFilter(ev.getY(0));
+        xmin = xmax = getFilterY(0).doFilter(ev.getX(0));
         for (int i = 1; i < num; i++) {
-          float x = (Float) ev.getX(i);
-          float y = (Float) ev.getY(i);
+          float x = getFilterX(i).doFilter(ev.getX(i));
+          float y = getFilterY(i).doFilter(ev.getY(i));
           if (x < xmin) xmin = x;
           if (x > xmax) xmax = x;
           if (y < ymin) ymin = y;
@@ -164,7 +189,8 @@ class FileSystemView extends View {
 
           float avg_x = 0.5f * (xmax + xmin);
           float dx = xmax - xmin;
-          if (dx < minDistance) dx = minDistance;
+          minDistanceX = FileSystemEntry.elementWidth;
+          if (dx < minDistanceX) dx = minDistanceX;
           touchWidth = dx / FileSystemEntry.elementWidth;
           touchPointX = viewDepth + avg_x / FileSystemEntry.elementWidth; 
           //            Log.d("diskusage", "multitouch reset " + avg_x + " : " + dx);
@@ -179,7 +205,7 @@ class FileSystemView extends View {
 
         float avg_x = 0.5f * (xmax + xmin);
         float dx = xmax - xmin;
-        if (dx < minDistance) dx = minDistance;
+        if (dx < minDistanceX) dx = minDistanceX;
         FileSystemEntry.elementWidth = (int) (dx / touchWidth);
 
         if (FileSystemEntry.elementWidth < minElementWidth)
@@ -228,11 +254,12 @@ class FileSystemView extends View {
     touchMovement = true;
     
     viewDepth -= touchOffsetX / FileSystemEntry.elementWidth;
-    if (viewDepth < -0.4f) viewDepth = -0.4f;
+    if (viewDepth * FileSystemEntry.elementWidth < -screenWidth * 0.6)
+      viewDepth = -screenWidth * 0.6f / FileSystemEntry.elementWidth;
     targetViewDepth = viewDepth;
 
     long offset = (long)(touchOffsetY / yscale);
-    long allowedOverflow = (long)(screenHeight / 10 / yscale);
+    long allowedOverflow = (long)(screenHeight * 0.6f / yscale);
     viewTop -= offset;
     viewBottom -= offset;
 
@@ -247,6 +274,7 @@ class FileSystemView extends View {
       viewBottom = masterRoot.encodedSize + allowedOverflow;
       viewTop += viewBottom - oldBottom;
     }
+    
     targetViewTop = viewTop;
     targetViewBottom = viewBottom;
     animationStartTime = 0;
@@ -255,6 +283,46 @@ class FileSystemView extends View {
     invalidate();
     return;
   }
+  
+  static class MotionFilter {
+    public static float dx = 5;
+    float cur;
+    float cur2;
+    float dx2;; 
+    int idle = 0;
+    
+    float noFilter(float value) {
+      cur = value;
+      cur2 = value;
+      dx2 = 0;
+      return value;
+    }
+    
+    float doFilter(float val) {
+      if (val > cur + dx) {
+        cur += val - (cur + dx);
+        dx2--;
+        if (dx2 < 0) dx2 = 0;
+        idle = 0;
+      } else if (val < cur - dx) {
+        cur += val - (cur - dx);
+        dx2--;
+        if (dx2 < 0) dx2 = 0;
+      } else {
+        dx2++;
+        if (dx2 > dx) dx2 = dx;
+      }
+      if (val > cur2 + dx2) {
+        cur2 += val - (cur2 + dx2);
+      } else if (val < cur2 - dx2) {
+        cur2 += val - (cur2 - dx2);
+      }
+      return cur2;
+    }
+  }
+  
+  private MotionFilter filterX = new MotionFilter();
+  private MotionFilter filterY = new MotionFilter();
 
   @Override
   public final boolean onTouchEvent(MotionEvent ev) {
@@ -274,10 +342,21 @@ class FileSystemView extends View {
     float newTouchY = ev.getY();
 
     int action = ev.getAction();
+    
+    if (multiNumTouches > 1) {
+      if (action == MotionEvent.ACTION_UP) {
+        multiNumTouches = 0;
+        screenTouched = false;
+        invalidate();
+      }
+      return true;
+    }
 
-    if (action == MotionEvent.ACTION_DOWN || (
-        multiNumTouches != 1 && action == MotionEvent.ACTION_MOVE)) {
+    if (action == MotionEvent.ACTION_DOWN) {
+      screenTouched = true;
       multiNumTouches = 1;
+      newTouchX = filterX.noFilter(newTouchX);
+      newTouchY = filterY.noFilter(newTouchY);
       touchX = newTouchX;
       touchY = newTouchY;
       touchDepth = (FileSystemEntry.elementWidth * viewDepth + touchX) /
@@ -293,9 +372,14 @@ class FileSystemView extends View {
       prevMoveTime = ev.getEventTime();
     } else if (action == MotionEvent.ACTION_MOVE) {
       long moveTime = ev.getEventTime();
+      newTouchX = filterX.doFilter(newTouchX);
+      newTouchY = filterY.doFilter(newTouchY);
       onMotion(newTouchX, newTouchY, moveTime);
       return true;
     } else if (action == MotionEvent.ACTION_UP) {
+      screenTouched = false;
+      newTouchX = filterX.doFilter(newTouchX);
+      newTouchY = filterY.doFilter(newTouchY);
       // This prevents first touch after pinch-zoom, removed
       //      if (multiNumTouches != 1) return true;
       
@@ -310,14 +394,16 @@ class FileSystemView extends View {
       }
       touchMovement = false;
       
-      { // copy paste
+      { // copy paste, fling
         float touchOffsetX = speedX * 15;
         float touchOffsetY = speedY * 15;
         targetViewDepth -= touchOffsetX / FileSystemEntry.elementWidth;
-        if (targetViewDepth < -0.4f) targetViewDepth = -0.4f;
+        if (targetViewDepth * FileSystemEntry.elementWidth < -screenWidth * 0.6)
+          targetViewDepth = -screenWidth * 0.6f / FileSystemEntry.elementWidth;
+
 
         long offset = (long)(touchOffsetY / yscale);
-        long allowedOverflow = (long)(screenHeight / 10 / yscale);
+        long allowedOverflow = (long)(screenHeight * 0.6f / yscale);
         targetViewTop -= offset;
         targetViewBottom -= offset;
 
@@ -509,7 +595,7 @@ class FileSystemView extends View {
 
       if (animation) {
         invalidate();
-      } else {
+      } else if (!screenTouched) {
         if (targetViewTop < 0 || targetViewBottom > masterRoot.encodedSize
             || viewDepth < 0) {
           prepareMotion();
@@ -555,6 +641,12 @@ class FileSystemView extends View {
   }
 
   final void prepareMotion() {
+    Log.d("diskusage", "prepare motion");
+    try {
+      throw new RuntimeException("x");
+    } catch (RuntimeException e) {
+      Log.e("diskusage", "prepare motion", e);
+    }
     animationDuration = 900;
     prevViewDepth = viewDepth;
     prevViewTop = viewTop;
@@ -1229,6 +1321,8 @@ class FileSystemView extends View {
     screenWidth = getWidth();
     minElementWidth = screenWidth / 6;
     maxElementWidth = screenWidth / 2;
+    // FIXME: may be too large
+    MotionFilter.dx = (screenHeight + screenWidth) / 50;
 
     minDistance = screenHeight > screenWidth ? screenHeight /  10 : screenWidth / 10; 
     Log.d("diskusage", "screen = " + screenWidth + "x" + screenHeight);
