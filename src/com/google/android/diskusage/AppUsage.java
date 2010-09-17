@@ -9,20 +9,9 @@ import android.os.Environment;
 import android.os.StatFs;
 
 public class AppUsage extends DiskUsage {
-  static FileSystemEntry root;
   private AppFilter pendingFilter;
   private static int blockSizeCache;
 
-  @Override
-  FileSystemEntry getRoot() {
-    return root;
-  }
-
-  @Override
-  void setRoot(FileSystemEntry root) {
-    AppUsage.root = root;
-  }
-  
   public static int getDataBlockSize() {
     if (blockSizeCache != 0) return blockSizeCache;
     final File dataDir = Environment.getDataDirectory();
@@ -139,7 +128,7 @@ public class AppUsage extends DiskUsage {
     appsElement.filter = newFilter;
     
     FileSystemEntry newRoot = wrapApps(appsElement, newFilter);
-    setRoot(newRoot);
+    getPersistantState().root = newRoot;
     view.rescanFinished(newRoot);
     view.startZoomAnimation();
   }

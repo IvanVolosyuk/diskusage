@@ -8,10 +8,11 @@ import android.content.DialogInterface.OnCancelListener;
 import android.os.Bundle;
 
 public class SelectActivity extends Activity {
+  private AlertDialog dialog;
   @Override
   protected void onResume() {
     super.onResume();
-    new AlertDialog.Builder(this)
+    dialog = new AlertDialog.Builder(this)
     .setItems(new String[] {"Storage card", "Internal storage"},
         new DialogInterface.OnClickListener() {
       @Override
@@ -35,8 +36,14 @@ public class SelectActivity extends Activity {
       public void onCancel(DialogInterface dialog) {
         finish();
       }
-    })
-    .show();
+    }).create();
+    dialog.show();
+  }
+  
+  @Override
+  protected void onPause() {
+    if (dialog.isShowing()) dialog.dismiss();
+    super.onPause();
   }
   
   Bundle diskUsageState;

@@ -28,6 +28,8 @@ public class AppView extends FileSystemView {
         "com.android.settings", "com.android.settings.InstalledAppDetails"));
     viewIntent.putExtra(APP_PKG_NAME, pkg.pkg);
     viewIntent.putExtra("pkg", pkg.pkg);
+    // FIXME: reload package data instead of just removing it
+    context.pkg_removed = pkg;
     context.startActivity(viewIntent);
   }
   

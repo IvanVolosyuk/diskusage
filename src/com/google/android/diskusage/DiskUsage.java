@@ -35,7 +35,6 @@ import android.view.Menu;
 
 public class DiskUsage extends LoadableActivity {
   protected FileSystemView view;
-  private static FileSystemEntry root;
   private Bundle savedState;
   
   protected FileSystemView makeView(DiskUsage diskUsage, FileSystemEntry root) {
@@ -47,18 +46,6 @@ public class DiskUsage extends LoadableActivity {
     super.onCreate(icicle);
     Bundle receivedState = getIntent().getBundleExtra(STATE_KEY);
     if (receivedState != null) onRestoreInstanceState(receivedState);
-    LoadFiles(this, new AfterLoad() {
-      public void run(FileSystemEntry root, boolean isCached) {
-        view = makeView(DiskUsage.this, root);
-        if (!isCached) view.startZoomAnimation();
-        setContentView(view);
-        view.requestFocus();
-        if (savedState != null) {
-          onRestoreInstanceState(savedState);
-          savedState = null;
-        }
-      }
-    }, false);
   }
   
   public static int getExternalBlockSize() {
@@ -76,17 +63,30 @@ public class DiskUsage extends LoadableActivity {
   protected void onResume() {
     super.onResume();
     FileSystemEntry.blockSize = getBlockSize();
-    if (pkg_removed == null) return;
-    // Check if package removed
-    String pkg_name = pkg_removed.pkg;
-    PackageManager pm = getPackageManager();
-    try {
-      pm.getPackageInfo(pkg_name, 0);
-    } catch (NameNotFoundException e) {
-      if (view != null)
-        view.remove(pkg_removed);
+    if (pkg_removed != null) {
+      // Check if package removed
+      String pkg_name = pkg_removed.pkg;
+      PackageManager pm = getPackageManager();
+      try {
+        pm.getPackageInfo(pkg_name, 0);
+      } catch (NameNotFoundException e) {
+        if (view != null)
+          view.remove(pkg_removed);
+      }
+      pkg_removed = null;
     }
-    pkg_removed = null;
+    LoadFiles(this, new AfterLoad() {
+      public void run(FileSystemEntry root, boolean isCached) {
+        view = makeView(DiskUsage.this, root);
+        if (!isCached) view.startZoomAnimation();
+        setContentView(view);
+        view.requestFocus();
+        if (savedState != null) {
+          onRestoreInstanceState(savedState);
+          savedState = null;
+        }
+      }
+    }, false);
   }
   
   @Override
@@ -120,16 +120,6 @@ public class DiskUsage extends LoadableActivity {
   
   public interface AfterLoad {
     public void run(FileSystemEntry root, boolean isCached);
-  }
-
-  @Override
-  FileSystemEntry getRoot() {
-    return root;
-  }
-
-  @Override
-  void setRoot(FileSystemEntry root) {
-    DiskUsage.root = root;
   }
 
   @Override
