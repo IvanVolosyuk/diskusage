@@ -17,7 +17,7 @@ public class FileSystemPackage extends FileSystemEntry {
   
   public FileSystemPackage(
       String name, String pkg, PackageStats stats,
-      int flags, Long hackApkSize, long blockSize) {
+      int flags, Long hackApkSize, int blockSize) {
     super(name, 0, blockSize);
     this.pkg = pkg;
     this.cacheSize = (int) stats.cacheSize;
@@ -34,7 +34,7 @@ public class FileSystemPackage extends FileSystemEntry {
     return (flags & SDCARD_FLAG) != 0;
   }
   
-  public void applyFilter(AppFilter filter) {
+  public void applyFilter(AppFilter filter, int blockSize) {
     sizeString = null;
     long blocks = 0;
     ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();

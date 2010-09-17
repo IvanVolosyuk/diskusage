@@ -141,12 +141,12 @@ public class FileSystemEntry {
    * @param size
    * @param children
    */
-  public FileSystemEntry(String name, long size, long blockSize) {
+  public FileSystemEntry(String name, long size, int blockSize) {
     this.name = name;
     initSize(size, blockSize);
   }
   
-  private void initSize(long size, long BlockSize) {
+  private void initSize(long size, int blockSize) {
     long blocks = ((size + (blockSize - 1)) / blockSize);
     long bytes = (int)(size + blockSize - blocks * blockSize);
     if (blocks == 0) {
@@ -163,7 +163,7 @@ public class FileSystemEntry {
    * @param parent parent directory object.
    * @param file corresponding File
    */
-  FileSystemEntry(FileSystemEntry parent, File file, long blockSize) {
+  FileSystemEntry(FileSystemEntry parent, File file, int blockSize) {
     this(file.getName(), file.length(), blockSize);
     this.parent = parent;
   }
@@ -173,7 +173,7 @@ public class FileSystemEntry {
    * Sets children field to specified parameter. Computes root size.
    * Updates parent pointer for all children.
    */
-  public FileSystemEntry(String name, FileSystemEntry[] children, long blockSize) {
+  public FileSystemEntry(String name, FileSystemEntry[] children, int blockSize) {
     this.name = name;
     this.children = children;
     long blocks = 0;
@@ -195,7 +195,7 @@ public class FileSystemEntry {
    * @param depth current directory tree depth
    * @param maxdepth maximum directory tree depth
    */
-  FileSystemEntry(FileSystemEntry parent, File file, int depth, int maxdepth, long blockSize) {
+  FileSystemEntry(FileSystemEntry parent, File file, int depth, int maxdepth, int blockSize) {
     this.parent = parent;
     this.name = file.getName();
 

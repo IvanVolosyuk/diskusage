@@ -62,7 +62,6 @@ public class DiskUsage extends LoadableActivity {
   @Override
   protected void onResume() {
     super.onResume();
-    FileSystemEntry.blockSize = getBlockSize();
     if (pkg_removed != null) {
       // Check if package removed
       String pkg_name = pkg_removed.pkg;
@@ -77,6 +76,7 @@ public class DiskUsage extends LoadableActivity {
     }
     LoadFiles(this, new AfterLoad() {
       public void run(FileSystemEntry root, boolean isCached) {
+        FileSystemEntry.blockSize = getBlockSize();
         view = makeView(DiskUsage.this, root);
         if (!isCached) view.startZoomAnimation();
         setContentView(view);
@@ -127,7 +127,6 @@ public class DiskUsage extends LoadableActivity {
     final File sdcard = Environment.getExternalStorageDirectory();
     StatFs data = new StatFs(sdcard.getAbsolutePath());
     int blockSize = data.getBlockSize();
-    FileSystemEntry.blockSize = blockSize;
     long freeBlocks = data.getAvailableBlocks();
     long totalBlocks = data.getBlockCount();
     

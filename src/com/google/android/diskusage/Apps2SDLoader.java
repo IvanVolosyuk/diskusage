@@ -93,7 +93,7 @@ public class Apps2SDLoader {
               if (succeeded) {
                 FileSystemPackage p = new FileSystemPackage(
                     name, pkg, pStats, info.applicationInfo.flags, dfSizes.get(pkg), blockSize);
-                p.applyFilter(appFilter);
+                p.applyFilter(appFilter, blockSize);
                 entries.add(p);
 //                Log.i("diskusage", "codeSize: " + pStats.codeSize);
               }

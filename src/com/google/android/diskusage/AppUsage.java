@@ -29,16 +29,16 @@ public class AppUsage extends DiskUsage {
     long freeSize = 0;
     long allocatedSpace = 0;
     long systemSize = 0;
-    long entryBlockSize = getBlockSize();
+    int entryBlockSize = getBlockSize();
     if ((filter.useApk || filter.useData) && !filter.useSD) {
       StatFs data = new StatFs("/data");
-      long blockSize = data.getBlockSize();
+      int blockSize = data.getBlockSize();
       freeSize = data.getAvailableBlocks() * blockSize;
       allocatedSpace = data.getBlockCount() * blockSize - freeSize;
     }
     if (filter.useCache && ! filter.useSD) {
       StatFs cache = new StatFs("/cache");
-      long blockSize = cache.getBlockSize();
+      int blockSize = cache.getBlockSize();
       long cacheFreeSpace = cache.getAvailableBlocks() * blockSize; 
       freeSize += cacheFreeSpace;
       allocatedSpace += cache.getBlockCount() * blockSize - cacheFreeSpace;
@@ -120,7 +120,7 @@ public class AppUsage extends DiskUsage {
     }
     for (FileSystemEntry entry : appsElement.children) {
       FileSystemPackage pkg = (FileSystemPackage) entry;
-      pkg.applyFilter(newFilter);
+      pkg.applyFilter(newFilter, getBlockSize());
     }
     java.util.Arrays.sort(appsElement.children, FileSystemEntry.COMPARE);
     
