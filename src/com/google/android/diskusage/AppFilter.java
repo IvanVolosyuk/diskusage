@@ -10,6 +10,7 @@ public class AppFilter implements Parcelable {
   public boolean useApk;
   public boolean useData;
   public boolean useCache;
+  public boolean useDalvikCache;
   public boolean useSD;
 
 
@@ -18,6 +19,7 @@ public class AppFilter implements Parcelable {
     filter.enableChildren = false;
     filter.useApk = true;
     filter.useData = false;
+    filter.useDalvikCache = false;
     filter.useCache = false;
     filter.useSD = true;
     return filter;
@@ -29,6 +31,7 @@ public class AppFilter implements Parcelable {
     if (filter.enableChildren != enableChildren) return false;
     if (filter.useApk != useApk) return false;
     if (filter.useData != useData) return false;
+    if (filter.useDalvikCache != useDalvikCache) return false;
     if (filter.useCache != useCache) return false;
     if (filter.useSD != useSD) return false;
     return true;
@@ -41,6 +44,7 @@ public class AppFilter implements Parcelable {
     filter.enableChildren = true;
     filter.useApk = prefs.getBoolean("show_apk", true);
     filter.useData = prefs.getBoolean("show_data", true);
+    filter.useDalvikCache = prefs.getBoolean("show_dalvikCache", true);
     filter.useCache = prefs.getBoolean("show_cache", false);
     filter.useSD = !prefs.getBoolean("internal_only", true);
     return filter;
@@ -49,13 +53,14 @@ public class AppFilter implements Parcelable {
   public AppFilter() {}
   
   public AppFilter(Parcel in) {
-    boolean[] arr = new boolean[5];
+    boolean[] arr = new boolean[6];
     in.readBooleanArray(arr);
     enableChildren = arr[0];
     useApk = arr[1];
     useData = arr[2];
     useCache = arr[3];
     useSD = arr[4];
+    useDalvikCache = arr[5];
   }
 
   @Override
@@ -66,11 +71,12 @@ public class AppFilter implements Parcelable {
   @Override
   public void writeToParcel(Parcel dest, int flags) {
     dest.writeBooleanArray(new boolean[] {
-        enableChildren, useApk, useData,useCache, useSD
+        enableChildren, useApk, useData,useCache, useSD, useDalvikCache
     });
   }
   
-  public static final Parcelable.Creator<AppFilter> CREATOR = new Parcelable.Creator<AppFilter>() {
+  public static final Parcelable.Creator<AppFilter> CREATOR =
+    new Parcelable.Creator<AppFilter>() {
     public AppFilter createFromParcel(Parcel in) {
       AppFilter filter = new AppFilter(in);
       return filter;
@@ -80,5 +86,4 @@ public class AppFilter implements Parcelable {
       return new AppFilter[size];
     }
   };
-
 }

@@ -17,6 +17,11 @@
     android:defaultValue="true"
     android:key="show_data"/>
   <CheckBoxPreference
+    android:title="Show DalvikCache"
+    android:defaultValue="true"
+    android:summary="Display dalvikCache allocated for your apps on your data partition."
+    android:key="show_dalvikCache"/>
+  <CheckBoxPreference
     android:title="Show Cache"
     android:defaultValue="false"
     android:summary="Application cache uses different partition and can't be used by apk and data."

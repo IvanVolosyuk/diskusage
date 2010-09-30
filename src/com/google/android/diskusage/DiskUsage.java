@@ -90,6 +90,15 @@ public class DiskUsage extends LoadableActivity {
   }
   
   @Override
+  protected void onPause() {
+    super.onPause();
+    if (view != null) {
+      savedState = new Bundle();
+      view.saveState(savedState);
+    }
+  }
+  
+  @Override
   public void onActivityResult(int a, int result, Intent i) {
     if (view != null) {
       if (result != RESULT_OK) return;

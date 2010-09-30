@@ -25,27 +25,27 @@ public class AppUsage extends DiskUsage {
     return getDataBlockSize();
   }
   
-  FileSystemEntry wrapApps(FileSystemSpecial appsElement, AppFilter filter) {
+  FileSystemEntry wrapApps(FileSystemSpecial appsElement, AppFilter filter, int displayBlockSize) {
     long freeSize = 0;
     long allocatedSpace = 0;
     long systemSize = 0;
     int entryBlockSize = getBlockSize();
     if ((filter.useApk || filter.useData) && !filter.useSD) {
       StatFs data = new StatFs("/data");
-      int blockSize = data.getBlockSize();
-      freeSize = data.getAvailableBlocks() * blockSize;
-      allocatedSpace = data.getBlockCount() * blockSize - freeSize;
+      int dataBlockSize = data.getBlockSize();
+      freeSize = data.getAvailableBlocks() * dataBlockSize;
+      allocatedSpace = data.getBlockCount() * dataBlockSize - freeSize;
     }
     if (filter.useCache && ! filter.useSD) {
       StatFs cache = new StatFs("/cache");
-      int blockSize = cache.getBlockSize();
-      long cacheFreeSpace = cache.getAvailableBlocks() * blockSize; 
+      int cacheBlockSize = cache.getBlockSize();
+      long cacheFreeSpace = cache.getAvailableBlocks() * cacheBlockSize; 
       freeSize += cacheFreeSpace;
-      allocatedSpace += cache.getBlockCount() * blockSize - cacheFreeSpace;
+      allocatedSpace += cache.getBlockCount() * cacheBlockSize - cacheFreeSpace;
     }
     
     if (allocatedSpace > 0) {
-      systemSize = allocatedSpace - appsElement.getSizeInBlocks() * FileSystemEntry.blockSize;
+      systemSize = allocatedSpace - appsElement.getSizeInBlocks() * displayBlockSize;
     }
     
     if (filter.useSD) {
@@ -85,7 +85,7 @@ public class AppUsage extends DiskUsage {
     FileSystemEntry[] appsArray = loadApps2SD(false, filter, blockSize);
     FileSystemSpecial appsElement = new FileSystemSpecial("Applications", appsArray, blockSize);
     appsElement.filter = filter;
-    return wrapApps(appsElement, filter);
+    return wrapApps(appsElement, filter, blockSize);
   }
 
   @Override
@@ -109,6 +109,8 @@ public class AppUsage extends DiskUsage {
   }
   
   private void updateFilter(AppFilter newFilter) {
+    // FIXME: hack
+    int blockSize = FileSystemEntry.blockSize;
     if (view == null) {
       pendingFilter = newFilter;
       return;
@@ -127,7 +129,7 @@ public class AppUsage extends DiskUsage {
     appsElement = new FileSystemSpecial(appsElement.name, appsElement.children, getDataBlockSize());
     appsElement.filter = newFilter;
     
-    FileSystemEntry newRoot = wrapApps(appsElement, newFilter);
+    FileSystemEntry newRoot = wrapApps(appsElement, newFilter, blockSize);
     getPersistantState().root = newRoot;
     view.rescanFinished(newRoot);
     view.startZoomAnimation();

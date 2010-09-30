@@ -642,11 +642,6 @@ class FileSystemView extends View {
 
   final void prepareMotion() {
     Log.d("diskusage", "prepare motion");
-    try {
-      throw new RuntimeException("x");
-    } catch (RuntimeException e) {
-      Log.e("diskusage", "prepare motion", e);
-    }
     animationDuration = 900;
     prevViewDepth = viewDepth;
     prevViewTop = viewTop;
@@ -1113,10 +1108,12 @@ class FileSystemView extends View {
     long freeSpaceSize = 0, systemSpaceSize = 0;
     if (freeSpace != null) {
       freeSpaceSize = freeSpace.encodedSize;
-      systemSpaceSize = systemSpace.encodedSize;
       freeSpace.setSizeInBlocks(-100);
+    }
+    
+    if (systemSpace != null) {
+      systemSpaceSize = systemSpace.encodedSize;
       systemSpace.setSizeInBlocks(-90);
-      Log.d("diskusage", "system = " + systemSpace.encodedSize);
     }
     // Sort elements otherwise painting code works incorrect
     while (parent != null) {
@@ -1130,6 +1127,8 @@ class FileSystemView extends View {
     
     if (freeSpace != null) {
       freeSpace.encodedSize = freeSpaceSize;
+    }
+    if (systemSpace != null) {
       systemSpace.encodedSize = systemSpaceSize;
     }
     deletingEntry = null;
