@@ -30,6 +30,8 @@ public abstract class LoadableActivity extends Activity {
   
   protected PersistantActivityState getPersistantState() {
     String key = this.getClass().getName();
+    if (key.equals("com.google.android.diskusage.DeleteActivity"))
+      key = "com.google.android.diskusage.DiskUsage";
     PersistantActivityState state = persistantActivityState.get(key);
     if (state != null) return state;
     state = new PersistantActivityState();

@@ -14,8 +14,8 @@ import android.widget.TextView;
 
 public class DeleteActivity extends DiskUsage {
   @Override
-  protected void onCreate(Bundle icicle) {
-    super.onCreate(icicle);
+  protected void onResume() {
+    super.onResume();
     setContentView(new TextView(this));
     LoadFiles(this, new AfterLoad() {
       public void run(FileSystemEntry root, boolean isCached) {
@@ -33,14 +33,14 @@ public class DeleteActivity extends DiskUsage {
         Button ok = (Button) findViewById(R.id.ok_button);
         ok.setOnClickListener(new OnClickListener() {
           public void onClick(View arg0) {
-            setResult(RESULT_OK, responseIntent);
+            setResult(DiskUsage.RESULT_DELETE_CONFIRMED, responseIntent);
             finish();
           }
         });
         Button cancel = (Button) findViewById(R.id.cancel_button);
         cancel.setOnClickListener(new OnClickListener() {
           public void onClick(View arg0) {
-            setResult(RESULT_CANCELED);
+            setResult(DiskUsage.RESULT_DELETE_CANCELED);
             finish();
           }
         });

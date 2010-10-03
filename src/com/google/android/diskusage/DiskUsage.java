@@ -36,6 +36,9 @@ import android.view.Menu;
 public class DiskUsage extends LoadableActivity {
   protected FileSystemView view;
   private Bundle savedState;
+  public static final int RESULT_DELETE_CONFIRMED = 10;
+  public static final int RESULT_DELETE_CANCELED = 11;
+  private String pathToDelete;
   
   protected FileSystemView makeView(DiskUsage diskUsage, FileSystemEntry root) {
     return new FileSystemView(this, root);
@@ -85,6 +88,11 @@ public class DiskUsage extends LoadableActivity {
           onRestoreInstanceState(savedState);
           savedState = null;
         }
+        if (pathToDelete != null) {
+          String path = pathToDelete;
+          pathToDelete = null;
+          view.continueDelete(path);
+        }
       }
     }, false);
   }
@@ -101,9 +109,8 @@ public class DiskUsage extends LoadableActivity {
   @Override
   public void onActivityResult(int a, int result, Intent i) {
     if (view != null) {
-      if (result != RESULT_OK) return;
-      String path = i.getStringExtra("path");
-      view.continueDelete(path);
+      if (result != RESULT_DELETE_CONFIRMED) return;
+      pathToDelete = i.getStringExtra("path"); 
     }
   }
   
