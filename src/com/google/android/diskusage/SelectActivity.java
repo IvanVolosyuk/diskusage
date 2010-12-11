@@ -1,5 +1,7 @@
 package com.google.android.diskusage;
 
+import java.util.ArrayList;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -12,17 +14,37 @@ public class SelectActivity extends Activity {
   @Override
   protected void onResume() {
     super.onResume();
+    ArrayList<String> options = new ArrayList<String>();
+    final String externalCard = "External card";
+    final String internalCard = "Internal card";
+    final String programStorage = "App storage";
+    
+    if (MountPoint.getExternalStorage() != null) {
+      options.add(externalCard);
+    }
+    if (MountPoint.getInternalStorage() != null) {
+      options.add(internalCard);
+    }
+    options.add(programStorage);
+    final String[] optionsArray = options.toArray(new String[options.size()]);
+    
     dialog = new AlertDialog.Builder(this)
-    .setItems(new String[] {"Storage card", "Internal storage"},
+    .setItems(optionsArray,
         new DialogInterface.OnClickListener() {
       @Override
       public void onClick(DialogInterface dialog, int which) {
-        if (which == 0) {
+        String option = optionsArray[which];
+        if (option.equals(externalCard)) {
           Intent i = new Intent(SelectActivity.this, DiskUsage.class);
           if (diskUsageState != null)
             i.putExtra(DiskUsage.STATE_KEY, diskUsageState);
           startActivityForResult(i, 0);
-        } else {
+        } else if (option.equals(internalCard)) {
+          Intent i = new Intent(SelectActivity.this, DiskUsageInternal.class);
+          if (diskUsageInternalState != null)
+            i.putExtra(DiskUsage.STATE_KEY, diskUsageInternalState);
+          startActivityForResult(i, 0);
+        } else if (option.equals(programStorage)) {
           Intent i = new Intent(SelectActivity.this, AppUsage.class);
           if (appUsageState != null)
             i.putExtra(DiskUsage.STATE_KEY, appUsageState);
@@ -47,6 +69,7 @@ public class SelectActivity extends Activity {
   }
   
   Bundle diskUsageState;
+  Bundle diskUsageInternalState;
   Bundle appUsageState;
   
   @Override
@@ -57,8 +80,10 @@ public class SelectActivity extends Activity {
     if (state == null) return;
     if (resultCode == DiskUsage.DISKUSAGE_STATE) {
       diskUsageState = state;
-    } else {
+    } else if (resultCode == DiskUsage.APPUSAGE_STATE) {
       appUsageState = state;
+    } else if (resultCode == DiskUsage.DISKUSAGE_INTERNAL_STATE) {
+      diskUsageInternalState = state;
     }
   }
   
@@ -67,6 +92,7 @@ public class SelectActivity extends Activity {
     super.onSaveInstanceState(outState);
     outState.putBundle("diskusage", diskUsageState);
     outState.putBundle("appusage", appUsageState);
+    outState.putBundle("diskusageInternal", diskUsageInternalState);
   }
   
   @Override
@@ -74,5 +100,6 @@ public class SelectActivity extends Activity {
     super.onRestoreInstanceState(savedInstanceState);
     diskUsageState = savedInstanceState.getBundle("diskusage");
     appUsageState = savedInstanceState.getBundle("appusage");
+    diskUsageInternalState = savedInstanceState.getBundle("diskusageInternal");
   }
 }

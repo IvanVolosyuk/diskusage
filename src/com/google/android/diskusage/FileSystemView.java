@@ -862,7 +862,7 @@ class FileSystemView extends View {
     if (!sdcardIsEmpty()) {
       entry = cursor.position;
       // FIXME: hack to disable removal of /sdcard
-      if (entry == masterRoot.children[0]) {
+      if (entry == masterRoot.children[0] || entry instanceof FileSystemSpecial) {
         // Toast.makeText(context, "Select directory or file first", Toast.LENGTH_SHORT).show();
       } else {
         showFileMenu = true;
@@ -875,7 +875,7 @@ class FileSystemView extends View {
     .setEnabled(showFileMenu)
     .setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
-        String path = menuForEntry.path();
+        String path = menuForEntry.path2();
         Log.d("DiskUsage", "show " + path);
         FileSystemView.this.view(menuForEntry);
         return true;
@@ -898,7 +898,7 @@ class FileSystemView extends View {
     .setEnabled(showFileMenu)
     .setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
-        String path = menuForEntry.path();
+        String path = menuForEntry.path2();
         Log.d("DiskUsage", "ask for deletion of " + path);
         FileSystemView.this.askForDeletion(menuForEntry);
         return true;
@@ -915,11 +915,10 @@ class FileSystemView extends View {
   }
   
   private void view(FileSystemEntry entry) {
-    String path = entry.path();
     Intent intent = new Intent(Intent.ACTION_VIEW);
     intent.addCategory(Intent.CATEGORY_DEFAULT);
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    File file = new File(entry.path());
+    File file = new File(context.getMountPoint().getRoot() + "/" + entry.path2());
     Uri uri = Uri.fromFile(file);
     
     if (file.isDirectory()) {
@@ -961,10 +960,10 @@ class FileSystemView extends View {
       return;
     }
 
-    int dot = path.lastIndexOf(".");
-    int slash = path.lastIndexOf("/");
-    if (dot > slash) {
-      String extension = path.substring(dot + 1).toLowerCase(); 
+    String fileName = entry.name;
+    int dot = fileName.lastIndexOf(".");
+    if (dot != -1) {
+      String extension = fileName.substring(dot + 1).toLowerCase(); 
       String mime = getMimeByExtension(extension);
       try {
         if (mime != null) {
@@ -1014,7 +1013,7 @@ class FileSystemView extends View {
   }
 
   private void askForDeletion(final FileSystemEntry entry) {
-    final String path = entry.path();
+    final String path = entry.path2();
     Log.d("DiskUsage", "Deletion requested for " + path);
     
     if (entry.children == null || entry.children.length == 0) {
@@ -1348,7 +1347,7 @@ class FileSystemView extends View {
   }
 
   public void saveState(Bundle outState) {
-    outState.putString("cursor", cursor.position.path());
+    outState.putString("cursor", cursor.position.path2());
     outState.putFloat("viewDepth", viewDepth);
     outState.putLong("viewTop", viewTop);
     outState.putLong("viewBottom", viewBottom);

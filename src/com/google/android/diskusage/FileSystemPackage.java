@@ -82,11 +82,11 @@ public class FileSystemPackage extends FileSystemEntry {
     this.flags = flags | (hackApkSize != null ? SDCARD_FLAG : 0);
     this.dalvikCacheSize = (int) guessDalvikCacheSize();
     if (onSD()) {
-//      if (hackApkSize != null) {
-//        this.codeSize = hackApkSize.intValue();
-//      } else {
+      if (hackApkSize != null) {
+        this.codeSize = hackApkSize.intValue();
+      } else {
         this.codeSize = (int) stats.codeSize;
-//      }
+      }
     } else {
       this.codeSize = (int) stats.codeSize - this.dalvikCacheSize;
     }

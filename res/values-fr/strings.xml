@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!-- 
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008 Ivan Volosyuk
@@ -40,16 +40,16 @@
  <string name="file_deleted">Fichier supprimé</string>
  <string name="error_file_wasnt_deleted">Erreur: le fichier n\'a pas été supprimé</string>
  <string name="deleting_path">La suppression de %s</string>
- <string name="deleted_n_directories_and_n_files">Supprimé %d répertoires et %d fichiers</string>
- <string name="deleted_n_directories_and_files_and_canceled">Supprimer annulés: %d répertoires et %d fichiers à ce jour</string>
- <string name="deleted_n_directories_and_n_files_and_failed">Echec de la suppression!: %d répertoires et %d fichiers a été supprimé</string>
+ <string name="deleted_n_directories_and_n_files">Supprimé %1$d répertoires et %2$d fichiers</string>
+ <string name="deleted_n_directories_and_files_and_canceled">Supprimer annulés: %1$d répertoires et %2$d fichiers à ce jour</string>
+ <string name="deleted_n_directories_and_n_files_and_failed">Echec de la suppression!: %1$d répertoires et %2$d fichiers a été supprimé</string>
  <string name="n_bytes">%4.0f octets</string>
  <string name="n_kilobytes">%4.0f Kio</string>
  <string name="n_megabytes">%5.2f Mo</string>
  <string name="n_megabytes10">%5.1f Mo</string>
  <string name="n_megabytes100">%4.0f Mo</string>
- <string name="dir_name_size_num_dirs">%s (%s, %d rép)</string>
+ <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d rép)</string>
  <string name="dir_empty">%s (vide)</string>
- <string name="dir_name_size">%s (%s)</string>
+ <string name="dir_name_size">%1$s (%2$s)</string>
  <string name="apps_bulk_uninstall_not_supported">Désinstaller multiples applications non pris en charge</string>
 </resources>

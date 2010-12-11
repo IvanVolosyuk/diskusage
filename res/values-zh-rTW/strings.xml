@@ -40,15 +40,15 @@
 <string name="file_deleted">檔案已移除</string>
 <string name="error_file_wasnt_deleted">錯誤: 檔案沒有被移除</string>
 <string name="deleting_path">正在移除 %s</string>
-<string name="deleted_n_directories_and_n_files">已移除 %d 個內容表和 %d 個檔案</string>
-<string name="deleted_n_directories_and_files_and_canceled">移除被取消: %d 個內容表和 %d 個檔案已移除</string>
-<string name="deleted_n_directories_and_n_files_and_failed">移除失敗!: %d 個內容表和 %d 個檔案已移除</string>
+<string name="deleted_n_directories_and_n_files">已移除 %1$d 個內容表和 %2$d 個檔案</string>
+<string name="deleted_n_directories_and_files_and_canceled">移除被取消: %1$d 個內容表和 %2$d 個檔案已移除</string>
+<string name="deleted_n_directories_and_n_files_and_failed">移除失敗!: %1$d 個內容表和 %2$d 個檔案已移除</string>
 <string name="n_bytes">%4.0f bytes</string>
 <string name="n_kilobytes">%4.0f KiB</string>
 <string name="n_megabytes">%5.2f MB</string>
 <string name="n_megabytes10">%5.1f MB</string>
 <string name="n_megabytes100">%4.0f MB</string>
-<string name="dir_name_size_num_dirs">%s (%s, %d 資料夾)</string>
+<string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d 資料夾)</string>
 <string name="dir_empty">%s (空)</string>
-<string name="dir_name_size">%s (%s)</string>
+<string name="dir_name_size">%1$s (%2$s)</string>
 </resources>

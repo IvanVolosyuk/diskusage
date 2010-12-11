@@ -1,6 +1,8 @@
 package com.google.android.diskusage;
 
+import java.io.BufferedReader;
 import java.io.DataInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -15,6 +17,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageStats;
 import android.os.Build;
 import android.os.RemoteException;
+import android.os.StatFs;
 import android.util.Log;
 
 public class Apps2SDLoader {
@@ -31,36 +34,34 @@ public class Apps2SDLoader {
   }
   
   private Map<String, Long> getDfSizes() {
-    Map<String, Long> sizes = new TreeMap<String, Long>();
-    final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
-    if (sdkVersion < Build.VERSION_CODES.FROYO) return sizes;
-
+    TreeMap<String, Long> map = new TreeMap<String, Long>();
     try {
-      Process proc = Runtime.getRuntime().exec("df");
-      DataInputStream is = new DataInputStream(proc.getInputStream());
-      while (true) {
-        String line = is.readLine();
-        if (line == null) break;
-        String[] parts = line.split(" ");
-        if (parts.length < 5) continue;
-        String pkg = parts[0];
-        if (!pkg.endsWith(":")) continue;
-        pkg = pkg.replaceAll("^.*/", "").replaceAll("-.*$", "");
-        String sizeStr = parts[3];
-        long size = 0;
-        if (sizeStr.endsWith("K")) {
-          size = Integer.parseInt(sizeStr.substring(0, sizeStr.length() - 1)) * 1024;
-        } else if (sizeStr.endsWith("M")) {
-          size = Integer.parseInt(sizeStr.substring(0, sizeStr.length() - 1)) * 1024 * 1024;
+      // FIXME: debug
+      BufferedReader reader = new BufferedReader(new FileReader("/proc/mounts"));
+//      BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(file.getBytes())));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        String[] parts = line.split(" +");
+        if (parts.length < 3) continue;
+        String mountPoint = parts[1];
+        String fsType = parts[2];
+        if (fsType.equals("tmpfs")) {
+          continue;
         }
-//        Log.d("diskusage", "Override " + pkg + " - " + size);
-        sizes.put(pkg, size);
+        if (!mountPoint.startsWith("/mnt/asec/")) {
+          continue;
+        }
+        String packageNameNum = mountPoint.substring(mountPoint.lastIndexOf('/') + 1);
+        String packageName = packageNameNum.substring(0, packageNameNum.indexOf('-'));
+        StatFs stat = new StatFs(mountPoint);
+        long size = (stat.getBlockCount() - stat.getAvailableBlocks()) * stat.getBlockSize();
+        map.put(packageName, size);
+        Log.d("diskusage", "external size (" + packageName + ") = " + size / 1024 + " kb");
       }
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+    } catch (Throwable t) {
+      Log.e("disksusage", "failed to parse /proc/mounts", t);
     }
-    return sizes;
+    return map;
   }
   
   public FileSystemEntry[] load(boolean sdOnly, final AppFilter appFilter, final int blockSize) throws Throwable {

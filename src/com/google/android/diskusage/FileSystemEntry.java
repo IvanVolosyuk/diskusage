@@ -20,9 +20,13 @@
 package com.google.android.diskusage;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.Map.Entry;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -185,6 +189,54 @@ public class FileSystemEntry {
     setSizeInBlocks(blocks);
   }
   
+  
+  static class ExcludeFilter {
+    public final Map<String, ExcludeFilter> childFilter;
+    
+    private static void addEntry(
+        TreeMap<String, ArrayList<String>> filter, String name, String value) {
+      ArrayList<String> entry = filter.get(name);
+      if (entry == null) {
+        entry = new ArrayList<String>();
+        filter.put(name, entry);
+      }
+      entry.add(value);
+    }
+    
+    public ExcludeFilter(ArrayList<String> exclude_paths) {
+      if (exclude_paths == null) {
+        this.childFilter = null;
+        return;
+      }
+      TreeMap<String, ArrayList<String>> filter =
+        new TreeMap<String, ArrayList<String>>();
+      for(String path : exclude_paths) {
+        String[] parts = path.split("/", 2);
+        if (parts.length < 2) {
+          addEntry(filter, path, null);
+        } else {
+          addEntry(filter, parts[0], parts[1]);
+        }
+      }
+      TreeMap<String, ExcludeFilter> excludeFilter = new TreeMap<String, ExcludeFilter>();
+      for (Entry<String, ArrayList<String>> entry : filter.entrySet()) {
+        boolean has_null = false;
+        for (String part : entry.getValue()) {
+          if (part == null) {
+            has_null = true;
+            break;
+          }
+        }
+        if (has_null) {
+          excludeFilter.put(entry.getKey(), new ExcludeFilter(null));
+        } else {
+          excludeFilter.put(entry.getKey(), new ExcludeFilter(entry.getValue()));
+        }
+      }
+      this.childFilter = excludeFilter;
+    }
+  };
+  
   /**
    * Constructor for directory object.
    * This constructor starts recursive scan to find all descendent files and directories.
@@ -195,9 +247,19 @@ public class FileSystemEntry {
    * @param depth current directory tree depth
    * @param maxdepth maximum directory tree depth
    */
-  FileSystemEntry(FileSystemEntry parent, File file, int depth, int maxdepth, int blockSize) {
+  FileSystemEntry(FileSystemEntry parent, File file, int depth, int maxdepth,
+      int blockSize, ExcludeFilter excludeFilter) {
     this.parent = parent;
     this.name = file.getName();
+    
+    
+    ExcludeFilter childFilter = null;
+    if (excludeFilter != null) {
+      // this path is requested for exclusion
+      if (excludeFilter.childFilter == null) return;
+      childFilter = excludeFilter.childFilter.get(this.name);
+      if (childFilter != null && childFilter.childFilter == null) return;
+    }
 
     if (depth == maxdepth) {
       initSize(calculateSize(file), blockSize);
@@ -223,7 +285,7 @@ public class FileSystemEntry {
         c = new FileSystemEntry(this, child, blockSize);
       } else {
         // directory
-        c = new FileSystemEntry(this, child, depth + 1, maxdepth, blockSize);
+        c = new FileSystemEntry(this, child, depth + 1, maxdepth, blockSize, childFilter);
       }
       children0[nchildren++] = c;
       blocks += c.getSizeInBlocks();
@@ -615,9 +677,23 @@ public class FileSystemEntry {
     }
   }
 
-  public final String path() {
-    if (parent == null) return "";
-    return parent.path() + "/" + name;
+  public final String path2() {
+    ArrayList<String> pathElements = new ArrayList<String>();
+    FileSystemEntry current = this;
+    while (current != null) {
+      pathElements.add(current.name);
+      current = current.parent;
+    }
+    pathElements.remove(pathElements.size() - 1);
+    pathElements.remove(pathElements.size() - 1);
+    StringBuilder path = new StringBuilder();
+    String sep = "";
+    for (int i = pathElements.size() - 1; i >= 0; i--) {
+      path.append(sep);
+      path.append(pathElements.get(i));
+      sep = "/";
+    }
+    return path.toString();
   }
   
   public final String relativePath(FileSystemEntry root) {
@@ -756,10 +832,10 @@ public class FileSystemEntry {
    */
   public final FileSystemEntry getEntryByName(String path) {
     String[] pathElements = path.split("/");
-    FileSystemEntry entry = this;
+    FileSystemEntry entry = this.children[0];
     
     outer:
-      for (int i = 1; i < pathElements.length; i++) {
+      for (int i = 0; i < pathElements.length; i++) {
         String name = pathElements[i];
         FileSystemEntry[] children = entry.children;
         for (int j = 0; j < children.length; j++) {
@@ -817,7 +893,7 @@ public class FileSystemEntry {
   private void validateRecursive() {
     if (children == null) return;
     for (int i = 0; i < children.length; i++) {
-      if (children[i].parent != this) throw new RuntimeException("corrupted: " + this.path() + " <> " + children[i].name);
+      if (children[i].parent != this) throw new RuntimeException("corrupted: " + this.path2() + " <> " + children[i].name);
       children[i].validateRecursive();
     }
   }

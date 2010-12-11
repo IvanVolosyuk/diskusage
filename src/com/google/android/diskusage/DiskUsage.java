@@ -51,15 +51,14 @@ public class DiskUsage extends LoadableActivity {
     if (receivedState != null) onRestoreInstanceState(receivedState);
   }
   
-  public static int getExternalBlockSize() {
-    final File sdcard = Environment.getExternalStorageDirectory();
-    StatFs data = new StatFs(sdcard.getAbsolutePath());
-    int blockSize = data.getBlockSize();
-    return blockSize;
+  public MountPoint getMountPoint() {
+    return MountPoint.getExternalStorage();
   }
   
   public int getBlockSize() {
-    return getExternalBlockSize();
+    StatFs data = new StatFs(getMountPoint().getRoot());
+    int blockSize = data.getBlockSize();
+    return blockSize;
   }
 
   @Override
@@ -140,15 +139,16 @@ public class DiskUsage extends LoadableActivity {
 
   @Override
   FileSystemEntry scan() {
-    final File sdcard = Environment.getExternalStorageDirectory();
-    StatFs data = new StatFs(sdcard.getAbsolutePath());
+    final MountPoint mountPoint = getMountPoint();
+    StatFs data = new StatFs(mountPoint.getRoot());
     int blockSize = data.getBlockSize();
     long freeBlocks = data.getAvailableBlocks();
     long totalBlocks = data.getBlockCount();
     
 
     FileSystemEntry rootElement =
-      new FileSystemEntry(null, sdcard, 0, 20, blockSize);
+      new FileSystemEntry(null, new File(mountPoint.getRoot()), 0, 20,
+          blockSize, mountPoint.getExcludeFilter());
     ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
     
     if (rootElement.children != null) {
@@ -198,7 +198,12 @@ public class DiskUsage extends LoadableActivity {
     }
   }
   
+  public FileSystemEntry.ExcludeFilter getExcludeFilter() {
+    return getMountPoint().getExcludeFilter();
+  }
+  
   public static final String STATE_KEY="state";
   public static final int DISKUSAGE_STATE = 5;
   public static final int APPUSAGE_STATE = 6;
+  public static final int DISKUSAGE_INTERNAL_STATE = 7;
 }

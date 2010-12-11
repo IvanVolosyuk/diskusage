@@ -2,12 +2,18 @@ package com.google.android.diskusage;
 
 import android.content.ComponentName;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.MenuItem.OnMenuItemClickListener;
 
 import com.google.android.diskusage.DiskUsage.AfterLoad;
+import com.google.android.diskusage.FileSystemView.MultiTouchHandler;
+import com.google.android.diskusage.FileSystemView.VersionedMultitouchHandler;
 
 public class AppView extends FileSystemView {
   AppView(DiskUsage context, FileSystemEntry root) {
@@ -18,19 +24,53 @@ public class AppView extends FileSystemView {
     return context.getString(id);
   }
   
-  private void viewPackage(FileSystemPackage pkg) {
-    final String APP_PKG_PREFIX = "com.android.settings.";
-    final String APP_PKG_NAME = APP_PKG_PREFIX+"ApplicationPkgName";
+  static abstract class VersionedPackageViewer {
+    abstract void viewPackage(String pkg);
 
-    Log.d("diskusage", "show package = " + pkg.pkg);
-    Intent viewIntent = new Intent(Intent.ACTION_VIEW);
-    viewIntent.setComponent(new ComponentName(
-        "com.android.settings", "com.android.settings.InstalledAppDetails"));
-    viewIntent.putExtra(APP_PKG_NAME, pkg.pkg);
-    viewIntent.putExtra("pkg", pkg.pkg);
-    // FIXME: reload package data instead of just removing it
-    context.pkg_removed = pkg;
-    context.startActivity(viewIntent);
+    public static VersionedPackageViewer newInstance(AppView view) {
+      final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+      VersionedPackageViewer viewer = null;
+      if (sdkVersion < Build.VERSION_CODES.GINGERBREAD) {
+        viewer = view.new EclairPackageViewer();
+      } else {
+        viewer = view.new GingerbreadPackageViewer();
+      }
+      return viewer;
+    }
+  }
+
+  class EclairPackageViewer extends VersionedPackageViewer {
+    @Override
+    void viewPackage(String pkg) {
+      final String APP_PKG_PREFIX = "com.android.settings.";
+      final String APP_PKG_NAME = APP_PKG_PREFIX+"ApplicationPkgName";
+      Log.d("diskusage", "show package = " + pkg);
+      Intent viewIntent = new Intent(Intent.ACTION_VIEW);
+      viewIntent.setComponent(new ComponentName(
+          "com.android.settings", "com.android.settings.InstalledAppDetails"));
+      viewIntent.putExtra(APP_PKG_NAME, pkg);
+      viewIntent.putExtra("pkg", pkg);
+      context.startActivity(viewIntent);
+    }
+  }
+
+  class GingerbreadPackageViewer extends VersionedPackageViewer {
+    @Override
+    void viewPackage(String pkg) {
+      Log.d("diskusage", "show package = " + pkg);
+      Intent viewIntent = new Intent(
+          Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+          Uri.parse("package:" + pkg));
+      context.startActivity(viewIntent);
+    }
+  }
+  
+  VersionedPackageViewer packageViewer = VersionedPackageViewer.newInstance(this);
+  
+  private void viewPackage(FileSystemPackage pkg) {
+   packageViewer.viewPackage(pkg.pkg);
+   // FIXME: reload package data instead of just removing it
+   context.pkg_removed = pkg;
   }
   
   private void view(FileSystemEntry entry) {
@@ -72,7 +112,7 @@ public class AppView extends FileSystemView {
     .setEnabled(showFileMenu)
     .setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
-        String path = menuForEntry.path();
+        String path = menuForEntry.path2();
         Log.d("DiskUsage", "show " + path);
         view(menuForEntry);
         return true;

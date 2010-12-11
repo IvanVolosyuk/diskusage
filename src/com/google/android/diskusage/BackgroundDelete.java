@@ -48,19 +48,27 @@ public class BackgroundDelete extends Thread {
   private BackgroundDelete(final FileSystemView view, final FileSystemEntry entry) {
     this.view = view;
     this.entry = entry;
-    path = entry.path();
-    if (path.startsWith("/sdcard/Apps2SD/")) {
+    
+    path = entry.path2();
+    if (path.startsWith("Apps2SD/")) {
       if (entry instanceof FileSystemPackage) {
         FileSystemPackage pkg = (FileSystemPackage) entry;
         uninstall(pkg);
         return;
       }
-    } else if (path.startsWith("/sdcard/Apps2SD")) {
+    } else if (path.startsWith("Apps2SD")) {
       Toast.makeText(view.context, format(R.string.apps_bulk_uninstall_not_supported, path),
           Toast.LENGTH_LONG).show();
       return;
     }
-    file = new File(path);
+    file = new File(view.context.getMountPoint().getRoot() + "/" + path);
+    if (MountPoint.getExternalStorage() != null) {
+      if ((MountPoint.getExternalStorage().getRoot() + "/").startsWith(file.getAbsolutePath() + "/")) {
+        Toast.makeText(view.context, "This delete operation will erase external storage - canceled.",
+            Toast.LENGTH_LONG).show();
+        return;
+      }
+    }
     if (!file.exists()) {
       Toast.makeText(view.context, format(R.string.path_doesnt_exist, path),
           Toast.LENGTH_LONG).show();
@@ -131,7 +139,7 @@ public class BackgroundDelete extends Thread {
   public void restore() {
     Log.d("DiskUsage", "restore started for " + path);
     FileSystemEntry newEntry = new FileSystemEntry(null,
-        new File(path), 0, 20, DiskUsage.getExternalBlockSize());
+        new File(path), 0, 20, view.context.getBlockSize(), view.context.getExcludeFilter());
     // FIXME: may be problems in case of two deletions
     entry.parent.insert(newEntry);
     view.restore(newEntry);
