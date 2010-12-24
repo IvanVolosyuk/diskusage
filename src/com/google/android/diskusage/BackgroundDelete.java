@@ -61,14 +61,16 @@ public class BackgroundDelete extends Thread {
           Toast.LENGTH_LONG).show();
       return;
     }
-    file = new File(view.context.getMountPoint().getRoot() + "/" + path);
-    if (MountPoint.getExternalStorage() != null) {
-      if ((MountPoint.getExternalStorage().getRoot() + "/").startsWith(file.getAbsolutePath() + "/")) {
-        Toast.makeText(view.context, "This delete operation will erase external storage - canceled.",
+    String deleteRoot = view.context.getRootPath() + "/" + path;
+    file = new File(deleteRoot);
+    for (MountPoint mountPoint : MountPoint.getMountPoints().values()) {
+      if ((mountPoint.root + "/").startsWith(deleteRoot + "/")) {
+        Toast.makeText(view.context, "This delete operation will erase entire storage - canceled.",
             Toast.LENGTH_LONG).show();
         return;
       }
     }
+    
     if (!file.exists()) {
       Toast.makeText(view.context, format(R.string.path_doesnt_exist, path),
           Toast.LENGTH_LONG).show();

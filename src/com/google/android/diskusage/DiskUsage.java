@@ -38,7 +38,17 @@ public class DiskUsage extends LoadableActivity {
   private Bundle savedState;
   public static final int RESULT_DELETE_CONFIRMED = 10;
   public static final int RESULT_DELETE_CANCELED = 11;
+  
+  public static final String STATE_KEY = "state";
+  public static final String TITLE_KEY = "title";
+  public static final String ROOT_KEY = "root";
+  public static final String KEY_KEY = "key";
+
   private String pathToDelete;
+  
+  private String rootPath;
+  private String rootTitle;
+  String key;
   
   protected FileSystemView makeView(DiskUsage diskUsage, FileSystemEntry root) {
     return new FileSystemView(this, root);
@@ -47,16 +57,17 @@ public class DiskUsage extends LoadableActivity {
   @Override
   protected void onCreate(Bundle icicle) {
     super.onCreate(icicle);
-    Bundle receivedState = getIntent().getBundleExtra(STATE_KEY);
+    Intent i = getIntent();
+    rootPath = i.getStringExtra(ROOT_KEY);
+    rootTitle = i.getStringExtra(TITLE_KEY);
+    key = i.getStringExtra(KEY_KEY);
+    Bundle receivedState = i.getBundleExtra(STATE_KEY);
+    Log.d("diskusage", "onCreate, rootPath = " + rootPath + " receivedState = " + receivedState);
     if (receivedState != null) onRestoreInstanceState(receivedState);
   }
   
-  public MountPoint getMountPoint() {
-    return MountPoint.getExternalStorage();
-  }
-  
   public int getBlockSize() {
-    StatFs data = new StatFs(getMountPoint().getRoot());
+    StatFs data = new StatFs(getRootPath());
     int blockSize = data.getBlockSize();
     return blockSize;
   }
@@ -127,6 +138,8 @@ public class DiskUsage extends LoadableActivity {
       view.saveState(outState);
   }
   protected void onRestoreInstanceState(Bundle inState) {
+    Log.d("diskusage", "onRestoreInstanceState, rootPath = " + inState.getString(ROOT_KEY));
+
     if (view != null)
       view.restoreState(inState);
     else
@@ -139,7 +152,7 @@ public class DiskUsage extends LoadableActivity {
 
   @Override
   FileSystemEntry scan() {
-    final MountPoint mountPoint = getMountPoint();
+    final MountPoint mountPoint = MountPoint.getMountPoints().get(getRootPath());
     StatFs data = new StatFs(mountPoint.getRoot());
     int blockSize = data.getBlockSize();
     long freeBlocks = data.getAvailableBlocks();
@@ -157,10 +170,12 @@ public class DiskUsage extends LoadableActivity {
       }
     }
     
-    FileSystemEntry[] apps = loadApps2SD(true, AppFilter.getFilterForDiskUsage(), blockSize);
-    if (apps != null) {
-      FileSystemEntry apps2sd = new FileSystemEntry("Apps2SD", apps, blockSize);
-      entries.add(apps2sd);
+    if (mountPoint.hasApps2SD) {
+      FileSystemEntry[] apps = loadApps2SD(true, AppFilter.getFilterForDiskUsage(), blockSize);
+      if (apps != null) {
+        FileSystemEntry apps2sd = new FileSystemEntry("Apps2SD", apps, blockSize);
+        entries.add(apps2sd);
+      }
     }
     
     long visibleBlocks = 0;
@@ -180,7 +195,7 @@ public class DiskUsage extends LoadableActivity {
       }
     }
     
-    rootElement = new FileSystemEntry("sdcard", entries.toArray(new FileSystemEntry[0]), blockSize);
+    rootElement = new FileSystemEntry(getRootTitle(), entries.toArray(new FileSystemEntry[0]), blockSize);
     FileSystemEntry newRoot = new FileSystemEntry(null,
         new FileSystemEntry[] { rootElement }, blockSize);
     return newRoot;
@@ -199,11 +214,16 @@ public class DiskUsage extends LoadableActivity {
   }
   
   public FileSystemEntry.ExcludeFilter getExcludeFilter() {
-    return getMountPoint().getExcludeFilter();
+    return MountPoint.getMountPoints().get(getRootPath()).getExcludeFilter();
   }
   
-  public static final String STATE_KEY="state";
-  public static final int DISKUSAGE_STATE = 5;
-  public static final int APPUSAGE_STATE = 6;
-  public static final int DISKUSAGE_INTERNAL_STATE = 7;
+  @Override
+  public String getRootTitle() {
+    return rootTitle;
+  }
+
+  @Override
+  public String getRootPath() {
+    return rootPath;
+  }
 }

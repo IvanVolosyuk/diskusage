@@ -17,6 +17,10 @@ import com.google.android.diskusage.DiskUsage.AfterLoad;
 public abstract class LoadableActivity extends Activity {
   FileSystemPackage pkg_removed;
   
+  
+  public abstract String getRootPath();
+  public abstract String getRootTitle();
+  
   abstract FileSystemEntry scan();
   
   class PersistantActivityState {
@@ -29,9 +33,8 @@ public abstract class LoadableActivity extends Activity {
     new TreeMap<String, PersistantActivityState>();
   
   protected PersistantActivityState getPersistantState() {
-    String key = this.getClass().getName();
-    if (key.equals("com.google.android.diskusage.DeleteActivity"))
-      key = "com.google.android.diskusage.DiskUsage";
+    String key = getRootPath();
+    
     PersistantActivityState state = persistantActivityState.get(key);
     if (state != null) return state;
     state = new PersistantActivityState();
@@ -78,8 +81,7 @@ public abstract class LoadableActivity extends Activity {
       @Override
       public void run() {
         try {
-          Log.d("diskusage", "running scan for "
-              + LoadableActivity.this.getClass().getName());
+          Log.d("diskusage", "running scan for " + getRootPath());
           final FileSystemEntry newRoot = scan();
 
           handler.post(new Runnable() {

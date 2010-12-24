@@ -918,7 +918,7 @@ class FileSystemView extends View {
     Intent intent = new Intent(Intent.ACTION_VIEW);
     intent.addCategory(Intent.CATEGORY_DEFAULT);
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    File file = new File(context.getMountPoint().getRoot() + "/" + entry.path2());
+    File file = new File(context.getRootPath() + "/" + entry.path2());
     Uri uri = Uri.fromFile(file);
     
     if (file.isDirectory()) {
@@ -1042,6 +1042,9 @@ class FileSystemView extends View {
     } else {
       Intent i = new Intent(context, DeleteActivity.class);
       i.putExtra("path", path);
+      i.putExtra(DiskUsage.KEY_KEY, context.key);
+      i.putExtra(DiskUsage.TITLE_KEY, context.getRootTitle());
+      i.putExtra(DiskUsage.ROOT_KEY, context.getRootPath());
       context.startActivityForResult(i, 0);
     }
   }
@@ -1244,9 +1247,8 @@ class FileSystemView extends View {
       context.onSaveInstanceState(outState);
       Intent result = new Intent();
       result.putExtra(DiskUsage.STATE_KEY, outState);
-      int code = context instanceof AppUsage ?
-          DiskUsage.APPUSAGE_STATE : DiskUsage.DISKUSAGE_STATE;
-      context.setResult(code, result);
+      result.putExtra(DiskUsage.KEY_KEY, context.key);
+      context.setResult(0, result);
       context.finish();
       return true;
     }

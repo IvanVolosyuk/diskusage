@@ -655,8 +655,6 @@ public class FileSystemEntry {
     return String.format(n_megabytes100, sz * (1f / 1024 / 1024));
   }
 
-  // FIXME: not a general toString() but specific to deletion activity,
-  // need to rename to something else
   public final String pathFromRoot(FileSystemEntry root) {
     String res = toTitleString();
     if (parent == root) return res;
