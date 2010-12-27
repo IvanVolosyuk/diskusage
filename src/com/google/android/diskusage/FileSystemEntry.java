@@ -106,6 +106,7 @@ public class FileSystemEntry {
   FileSystemEntry[] children;
   String name;
   String sizeString;
+
   
   // The size suitable for painting without any operations (and sorting)
   // Bit layout:
@@ -137,56 +138,29 @@ public class FileSystemEntry {
     }
     encodedSize = (blocks << blockOffset) + blockSize;
   }
-
   
-  /**
-   * Dummy constructor which sets all fields to specified parameters.
-   * @param name
-   * @param size
-   * @param children
-   */
-  public FileSystemEntry(String name, long size, int blockSize) {
-    this.name = name;
-    initSize(size, blockSize);
-  }
-  
-  private void initSize(long size, int blockSize) {
+  FileSystemEntry initSizeInBytes(long size, int blockSize) {
     long blocks = ((size + (blockSize - 1)) / blockSize);
     long bytes = (int)(size + blockSize - blocks * blockSize);
     if (blocks == 0) {
       this.encodedSize = 0;
-      return;
+      return this;
     }
 
     this.encodedSize = (blocks << blockOffset) + bytes;
+    return this;
   }
 
-  /**
-   * Constructor object for ordinary file.
-   * This constructor just fill the fields: parent, name, size.
-   * @param parent parent directory object.
-   * @param file corresponding File
-   */
-  FileSystemEntry(FileSystemEntry parent, File file, int blockSize) {
-    this(file.getName(), file.length(), blockSize);
-    this.parent = parent;
-  }
-  
-  /**
-   * Special constructor for root node.
-   * Sets children field to specified parameter. Computes root size.
-   * Updates parent pointer for all children.
-   */
-  public FileSystemEntry(String name, FileSystemEntry[] children, int blockSize) {
-    this.name = name;
+  public FileSystemEntry setChildren(FileSystemEntry[] children) {
     this.children = children;
     long blocks = 0;
-    if (children == null) return;
+    if (children == null) return this;
     for (int i = 0; i < children.length; i++) {
       blocks += children[i].getSizeInBlocks();
       children[i].parent = this;
     }
     setSizeInBlocks(blocks);
+    return this;
   }
   
   
@@ -237,66 +211,14 @@ public class FileSystemEntry {
     }
   };
   
-  /**
-   * Constructor for directory object.
-   * This constructor starts recursive scan to find all descendent files and directories.
-   * Stores parent into field, name obtained from file, size of this directory
-   * is calculated as a sum of all children.
-   * @param parent parent directory object.
-   * @param file corresponding File object
-   * @param depth current directory tree depth
-   * @param maxdepth maximum directory tree depth
-   */
-  FileSystemEntry(FileSystemEntry parent, File file, int depth, int maxdepth,
-      int blockSize, ExcludeFilter excludeFilter) {
+  protected FileSystemEntry(FileSystemEntry parent, String name) {
+    this.name = name;
     this.parent = parent;
-    this.name = file.getName();
-    
-    
-    ExcludeFilter childFilter = null;
-    if (excludeFilter != null) {
-      // this path is requested for exclusion
-      if (excludeFilter.childFilter == null) return;
-      childFilter = excludeFilter.childFilter.get(this.name);
-      if (childFilter != null && childFilter.childFilter == null) return;
-    }
-
-    if (depth == maxdepth) {
-      initSize(calculateSize(file), blockSize);
-      return;
-    }
-
-    File[] list = file.listFiles();
-    if (list == null) return;
-
-    FileSystemEntry[] children0 = new FileSystemEntry[list.length];
-    int nchildren = 0;
-    long blocks = 0;
-
-    for (int i = 0; i < list.length; i++) {
-      File child = list[i];
-
-//      if (isLink(child)) continue;
-//      if (isSpecial(child)) continue;
-
-      FileSystemEntry c = null;
-
-      if (child.isFile()) {
-        c = new FileSystemEntry(this, child, blockSize);
-      } else {
-        // directory
-        c = new FileSystemEntry(this, child, depth + 1, maxdepth, blockSize, childFilter);
-      }
-      children0[nchildren++] = c;
-      blocks += c.getSizeInBlocks();
-    }
-    setSizeInBlocks(blocks);
-
-    if (nchildren != 0) {
-      children = new FileSystemEntry[nchildren];
-      System.arraycopy(children0, 0, children, 0, nchildren);
-      java.util.Arrays.sort(children, COMPARE);
-    }
+  }
+  
+  static FileSystemEntry makeNode(
+      FileSystemEntry parent, String name) {
+    return new FileSystemEntry(parent, name);
   }
   
   public static class Compare implements Comparator<FileSystemEntry> {
@@ -349,33 +271,6 @@ public class FileSystemEntry {
     return parent.children[index - 1];
   }
 
-  /**
-   * Calculate size of the entry reading directory tree
-   * @param file is file corresponding to this entry
-   * @return size of entry in bytes
-   */
-  final long calculateSize(File file) {
-    if (isLink(file)) return 0;
-
-    if (file.isFile()) return file.length();
-
-    File[] list = file.listFiles();
-    if (list == null) return 0;
-    long size = 0;
-
-    for (int i = 0; i < list.length; i++)
-      size += calculateSize(list[i]);
-    return size;
-  }
-
-  private static boolean isLink(File file) {
-    try {
-      if (file.getCanonicalPath().equals(file.getPath())) return false;
-    } catch(Throwable t) {}
-    return true;
-  }
-  
-  
   // Copy pasted from paint() and changed to lower overhead on generic drawing code
   private static void paintSpecial(long parent_size, FileSystemEntry[] entries,
       Canvas canvas, float xoffset, float yoffset, float yscale,

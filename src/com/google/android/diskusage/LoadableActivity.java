@@ -115,6 +115,7 @@ public abstract class LoadableActivity extends Activity {
 
         } catch (final OutOfMemoryError e) {
           state.root = null;
+          state.afterLoad = null;
           Log.d("DiskUsage", "out of memory!");
           handler.post(new Runnable() {
             public void run() {

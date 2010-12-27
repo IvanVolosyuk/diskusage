@@ -23,6 +23,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -159,9 +161,13 @@ public class DiskUsage extends LoadableActivity {
     long totalBlocks = data.getBlockCount();
     
 
-    FileSystemEntry rootElement =
-      new FileSystemEntry(null, new File(mountPoint.getRoot()), 0, 20,
-          blockSize, mountPoint.getExcludeFilter());
+//    ActivityManager manager = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
+    int heap = 1000000;
+    long allocatedBlocks = totalBlocks - freeBlocks;
+    long sizeTreshold = (allocatedBlocks << FileSystemEntry.blockOffset) / heap;
+    FileSystemEntry rootElement = new Scanner(
+        20, blockSize, mountPoint.getExcludeFilter(), sizeTreshold).scan(
+            new File(mountPoint.getRoot()));
     ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
     
     if (rootElement.children != null) {
@@ -173,7 +179,7 @@ public class DiskUsage extends LoadableActivity {
     if (mountPoint.hasApps2SD) {
       FileSystemEntry[] apps = loadApps2SD(true, AppFilter.getFilterForDiskUsage(), blockSize);
       if (apps != null) {
-        FileSystemEntry apps2sd = new FileSystemEntry("Apps2SD", apps, blockSize);
+        FileSystemEntry apps2sd = FileSystemEntry.makeNode(null, "Apps2SD").setChildren(apps);
         entries.add(apps2sd);
       }
     }
@@ -195,9 +201,10 @@ public class DiskUsage extends LoadableActivity {
       }
     }
     
-    rootElement = new FileSystemEntry(getRootTitle(), entries.toArray(new FileSystemEntry[0]), blockSize);
-    FileSystemEntry newRoot = new FileSystemEntry(null,
-        new FileSystemEntry[] { rootElement }, blockSize);
+    rootElement = FileSystemEntry.makeNode(
+        null, getRootTitle()).setChildren(entries.toArray(new FileSystemEntry[0]));
+    FileSystemEntry newRoot = FileSystemEntry.makeNode(
+        null, null).setChildren(new FileSystemEntry[] { rootElement });
     return newRoot;
   }
   

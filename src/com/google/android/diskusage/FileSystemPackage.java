@@ -75,7 +75,7 @@ public class FileSystemPackage extends FileSystemEntry {
   public FileSystemPackage(
       String name, String pkg, PackageStats stats,
       int flags, Long hackApkSize, int blockSize) {
-    super(name, 0, blockSize);
+    super(null, name);
     this.pkg = pkg;
     this.cacheSize = (int) stats.cacheSize;
     this.dataSize = (int) stats.dataSize;
@@ -105,18 +105,22 @@ public class FileSystemPackage extends FileSystemEntry {
       
     } else {
       if (filter.useApk) {
-        entries.add(new FileSystemEntry("apk", codeSize, blockSize));
+        entries.add(FileSystemEntry.makeNode(null, "apk")
+            .initSizeInBytes(codeSize, blockSize));
       }
     }
     if (filter.useData) {
-      entries.add(new FileSystemEntry("data", dataSize, blockSize));
+      entries.add(FileSystemEntry.makeNode(null, "data")
+          .initSizeInBytes(dataSize, blockSize));
     }
     if (filter.useDalvikCache) {
-      entries.add(new FileSystemEntry("dalvikCache", dalvikCacheSize, blockSize));
+      entries.add(FileSystemEntry.makeNode(null, "dalvikCache")
+          .initSizeInBytes(dalvikCacheSize, blockSize));
     }
     
     if (filter.useCache) {
-      entries.add(new FileSystemEntry("cache", cacheSize, blockSize));
+      entries.add(FileSystemEntry.makeNode(null, "cache")
+          .initSizeInBytes(cacheSize, blockSize));
     }
     for (FileSystemEntry e : entries) {
       blocks += e.getSizeInBlocks();

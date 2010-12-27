@@ -49,8 +49,8 @@ public class AppUsage extends DiskUsage {
     }
     
     if (filter.useSD) {
-      FileSystemEntry newRoot = new FileSystemEntry(null,
-          new FileSystemEntry[] { appsElement }, entryBlockSize);
+      FileSystemEntry newRoot = FileSystemEntry.makeNode(
+          null, null).setChildren(new FileSystemEntry[] { appsElement });
       return newRoot;
     }
     
@@ -71,10 +71,10 @@ public class AppUsage extends DiskUsage {
         name = "Data and Cache";
       }
     }
-    FileSystemEntry internalElement = new FileSystemEntry(name, internalArray, entryBlockSize);
+    FileSystemEntry internalElement = FileSystemEntry.makeNode(null, name).setChildren(internalArray);
     
-    FileSystemEntry newRoot = new FileSystemEntry(null,
-        new FileSystemEntry[] { internalElement }, entryBlockSize);
+    FileSystemEntry newRoot = FileSystemEntry.makeNode(null, null).setChildren(
+        new FileSystemEntry[] { internalElement });
     return newRoot;
   }
 
