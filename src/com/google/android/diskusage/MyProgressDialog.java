@@ -136,7 +136,7 @@ public class MyProgressDialog extends AlertDialog {
     /* Update the number and percent */
     long progress = MyProgressDialog.this.progress;
     long max = MyProgressDialog.this.max;
-    double percent = (double) progress / (double) max;
+    double percent = (double) progress / (double) max * basePercent + (1 - basePercent);
     progressBar.setProgress((int)(percent * 10000));
     detailsView.setText(details);  // progressNumber.setText(String.format(format, progress, max));
     SpannableString tmp = new SpannableString(progressPercentFormat.format(percent));
@@ -153,6 +153,18 @@ public class MyProgressDialog extends AlertDialog {
     onProgressChanged();
   }
   
+  double basePercent = 1;
+  
+  public void switchToSecondary() {
+    basePercent = 1 - (double) progress / (double) max;
+  }
+
+  public void setProgress(long progress, String details) {
+    this.progress = progress;
+    this.details = details;
+    onProgressChanged();
+  }
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     LayoutInflater inflater = LayoutInflater.from(context);

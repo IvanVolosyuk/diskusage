@@ -152,7 +152,7 @@ public class DiskUsage extends LoadableActivity {
     public void run(FileSystemEntry root, boolean isCached);
   }
   
-  private Handler handler = new Handler();
+  Handler handler = new Handler();
   
   private Runnable progressUpdater;
   

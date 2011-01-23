@@ -1,50 +1,62 @@
 package com.google.android.diskusage;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import android.content.Intent;
-import android.os.Bundle;
+import android.os.Debug;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.google.android.diskusage.delete.FileInfoAdapter;
+
 public class DeleteActivity extends DiskUsage {
+  public static final String NUM_FILES_KEY = "numFiles";
+  public static final String SIZE_KEY = "size";
+
   @Override
   protected void onResume() {
     super.onResume();
-    setContentView(new TextView(this));
-    LoadFiles(this, new AfterLoad() {
-      public void run(FileSystemEntry root, boolean isCached) {
-        setContentView(R.layout.delete_view);
-        ListView lv = (ListView) findViewById(R.id.list);
-        
-        List<String> files = new ArrayList<String>();
-        String path = getIntent().getStringExtra("path");
-        final Intent responseIntent = new Intent();
-        responseIntent.putExtra("path", path);
-        final FileSystemEntry deleteRoot = root.getEntryByName(path);
-        deleteRoot.getAllChildren(files, deleteRoot);
-        lv.setAdapter(new ArrayAdapter<String>(
-            DeleteActivity.this, R.layout.list_item, R.id.text, files));
-        Button ok = (Button) findViewById(R.id.ok_button);
-        ok.setOnClickListener(new OnClickListener() {
-          public void onClick(View arg0) {
-            setResult(DiskUsage.RESULT_DELETE_CONFIRMED, responseIntent);
-            finish();
-          }
-        });
-        Button cancel = (Button) findViewById(R.id.cancel_button);
-        cancel.setOnClickListener(new OnClickListener() {
-          public void onClick(View arg0) {
-            setResult(DiskUsage.RESULT_DELETE_CANCELED);
-            finish();
-          }
-        });
+    Debug.startMethodTracing("diskusage");
+
+    setContentView(R.layout.delete_view);
+    ListView lv = (ListView) findViewById(R.id.list);
+    TextView summary = (TextView) findViewById(R.id.summary);
+    long size = getIntent().getLongExtra(SIZE_KEY, 0);
+    int count = getIntent().getIntExtra(NUM_FILES_KEY, 0);
+    if (summary != null)
+      summary.setText(
+          String.format("%d files, total size: %s",
+              count, FileSystemEntry.calcSizeString(size)));
+
+//    String[] path = getIntent().getStringArrayExtra("path");
+    String path = getIntent().getStringExtra("path");
+    final Intent responseIntent = new Intent();
+    responseIntent.putExtra("path", path);
+    lv.setAdapter(new FileInfoAdapter(
+        getIntent().getStringExtra(DiskUsage.ROOT_KEY),
+        new String[] { getIntent().getStringExtra("path") },
+        count,
+        summary));
+    Button ok = (Button) findViewById(R.id.ok_button);
+    ok.setOnClickListener(new OnClickListener() {
+      public void onClick(View arg0) {
+        setResult(DiskUsage.RESULT_DELETE_CONFIRMED, responseIntent);
+        finish();
       }
-    }, false);
+    });
+    Button cancel = (Button) findViewById(R.id.cancel_button);
+    cancel.setOnClickListener(new OnClickListener() {
+      public void onClick(View arg0) {
+        setResult(DiskUsage.RESULT_DELETE_CANCELED);
+        finish();
+      }
+    });
+  }
+  
+  @Override
+  protected void onPause() {
+    super.onPause();
+    Debug.stopMethodTracing();
   }
 }

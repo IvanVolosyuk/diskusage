@@ -44,9 +44,9 @@
 <string name="deleted_n_directories_and_n_files_and_failed">Delete failed!: %1$d directories and %2$d files was deleted</string>
 <string name="n_bytes">%4.0f bytes</string>
 <string name="n_kilobytes">%4.0f KiB</string>
-<string name="n_megabytes">%5.2f MB</string>
-<string name="n_megabytes10">%5.1f MB</string>
-<string name="n_megabytes100">%4.0f MB</string>
+<string name="n_megabytes">%5.2f MiB</string>
+<string name="n_megabytes10">%5.1f MiB</string>
+<string name="n_megabytes100">%4.0f MiB</string>
 <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d dirs)</string>
 <string name="dir_empty">%s (empty)</string>
 <string name="dir_name_size">%1$s (%2$s)</string>

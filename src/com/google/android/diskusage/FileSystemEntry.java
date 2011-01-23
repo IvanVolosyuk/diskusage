@@ -361,7 +361,7 @@ public class FileSystemEntry {
 
             String sizeString0 = c.sizeString;
             if (sizeString0 == null) {
-              c.sizeString = sizeString0 = calcSizeString(c.encodedSize);
+              c.sizeString = sizeString0 = calcSizeStringFromEncoded(c.encodedSize);
             }
             int cliplen = fg2.breakText(c.name, true, elementWidth - 4, null);
             String clippedName = c.name.substring(0, cliplen);
@@ -462,7 +462,7 @@ public class FileSystemEntry {
 
             String sizeString0 = c.sizeString;
             if (sizeString0 == null) {
-              c.sizeString = sizeString0 = calcSizeString(c.encodedSize);
+              c.sizeString = sizeString0 = calcSizeStringFromEncoded(c.encodedSize);
             }
             int cliplen = fg2.breakText(c.name, true, elementWidth - 4, null);
             String clippedName = c.name.substring(0, cliplen);
@@ -530,7 +530,24 @@ public class FileSystemEntry {
     canvas.drawRect(cursorLeft, cursorTop, cursorRight, cursorBottom, cursor_fg);
   }
   
-  private static String calcSizeString(long encodedSize) {
+  public static String calcSizeString(float sz) {
+    if (sz < 1024 * 1024 * 10) {
+      if (sz < 1024 * 1024) {
+        if (sz < 1024) {
+          if (sz < 0) sz = 0;
+          return String.format(n_bytes, sz);
+        }
+        return String.format(n_kilobytes, sz * (1f / 1024));
+      }
+      return String.format(n_megabytes, sz * (1f / 1024 / 1024));
+    }
+    if (sz < 1024 * 1024 * 200) {
+      return String.format(n_megabytes10, sz * (1f / 1024 / 1024));
+    }
+    return String.format(n_megabytes100, sz * (1f / 1024 / 1024));
+  }
+  
+  private static String calcSizeStringFromEncoded(long encodedSize) {
     float sz = (encodedSize >> blockOffset) * blockSize;
 
     if (sz < 1024 * 1024 * 10) {
@@ -550,16 +567,16 @@ public class FileSystemEntry {
     return String.format(n_megabytes100, sz * (1f / 1024 / 1024));
   }
 
-  public final String pathFromRoot(FileSystemEntry root) {
-    String res = toTitleString();
-    if (parent == root) return res;
-    else return parent.relativePath(root) + "/" + res;
-  }
+//  public final String pathFromRoot(FileSystemEntry root) {
+//    String res = toTitleString();
+//    if (parent == root) return res;
+//    else return parent.relativePath(root) + "/" + res;
+//  }
 
   public final String toTitleString() {
     String sizeString0 = this.sizeString;
     if (sizeString0 == null) {
-      sizeString0 = sizeString = calcSizeString(encodedSize);
+      sizeString0 = sizeString = calcSizeStringFromEncoded(encodedSize);
     }
     if (children != null && children.length != 0)
       return String.format(dir_name_size_num_dirs, name, sizeString0, children.length);
@@ -589,11 +606,11 @@ public class FileSystemEntry {
     return path.toString();
   }
   
-  public final String relativePath(FileSystemEntry root) {
-    if (parent == root) return name;
-    return parent.relativePath(root) + "/" + name;
-  }
-
+//  public final String relativePath(FileSystemEntry root) {
+//    if (parent == root) return name;
+//    return parent.relativePath(root) + "/" + name;
+//  }
+//
   /**
    * Find depth of 'entry' in current element.
    * @param entry
@@ -762,16 +779,16 @@ public class FileSystemEntry {
     fontSize = descent - ascent;
   }
 
-  public final void getAllChildren(List<String> out, FileSystemEntry deleteRoot) {
-    FileSystemEntry[] sortedChildren = new FileSystemEntry[children.length];
-    System.arraycopy(children, 0, sortedChildren, 0, children.length);
-    Arrays.sort(sortedChildren, alphaComparator);
-    for (int i = 0; i < children.length; i++) {
-      FileSystemEntry child = children[i];
-      if (child.children != null) child.getAllChildren(out, deleteRoot);
-      else out.add(child.pathFromRoot(deleteRoot));
-    }
-  }
+//  public final void getAllChildren(List<String> out, FileSystemEntry deleteRoot) {
+//    FileSystemEntry[] sortedChildren = new FileSystemEntry[children.length];
+//    System.arraycopy(children, 0, sortedChildren, 0, children.length);
+//    Arrays.sort(sortedChildren, alphaComparator);
+//    for (int i = 0; i < children.length; i++) {
+//      FileSystemEntry child = children[i];
+//      if (child.children != null) child.getAllChildren(out, deleteRoot);
+//      else out.add(child.pathFromRoot(deleteRoot));
+//    }
+//  }
   
   public void validate0() {
     if (parent != null) {
@@ -789,5 +806,26 @@ public class FileSystemEntry {
       if (children[i].parent != this) throw new RuntimeException("corrupted: " + this.path2() + " <> " + children[i].name);
       children[i].validateRecursive();
     }
+  }
+
+  /**
+   * Just files, no directories.
+   * @return count
+   */
+  public int getNumFiles() {
+    if (this instanceof FileSystemEntrySmall) {
+      return ((FileSystemEntrySmall)this).numFiles; 
+    }
+    
+    if (children == null) return 1;
+    
+    int numFiles = 0;
+    boolean hasFile = false;
+    for (FileSystemEntry entry : children) {
+      if (entry.children == null) hasFile = true;
+      numFiles += entry.getNumFiles();
+    }
+    if (hasFile) numFiles++;
+    return numFiles;
   }
 }
