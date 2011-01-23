@@ -40,16 +40,16 @@ public class FileInfoAdapter extends BaseAdapter {
   }
   
   class Entry {
-    long size;
+    String size;
     String name;
     
-    Entry(long size, String name) {
+    Entry(String size, String name) {
       this.size = size;
       this.name = name;
     }
   }
   
-  Entry overflow = new Entry(-1, "");
+  Entry overflow = new Entry(null, "");
   
   Entry getEntry(int pos) {
     if (pos >= entries.size()) {
@@ -114,12 +114,12 @@ public class FileInfoAdapter extends BaseAdapter {
           last = last.substring(sep + 1);
         }
         if (!dirName.equals(currentDir)) {
-          entries.add(new Entry(-1, dirName));
+          entries.add(new Entry(null, dirName));
           currentDir = dirName;
         }
         long size = currentEntity.length();
         totalSize += size;
-        entries.add(new Entry(size, last));
+        entries.add(new Entry(FileSystemEntry.calcSizeString(size), last));
 //        notifyDataSetChanged();
         return;
       }
@@ -175,7 +175,7 @@ public class FileInfoAdapter extends BaseAdapter {
     load(position);
     Entry entry = getEntry(position);
     
-    return (entry.size == -1) ? 1 : 0;
+    return (entry.size == null) ? 1 : 0;
   }
 
   @Override
@@ -194,7 +194,7 @@ public class FileInfoAdapter extends BaseAdapter {
           Context.LAYOUT_INFLATER_SERVICE);
     }
 
-    if (entry.size == -1) {
+    if (entry.size == null) {
       // directory
       if (view == null) {
         view = inflater.inflate(R.layout.list_dir_item, null);
@@ -208,7 +208,7 @@ public class FileInfoAdapter extends BaseAdapter {
       TextView nameView = (TextView) view.findViewById(R.id.name);
       TextView sizeView = (TextView) view.findViewById(R.id.size);
       nameView.setText(entry.name);
-      sizeView.setText(FileSystemEntry.calcSizeString(entry.size));
+      sizeView.setText(entry.size);
     }
     
     return view;
