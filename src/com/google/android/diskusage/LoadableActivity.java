@@ -11,6 +11,7 @@ import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
 import android.os.Handler;
 import android.util.Log;
+import android.widget.ProgressBar;
 
 import com.google.android.diskusage.DiskUsage.AfterLoad;
 
@@ -26,11 +27,24 @@ public abstract class LoadableActivity extends Activity {
   class PersistantActivityState {
     FileSystemEntry root;
     AfterLoad afterLoad;
-    ProgressDialog loading;
+    MyProgressDialog loading;
   };
   
   private static Map<String, PersistantActivityState> persistantActivityState =
     new TreeMap<String, PersistantActivityState>();
+  
+ 
+  // FIXME: use it wisely
+ static boolean forceCleanup() {
+   boolean success = false;
+   for (PersistantActivityState state : persistantActivityState.values()) {
+     if (state.afterLoad == null && state.root != null) {
+       state.root = null;
+       success = true;
+     }
+   }
+   return success;
+ }
   
   protected PersistantActivityState getPersistantState() {
     String key = getRootPath();
@@ -60,8 +74,9 @@ public abstract class LoadableActivity extends Activity {
     scanRunning = state.afterLoad != null;
     state.afterLoad = runAfterLoad;
     Log.d("diskusage", "created new progress dialog");
-    state.loading = new ProgressDialog(activity);
-    final ProgressDialog thisLoading = state.loading;
+    state.loading = new MyProgressDialog(activity);
+    
+    final MyProgressDialog thisLoading = state.loading;
     state.loading.setOnCancelListener(new OnCancelListener() {
       @Override
       public void onCancel(DialogInterface dialog) {
@@ -70,7 +85,8 @@ public abstract class LoadableActivity extends Activity {
       }
     });
     thisLoading.setCancelable(true);
-    thisLoading.setIndeterminate(true);
+//    thisLoading.setIndeterminate(true);
+    thisLoading.setMax(1);
     thisLoading.setMessage(activity.getString(R.string.scaning_directories));
     thisLoading.show();
 

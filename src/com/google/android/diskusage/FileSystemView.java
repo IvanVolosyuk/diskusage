@@ -25,6 +25,9 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.zip.GZIPInputStream;
 
 import android.app.AlertDialog;
@@ -918,6 +921,9 @@ class FileSystemView extends View {
     Intent intent = new Intent(Intent.ACTION_VIEW);
     intent.addCategory(Intent.CATEGORY_DEFAULT);
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    if (entry instanceof FileSystemEntrySmall) {
+      entry = entry.parent;
+    }
     File file = new File(context.getRootPath() + "/" + entry.path2());
     Uri uri = Uri.fromFile(file);
     
@@ -1011,11 +1017,37 @@ class FileSystemView extends View {
       throw new RuntimeException("failed to open mime db", e);
     }
   }
+  
+  private String[] resolveSmallEntry(FileSystemEntrySmall smallEntry) {
+    FileSystemEntry parent = smallEntry.parent;
+    String parentPath = parent.path2();
+    String[] allNames = new File(context.getRootPath() + "/" + parentPath).list();
+    Set<String> parentFiles = new TreeSet<String>();
+    for (FileSystemEntry child: parent.children) {
+      parentFiles.add(child.name);
+    }
+    List<String> result = new ArrayList<String>();
+    for (String name : allNames) {
+      if (parentFiles.contains(name)) continue;
+      result.add(parentPath + "/" + name);
+    }
+    return result.toArray(new String[result.size()]);
+    
+  }
 
   private void askForDeletion(final FileSystemEntry entry) {
     final String path = entry.path2();
     Log.d("DiskUsage", "Deletion requested for " + path);
     
+    if (entry instanceof FileSystemEntrySmall) {
+      // FIXME: find out list of files
+      Intent i = new Intent(context, DeleteActivity.class);
+      i.putExtra("path", resolveSmallEntry((FileSystemEntrySmall) entry));
+      i.putExtra(DiskUsage.KEY_KEY, context.key);
+      i.putExtra(DiskUsage.TITLE_KEY, context.getRootTitle());
+      i.putExtra(DiskUsage.ROOT_KEY, context.getRootPath());
+      context.startActivityForResult(i, 0);
+    }
     if (entry.children == null || entry.children.length == 0) {
       if (entry instanceof FileSystemPackage) {
         context.pkg_removed = (FileSystemPackage) entry;
@@ -1025,7 +1057,7 @@ class FileSystemView extends View {
 
       // Delete single file or directory
       new AlertDialog.Builder(this.context)
-      .setTitle(new File(path).isDirectory()
+      .setTitle(new File(context.getRootPath() + "/" + path).isDirectory()
           ? format(R.string.ask_to_delete_directory, path)
           : format(R.string.ask_to_delete_file, path))
       .setPositiveButton(str(R.string.button_delete),
@@ -1041,7 +1073,7 @@ class FileSystemView extends View {
       }).create().show();
     } else {
       Intent i = new Intent(context, DeleteActivity.class);
-      i.putExtra("path", path);
+      i.putExtra("path", new String[] { path });
       i.putExtra(DiskUsage.KEY_KEY, context.key);
       i.putExtra(DiskUsage.TITLE_KEY, context.getRootTitle());
       i.putExtra(DiskUsage.ROOT_KEY, context.getRootPath());

@@ -30,7 +30,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
+import android.os.Handler;
 import android.os.StatFs;
 import android.util.Log;
 import android.view.Menu;
@@ -151,23 +151,79 @@ public class DiskUsage extends LoadableActivity {
   public interface AfterLoad {
     public void run(FileSystemEntry root, boolean isCached);
   }
+  
+  private Handler handler = new Handler();
+  
+  private Runnable progressUpdater;
+  
+  static abstract class MemoryClass {
+    abstract int maxHeap();
+    
+    static class MemoryClassDefault extends MemoryClass {
+      @Override
+      int maxHeap() {
+        return 16 * 1024 * 1024;
+      }
+    };
+    
+    static MemoryClass getInstance(DiskUsage diskUsage) {
+      final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+      if (sdkVersion < Build.VERSION_CODES.ECLAIR) {
+        return new MemoryClassDefault();
+      } else {
+        return diskUsage.new MemoryClassDetected();
+      }
+    }
+  };
+
+  class MemoryClassDetected extends MemoryClass {
+    @Override
+    int maxHeap() {
+      ActivityManager manager = (ActivityManager) DiskUsage.this.getSystemService(Context.ACTIVITY_SERVICE);
+      return manager.getMemoryClass() * 1024 * 1024;
+    }
+  }
+  
+  MemoryClass memoryClass = MemoryClass.getInstance(this);
+  
+  private int getMemoryQuota() {
+    int totalMem = memoryClass.maxHeap();
+    int numMountPoints = MountPoint.getMountPoints().size();
+    return totalMem / (numMountPoints + 1);
+  }
 
   @Override
   FileSystemEntry scan() {
     final MountPoint mountPoint = MountPoint.getMountPoints().get(getRootPath());
     StatFs data = new StatFs(mountPoint.getRoot());
-    int blockSize = data.getBlockSize();
+    final int blockSize = data.getBlockSize();
     long freeBlocks = data.getAvailableBlocks();
     long totalBlocks = data.getBlockCount();
+    final long busyBlocks = totalBlocks - freeBlocks;
     
 
-//    ActivityManager manager = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
-    int heap = 1000000;
-    long allocatedBlocks = totalBlocks - freeBlocks;
-    long sizeTreshold = (allocatedBlocks << FileSystemEntry.blockOffset) / heap;
-    FileSystemEntry rootElement = new Scanner(
-        20, blockSize, mountPoint.getExcludeFilter(), sizeTreshold).scan(
+    int heap = getMemoryQuota();
+    final Scanner scanner = new Scanner(
+        20, blockSize, mountPoint.getExcludeFilter(), busyBlocks, heap);
+    
+    progressUpdater = new Runnable() {
+      @Override
+      public void run() {
+        MyProgressDialog dialog = getPersistantState().loading;
+        if (dialog != null) {
+          dialog.setMax(busyBlocks);
+          dialog.setProgress(scanner.pos, scanner.lastCreatedFile);
+        }
+        handler.postDelayed(this, 50);
+      }
+    };
+    handler.post(progressUpdater);
+    
+    FileSystemEntry rootElement = scanner.scan(
             new File(mountPoint.getRoot()));
+    
+    handler.removeCallbacks(progressUpdater);
+    
     ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
     
     if (rootElement.children != null) {
