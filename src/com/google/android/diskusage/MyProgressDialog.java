@@ -63,6 +63,7 @@ public class MyProgressDialog extends AlertDialog {
 
   private String makePathString(FileSystemEntry entry) {
     String path = path(entry);
+    try {
     char[] pathChars = path.toCharArray();
     char[] prevPathChars = this.prevPathChars;
     int len = Math.min(pathChars.length, prevPathChars.length);
@@ -129,6 +130,9 @@ public class MyProgressDialog extends AlertDialog {
         this.prevPathChars = pathChars;
         return path.substring(0, firstSep) + "/.../" + path.substring(lastSep + 1);
       }
+    }
+    } catch (Throwable t) {
+      return path;
     }
   }
 
