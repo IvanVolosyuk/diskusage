@@ -120,10 +120,8 @@ public class DiskUsage extends LoadableActivity {
   
   @Override
   public void onActivityResult(int a, int result, Intent i) {
-    if (view != null) {
-      if (result != RESULT_DELETE_CONFIRMED) return;
-      pathToDelete = i.getStringExtra("path"); 
-    }
+    if (result != RESULT_DELETE_CONFIRMED) return;
+    pathToDelete = i.getStringExtra("path"); 
   }
   
 

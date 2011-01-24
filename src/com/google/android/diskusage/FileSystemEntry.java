@@ -759,7 +759,7 @@ public class FileSystemEntry {
     return entry;
   }
 
-  static void setupStrings(Context context) {
+  public static void setupStrings(Context context) {
     if (n_bytes != null) return;
     n_bytes = context.getString(R.string.n_bytes);
     n_kilobytes = context.getString(R.string.n_kilobytes);

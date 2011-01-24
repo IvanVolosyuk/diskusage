@@ -68,8 +68,8 @@ public class SelectActivity extends Activity {
   public void makeDialog() {
     ArrayList<String> options = new ArrayList<String>();
     
-    final String storageCard = "Storage card";
-    final String programStorage = "App storage";
+    final String storageCard = getString(R.string.storage_card);
+    final String programStorage = getString(R.string.app_storage);
     
     options.add(programStorage);
     optionInfo.put(programStorage, new Option(programStorage, null));

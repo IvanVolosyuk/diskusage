@@ -1,29 +1,29 @@
 <PreferenceScreen
   xmlns:android="http://schemas.android.com/apk/res/android"
-  android:title="Apps Filter">
+  android:title="@string/apps_filter">
   <CheckBoxPreference
-    android:title="Internal Only"
-    android:summary="Exclude data stored on SD Card"
+    android:title="@string/internal_only"
+    android:summary="@string/internal_only_desc"
     android:defaultValue="true"
     android:key="internal_only"/>
   <CheckBoxPreference
-    android:title="Show Apk"
-    android:summary="Display application files."
+    android:title="@string/show_apk"
+    android:summary="@string/show_apk_desc"
     android:defaultValue="true"
     android:key="show_apk"/>
   <CheckBoxPreference
-    android:title="Show Data"
-    android:summary="Display storage allocated for application data."
+    android:title="@string/show_data"
+    android:summary="@string/show_data_desc"
     android:defaultValue="true"
     android:key="show_data"/>
   <CheckBoxPreference
-    android:title="Show DalvikCache"
+    android:title="@string/show_dalvikcache"
     android:defaultValue="true"
-    android:summary="Display dalvikCache allocated for your apps on your data partition."
+    android:summary="@string/show_dalvikcache_desc"
     android:key="show_dalvikCache"/>
   <CheckBoxPreference
-    android:title="Show Cache"
+    android:title="@string/show_cache"
     android:defaultValue="false"
-    android:summary="Application cache uses different partition and can't be used by apk and data."
+    android:summary="@string/show_cache_desc"
     android:key="show_cache"/>
 </PreferenceScreen>

@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import android.content.Context;
-import android.util.Log;
+import android.os.AsyncTask;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,12 +31,19 @@ public class FileInfoAdapter extends BaseAdapter {
   private String currentDir = "";
   TextView summary;
   long totalSize;
+  Context context;
   
-  public FileInfoAdapter(String rootBase, String[] roots, int count, TextView summary) {
+  public FileInfoAdapter(Context context, String rootBase,
+      String[] roots, int count, TextView summary) {
+    this.context = context;
     this.count = count;
     this.rootBase = rootBase;
     this.roots = roots;
     this.summary = summary;
+  }
+  
+  public static String formatMessage(Context context, int numfiles, String sizeString) {
+    return context.getString(R.string.delete_summary, numfiles, sizeString);
   }
   
   class Entry {
@@ -49,7 +56,7 @@ public class FileInfoAdapter extends BaseAdapter {
     }
   }
   
-  Entry overflow = new Entry(null, "");
+  Entry overflow = new Entry("", ".             .             .             .             .");
   
   Entry getEntry(int pos) {
     if (pos >= entries.size()) {
@@ -89,19 +96,19 @@ public class FileInfoAdapter extends BaseAdapter {
     }
   }
   
-  private void loadOne() {
+  private boolean loadOne(ArrayList<Entry> newEntries) {
     if (base == null) prepareRoots();
     
     while (true) {
       if (workingSet.isEmpty()) {
-        finished = true;
-        count = entries.size();
-        notifyDataSetChanged();
-        if (summary != null)
-          summary.setText(
-              String.format("%d files, total size: %s",
-                  count, FileSystemEntry.calcSizeString(totalSize)));
-        return;
+//        finished = true;
+//        count = entries.size();
+//        notifyDataSetChanged();
+//        if (summary != null)
+//          summary.setText(
+//              String.format("%d files, total size: %s",
+//                  count, FileSystemEntry.calcSizeString(totalSize)));
+        return false;
       }
 
       String last = workingSet.remove(workingSet.size() - 1);
@@ -114,14 +121,14 @@ public class FileInfoAdapter extends BaseAdapter {
           last = last.substring(sep + 1);
         }
         if (!dirName.equals(currentDir)) {
-          entries.add(new Entry(null, dirName));
+          newEntries.add(new Entry(null, dirName));
           currentDir = dirName;
         }
         long size = currentEntity.length();
         totalSize += size;
-        entries.add(new Entry(FileSystemEntry.calcSizeString(size), last));
+        newEntries.add(new Entry(FileSystemEntry.calcSizeString(size), last));
 //        notifyDataSetChanged();
-        return;
+        return true;
       }
 
       File[] entries = currentEntity.listFiles();
@@ -138,21 +145,21 @@ public class FileInfoAdapter extends BaseAdapter {
           dirs.add(last + "/" + name);
         }
       }
-      for (String file : files) {
-        workingSet.add(file);
-      }
-
       for (String dir : dirs) {
         workingSet.add(dir);
       }
+
+      for (String file : files) {
+        workingSet.add(file);
+      }
     }
   }
 
-  public void load(int pos) {
-    while (!finished && entries.size() <= pos + 5) {
-      loadOne();
-    }
-  }
+//  public void load(int pos) {
+//    while (!finished && entries.size() <= pos + 10) {
+//      loadOne();
+//    }
+//  }
 
   @Override
   public int getCount() {
@@ -166,13 +173,11 @@ public class FileInfoAdapter extends BaseAdapter {
 
   @Override
   public Object getItem(int position) {
-    load(position);
     return getEntry(position);
   }
   
   @Override
   public int getItemViewType(int position) {
-    load(position);
     Entry entry = getEntry(position);
     
     return (entry.size == null) ? 1 : 0;
@@ -183,9 +188,61 @@ public class FileInfoAdapter extends BaseAdapter {
     return position;
   }
   
+  public boolean running = false;
+  
+  class LoaderTask extends AsyncTask<Integer, Void, ArrayList<Entry>> {
+    int currentPos;
+    public LoaderTask(int currentPos) {
+      this.currentPos = currentPos;
+    }
+    @Override
+    protected ArrayList<Entry> doInBackground(Integer... params) {
+      int toLoad = params[0];
+      ArrayList<Entry> newEntries = new ArrayList<Entry>();
+      for (int i = 0; i < toLoad; i++) {
+        if (!loadOne(newEntries)) {
+          return newEntries;
+        }
+      }
+      return newEntries;
+    }
+    
+    @Override
+    protected void onPostExecute(ArrayList<Entry> newEntries) {
+      running = false;
+      if (newEntries.size() == 0) {
+        finished = true;
+        count = entries.size();
+        notifyDataSetChanged();
+        summary.setText(formatMessage(context, count, FileSystemEntry.calcSizeString(totalSize)));
+      } else {
+        entries.addAll(newEntries);
+        notifyDataSetChanged();
+        
+        int toLoad = maxPos + 200 - entries.size();
+        if (toLoad > 0) {
+          running = true;
+          new LoaderTask(maxPos).execute(20); // request even more
+        }
+      }
+    }
+  };
+  
+  private int maxPos;
+  
   @Override
   public View getView(int position, View view, ViewGroup parent) {
-    load(position);
+    
+    if (finished) {
+    } else if (running) {
+      if (position > maxPos) maxPos = position;
+    } else {
+      int toLoad = position + 200 - entries.size();
+      if (toLoad > 0) {
+        running = true;
+        new LoaderTask(position).execute(20); // request even more
+      }
+    } 
     Entry entry = getEntry(position);
     
     LayoutInflater inflater = this.inflater;

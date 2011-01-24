@@ -51,8 +51,19 @@
 <string name="dir_empty">%s (empty)</string>
 <string name="dir_name_size">%1$s (%2$s)</string>
 <string name="apps_bulk_uninstall_not_supported">Uninstall multiple apps not supported</string>
-
-<string name="show_internal">Internal memory</string>
-<string name="show_external">Show SDCard</string>
+<string name="app_storage">App Storage</string>
+<string name="storage_card">Storage card</string>
+<string name="delete_summary">%1$d files, total size: %2$s</string>
 <string name="change_filter">Filter...</string>
+<string name="apps_filter">Apps Filter</string>
+<string name="internal_only">Internal Only</string>
+<string name="internal_only_desc">Exclude data stored on SD Card</string>
+<string name="show_apk">Show Apk</string>
+<string name="show_apk_desc">Display application files.</string>
+<string name="show_data">Show Data</string>
+<string name="show_data_desc">Display storage allocated for application data.</string>
+<string name="show_dalvikcache">Show DalvikCache</string>
+<string name="show_dalvikcache_desc">Display dalvikCache allocated for your apps on your data partition.</string>
+<string name="show_cache">Show Cache</string>
+<string name="show_cache_desc">Application cache uses different partition and can\'t be used by apk and data.</string>
 </resources>
