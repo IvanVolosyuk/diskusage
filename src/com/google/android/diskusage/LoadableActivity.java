@@ -5,13 +5,12 @@ import java.util.TreeMap;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
 import android.os.Handler;
 import android.util.Log;
-import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.google.android.diskusage.DiskUsage.AfterLoad;
 
@@ -176,12 +175,18 @@ public abstract class LoadableActivity extends Activity {
   }
   
   private static void handleOutOfMemory(final Activity activity) {
-    new AlertDialog.Builder(activity)
-    .setTitle(activity.getString(R.string.out_of_memory))
-    .setOnCancelListener(new OnCancelListener() {
-      public void onCancel(DialogInterface dialog) {
-        activity.finish();
-      }
-    }).create().show();
+    try {
+      // Can fail if the main window is already closed.
+      new AlertDialog.Builder(activity)
+      .setTitle(activity.getString(R.string.out_of_memory))
+      .setOnCancelListener(new OnCancelListener() {
+        public void onCancel(DialogInterface dialog) {
+          activity.finish();
+        }
+      }).create().show();
+    } catch (Throwable t) {
+      Toast.makeText(
+          activity, "DiskUsage is out of memory. Sorry.", Toast.LENGTH_SHORT).show();
+    }
   }
 }

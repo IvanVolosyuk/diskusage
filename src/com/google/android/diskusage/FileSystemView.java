@@ -1088,7 +1088,12 @@ class FileSystemView extends View {
   
   void continueDelete(String path) {
     FileSystemEntry entry = masterRoot.getEntryByName(path);
-    BackgroundDelete.startDelete(this, entry);
+    if (entry != null) {
+      BackgroundDelete.startDelete(this, entry);
+    } else {
+      Toast.makeText(getContext(), 
+          "Oops. Can't find directory to be deleted.", Toast.LENGTH_SHORT);
+    }
   }
   
   public final void moveAwayCursor(FileSystemEntry entry) {

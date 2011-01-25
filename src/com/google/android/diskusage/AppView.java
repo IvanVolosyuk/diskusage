@@ -10,6 +10,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.MenuItem.OnMenuItemClickListener;
+import android.widget.Toast;
 
 import com.google.android.diskusage.DiskUsage.AfterLoad;
 import com.google.android.diskusage.FileSystemView.MultiTouchHandler;
@@ -42,6 +43,7 @@ public class AppView extends FileSystemView {
   class EclairPackageViewer extends VersionedPackageViewer {
     @Override
     void viewPackage(String pkg) {
+      try {
       final String APP_PKG_PREFIX = "com.android.settings.";
       final String APP_PKG_NAME = APP_PKG_PREFIX+"ApplicationPkgName";
       Log.d("diskusage", "show package = " + pkg);
@@ -51,6 +53,11 @@ public class AppView extends FileSystemView {
       viewIntent.putExtra(APP_PKG_NAME, pkg);
       viewIntent.putExtra("pkg", pkg);
       context.startActivity(viewIntent);
+      } catch (RuntimeException e) {
+        Toast.makeText(getContext(),
+            "Sorry, failed to view the installed app. " +
+            "Please contact app developer.", Toast.LENGTH_SHORT).show();
+      }
     }
   }
 
