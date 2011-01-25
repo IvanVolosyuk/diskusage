@@ -24,14 +24,13 @@ public class MyProgressDialog extends AlertDialog {
   private TextView percentView;
   private TextView detailsView;
   private ProgressBar progressBar;
-//  private SpannableString details;
   private String details;
   
   private long progress;
   private long max;
   private NumberFormat progressPercentFormat;
 
-  protected MyProgressDialog(Context context) {
+  public MyProgressDialog(Context context) {
     super(context);
     this.context = context;
   }
@@ -40,7 +39,7 @@ public class MyProgressDialog extends AlertDialog {
     this.max = max;
   }
 
-  public final String path(FileSystemEntry entry) {
+  private final String path(FileSystemEntry entry) {
     ArrayList<String> pathElements = new ArrayList<String>();
     FileSystemEntry current = entry;
     while (current != null) {
@@ -61,9 +60,8 @@ public class MyProgressDialog extends AlertDialog {
   
   char[] prevPathChars = new char[0];
 
-  private String makePathString(FileSystemEntry entry) {
-    String path = path(entry);
-    try {
+  private String makePathString(String path) {
+//    Log.d("diskusage", "path = " + path);
     char[] pathChars = path.toCharArray();
     char[] prevPathChars = this.prevPathChars;
     int len = Math.min(pathChars.length, prevPathChars.length);
@@ -73,66 +71,81 @@ public class MyProgressDialog extends AlertDialog {
     
     for (diff = 0; diff < len; diff++) {
       if (pathChars[diff] == prevPathChars[diff]) continue;
-      diff++;
-      if (diff > len) diff = len;
       break;
     }
-    float width = detailsView.getWidth() - textPaint.measureText("/.../");
     
-    if (textPaint.measureText(path, 0, diff) < width) {
-      this.prevPathChars = pathChars;
-      return path;
-    }
-     
-    int lastSep = path.lastIndexOf('/', diff);
-    int firstSep = path.indexOf("/");
+    float winWidth = detailsView.getWidth();
+    float extraTextWidth = textPaint.measureText("/.../G");
+    float width = winWidth - extraTextWidth;
+    if (width < extraTextWidth) return path;
     
-    if (lastSep == -1 || firstSep == -1) return path;
+    int firstSep = -2;
+    int lastSep = -2;
     
-    float firstPart = textPaint.measureText(path, 0, firstSep);
-    float lastPart = textPaint.measureText(path, lastSep + 1, diff);
-    if (firstPart + lastPart > width) {
-      // need to break first and last string
-      do {
-        if (firstPart > lastPart) {
-          firstSep /= 2;
-          firstPart = textPaint.measureText(path, 0, firstSep);
-        } else {
-          lastSep = (lastSep + diff) / 2;
-          lastPart = textPaint.measureText(path, lastSep, diff);
-        }
-      } while (firstPart + lastPart > width);
-      
-      this.prevPathChars = pathChars;
-      return path.substring(0, firstSep) + "..." + path.substring(lastSep);
-    }
-    
-    while (true) {
-      boolean success = false;
-      
-      int newLastSep = path.lastIndexOf('/', lastSep - 1);
-      float newLastPart = textPaint.measureText(path, newLastSep + 1, diff);
-      if (firstPart + newLastPart < width) {
-        success = true;
-        lastPart = newLastPart;
-        lastSep = newLastSep;
-      }
-      
-      int newFirstSep = path.indexOf('/', firstSep + 1);
-      float newFirstPart = textPaint.measureText(path, 0, newFirstSep);
-      if (newFirstPart + lastPart < width) {
-        success = true;
-        firstPart = newFirstPart;
-        firstSep = newFirstSep;
-      }
-      
-      if (!success) {
+    try {
+      if (textPaint.measureText(path, 0, diff) < width) {
         this.prevPathChars = pathChars;
-        return path.substring(0, firstSep) + "/.../" + path.substring(lastSep + 1);
+        return path;
       }
-    }
-    } catch (Throwable t) {
-      return path;
+
+      lastSep = path.lastIndexOf('/', diff);
+      firstSep = path.indexOf("/");
+
+      if (lastSep == -1 || firstSep == -1) return path;
+
+      float firstPart = textPaint.measureText(path, 0, firstSep);
+      float lastPart = textPaint.measureText(path, lastSep, diff);
+      if (firstPart + lastPart > width) {
+        // need to break first and last string
+        do {
+          if (firstPart > lastPart * 3) {
+            firstSep /= 2;
+            firstPart = textPaint.measureText(path, 0, firstSep);
+          } else {
+            lastSep = (lastSep + diff) / 2;
+            lastPart = textPaint.measureText(path, lastSep, diff);
+          }
+        } while (firstPart + lastPart > width);
+
+        this.prevPathChars = pathChars;
+        return path.substring(0, firstSep) + "..." + path.substring(lastSep);
+      }
+
+      while (true) {
+        boolean success = false;
+
+        int newLastSep = path.lastIndexOf('/', lastSep - 1);
+        float newLastPart = textPaint.measureText(path, newLastSep, diff);
+        if (newLastPart != -1) {
+          if (firstPart + newLastPart < width) {
+            success = true;
+            lastPart = newLastPart;
+            lastSep = newLastSep;
+          }
+        }
+
+        int newFirstSep = path.indexOf('/', firstSep + 1);
+        if (newFirstSep != -1) {
+          float newFirstPart = textPaint.measureText(path, 0, newFirstSep);
+          if (newFirstPart + lastPart < width) {
+            success = true;
+            firstPart = newFirstPart;
+            firstSep = newFirstSep;
+          }
+        }
+
+        if (!success) {
+          this.prevPathChars = pathChars;
+          if (firstSep > lastSep) throw new RuntimeException(
+              path + "[" + firstSep + ":" + lastSep + "]");
+          return path.substring(0, firstSep) + "/.../" + path.substring(lastSep + 1);
+        }
+      }
+    } catch (RuntimeException e) {
+      throw new RuntimeException(
+          "path = " + path + "[" + firstSep + ":" + lastSep + "]" +
+          " win =" + winWidth + " extra=" + extraTextWidth + " diff=" + diff,
+          e);
     }
   }
 
@@ -152,7 +165,7 @@ public class MyProgressDialog extends AlertDialog {
 
   public void setProgress(long progress, FileSystemEntry entry) {
     this.progress = progress;
-    this.details = makePathString(entry);
+    this.details = makePathString(path(entry));
 //    Log.d("diskusage", "makePath = " + this.details);
     onProgressChanged();
   }

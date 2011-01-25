@@ -253,7 +253,7 @@ public class Scanner {
 //    try {
 //      Thread.sleep(10);
 //    } catch (Throwable t) {}
-//    
+  
     createdNode = FileSystemEntry.makeNode(parent, name);
     createdNodeSize =
       4 /* ref in FileSystemEntry[] */

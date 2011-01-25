@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 
  * DiskUsage - displays sdcard usage on android.
- * Copyright (C) 2008 Ivan Volosyuk
+ * Copyright (C) 2008-2010 Ivan Volosyuk, Alexis Vuillemin
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,39 +17,55 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -->
- <!-- Translated by Ivan Volosyuk using translate.google.com with zero knowledge of french -->
+ <!-- Translated by Ivan Volosyuk using translate.google.com with zero knowledge of french,
+      Corrected and updated by Alexis Vuillemin -->
 <resources>
  <string name="app_name">DiskUsage</string>
- <string name="app_description">Utilitaire d\'examiner le contenu SDcard et le nettoyage de l\'espace là-bas.</string>
- <string name="scaning_directories">Numérisation des répertoires ...</string>
+ <string name="app_description">Utilitaire pour examiner le contenu de la SDcard et, optionnellement, y liberer de l\'espace.</string>
+ <string name="scaning_directories">Examination des répertoires ...</string>
  <string name="button_show">Afficher</string>
  <string name="button_delete">Supprimer</string>
  <string name="button_rescan">Rafraîchir</string>
  <string name="button_cancel">Annuler</string>
- <string name="button_background">Contexte</string>
- <string name="install_oi_file_manager">Installer &quot;OI File Manager&quot; pour afficher des répertoires</string>
+ <string name="button_background">En tache de fond</string>
+ <string name="install_oi_file_manager">Installer &quot;OI File Manager&quot; pour afficher le contenu des répertoires</string>
  <string name="title_for_path">%s - DiskUsage</string>
  <string name="title_in_oi_file_manager">OI File Manager</string>
- <string name="button_text_in_oi_file_manager">Retour à la DiskUsage</string>
- <string name="no_viewer_found">Aucun spectateur trouve</string>
- <string name="ask_to_delete_directory">Supprimer %s répertoire?</string>
- <string name="ask_to_delete_file">Supprimer %s fichier?</string>
+ <string name="button_text_in_oi_file_manager">Retourner à DiskUsage</string>
+ <string name="no_viewer_found">Aucun lecteur pour ce type de document</string>
+ <string name="ask_to_delete_directory">Supprimer le répertoire \'%s\'?</string>
+ <string name="ask_to_delete_file">Supprimer le fichier \'%s\'?</string>
  <string name="out_of_memory">Pas assez de mémoire!</string>
  <string name="empty_or_missing_sdcard">sdcard vide ou manquant</string>
  <string name="path_doesnt_exist">%s n\'existe pas</string>
  <string name="file_deleted">Fichier supprimé</string>
  <string name="error_file_wasnt_deleted">Erreur: le fichier n\'a pas été supprimé</string>
- <string name="deleting_path">La suppression de %s</string>
- <string name="deleted_n_directories_and_n_files">Supprimé %1$d répertoires et %2$d fichiers</string>
- <string name="deleted_n_directories_and_files_and_canceled">Supprimer annulés: %1$d répertoires et %2$d fichiers à ce jour</string>
- <string name="deleted_n_directories_and_n_files_and_failed">Echec de la suppression!: %1$d répertoires et %2$d fichiers a été supprimé</string>
+ <string name="deleting_path">Suppression  de \'%s\' en cours</string>
+ <string name="deleted_n_directories_and_n_files">Ont été supprimé(s): %1$d répertoires et %2$d fichiers</string>
+ <string name="deleted_n_directories_and_files_and_canceled">Suppressions annulées: %1$d répertoires et %2$d fichiers jusque là</string>
+ <string name="deleted_n_directories_and_n_files_and_failed">Echec de la suppression!: %1$d répertoires et %2$d fichiers ont été supprimés</string>
  <string name="n_bytes">%4.0f octets</string>
- <string name="n_kilobytes">%4.0f Kio</string>
+ <string name="n_kilobytes">%4.0f Ko</string>
  <string name="n_megabytes">%5.2f Mo</string>
  <string name="n_megabytes10">%5.1f Mo</string>
  <string name="n_megabytes100">%4.0f Mo</string>
  <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d rép)</string>
  <string name="dir_empty">%s (vide)</string>
  <string name="dir_name_size">%1$s (%2$s)</string>
- <string name="apps_bulk_uninstall_not_supported">Désinstaller multiples applications non pris en charge</string>
+ <string name="apps_bulk_uninstall_not_supported">Désinstallation de multiples applications non encore possible</string>
+<string name="app_storage">Stockage de l\'application</string>
+<string name="storage_card">Stockage sur la carte</string>
+<string name="delete_summary">%1$d fichers, totale: %2$s</string>
+<string name="change_filter">Filtres...</string>
+<string name="apps_filter">Filtre application</string>
+<string name="internal_only">Seulement interne</string>
+<string name="internal_only_desc">Exclut données stockées sur la SD Card</string>
+<string name="show_apk">Affiche Apk</string>
+<string name="show_apk_desc">Affiche les fichiers de l\'application.</string>
+<string name="show_data">Affiche les données</string>
+<string name="show_data_desc">Affiche le stockage alloué pour les données de l\'application.</string>
+<string name="show_dalvikcache">Affiche le Dalvik Cache</string>
+<string name="show_dalvikcache_desc">Affiche le dalvik Cache alloué pour vos applications sur votre partition.</string>
+<string name="show_cache">Affiche le Cache</string>
+<string name="show_cache_desc">Le cache de l\'Application utilise une autre partition, qui ne peut pas être utilisé par votre apk ni pour le stockage de ses données.</string>
 </resources>
