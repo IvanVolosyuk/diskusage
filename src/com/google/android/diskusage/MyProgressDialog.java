@@ -115,8 +115,8 @@ public class MyProgressDialog extends AlertDialog {
         boolean success = false;
 
         int newLastSep = path.lastIndexOf('/', lastSep - 1);
-        float newLastPart = textPaint.measureText(path, newLastSep, diff);
-        if (newLastPart != -1) {
+        if (newLastSep != -1 && newLastSep >= firstSep) {
+          float newLastPart = textPaint.measureText(path, newLastSep, diff);
           if (firstPart + newLastPart < width) {
             success = true;
             lastPart = newLastPart;
@@ -125,7 +125,7 @@ public class MyProgressDialog extends AlertDialog {
         }
 
         int newFirstSep = path.indexOf('/', firstSep + 1);
-        if (newFirstSep != -1) {
+        if (newFirstSep != -1 && newFirstSep <= lastSep) {
           float newFirstPart = textPaint.measureText(path, 0, newFirstSep);
           if (newFirstPart + lastPart < width) {
             success = true;
@@ -136,8 +136,9 @@ public class MyProgressDialog extends AlertDialog {
 
         if (!success) {
           this.prevPathChars = pathChars;
-          if (firstSep > lastSep) throw new RuntimeException(
-              path + "[" + firstSep + ":" + lastSep + "]");
+          if (firstSep >= lastSep) {
+            return path;
+          }
           return path.substring(0, firstSep) + "/.../" + path.substring(lastSep + 1);
         }
       }
