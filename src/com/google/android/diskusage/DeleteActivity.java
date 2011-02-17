@@ -26,8 +26,8 @@ public class DeleteActivity extends Activity {
     TextView summary = (TextView) findViewById(R.id.summary);
     long size = getIntent().getLongExtra(SIZE_KEY, 0);
     int count = getIntent().getIntExtra(NUM_FILES_KEY, 0);
-    summary.setText(
-        FileInfoAdapter.formatMessage(this, count, FileSystemEntry.calcSizeString(size)));
+    FileInfoAdapter.setMessage(
+        this, summary, count, FileSystemEntry.calcSizeString(size));
 
 //    String[] path = getIntent().getStringArrayExtra("path");
     String path = getIntent().getStringExtra("path");

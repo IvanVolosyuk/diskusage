@@ -44,7 +44,8 @@ public class Scanner {
     }
   };
   
-  Scanner(int maxdepth, int blockSize, ExcludeFilter excludeFilter, long allocatedBlocks, int maxHeap) {
+  Scanner(int maxdepth, int blockSize, ExcludeFilter excludeFilter,
+      long allocatedBlocks, int maxHeap) {
     this.maxdepth = maxdepth;
     this.blockSize = blockSize;
     this.excludeFilter = excludeFilter;
@@ -68,7 +69,7 @@ public class Scanner {
   
   FileSystemEntry scan(File file) {
     
-    scanDirectory(null, file, 0);
+    scanDirectory(null, file, 0, excludeFilter);
     Log.d("diskusage", "allocated " + createdNodeSize + " B of heap");
     
     int extraHeap = 0;
@@ -108,7 +109,8 @@ public class Scanner {
    * @param depth current directory tree depth
    * @param maxdepth maximum directory tree depth
    */
-  private void scanDirectory(FileSystemEntry parent, File file, int depth) {
+  private void scanDirectory(FileSystemEntry parent, File file,
+                             int depth, ExcludeFilter excludeFilter) {
     String name = file.getName();
     makeNode(parent, name);
     createdNodeNumDirs = 1;
@@ -132,7 +134,13 @@ public class Scanner {
       return;
     }
 
-    String[] listNames = file.list();
+    String[] listNames = null;
+    
+    try {
+      listNames = file.list();
+    } catch (SecurityException io) {
+      Log.d("diskusage", "list files", io);
+    }
     
     if (listNames == null) return;
     FileSystemEntry thisNode = createdNode;
@@ -165,7 +173,7 @@ public class Scanner {
         lastCreatedFile = createdNode;
       } else {
         // directory
-        scanDirectory(thisNode, childFile, depth + 1);
+        scanDirectory(thisNode, childFile, depth + 1, childFilter);
         dirs = createdNodeNumDirs;
         files = createdNodeNumFiles;
       }
@@ -285,7 +293,12 @@ public class Scanner {
       return size;
     }
 
-    File[] list = file.listFiles();
+    File[] list = null;
+    try {
+      list = file.listFiles();
+    } catch (SecurityException io) {
+      Log.e("diskusage", "list files", io);
+    }
     if (list == null) return 0;
     long size = 1;
 

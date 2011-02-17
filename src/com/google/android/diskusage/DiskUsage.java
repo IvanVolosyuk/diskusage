@@ -34,6 +34,8 @@ import android.os.Handler;
 import android.os.StatFs;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 
 public class DiskUsage extends LoadableActivity {
   protected FileSystemView view;
@@ -124,6 +126,12 @@ public class DiskUsage extends LoadableActivity {
     pathToDelete = i.getStringExtra("path"); 
   }
   
+//  @Override
+//  public boolean onCreateOptionsMenu(Menu menu) {
+//      MenuInflater inflater = getMenuInflater();
+//      inflater.inflate(R.menu.menu, menu);
+//      return true;
+//  }
 
   @Override
   public final boolean onPrepareOptionsMenu(Menu menu) {
@@ -132,6 +140,14 @@ public class DiskUsage extends LoadableActivity {
     }
     return true;
   }
+  
+//  @Override
+//  public boolean onOptionsItemSelected(MenuItem item) {
+//    if (view != null) {
+//      view.onOptionItemSelected(item);
+//    }
+//    return true;
+//  }
 
   protected void onSaveInstanceState(Bundle outState) {
     if (view != null)

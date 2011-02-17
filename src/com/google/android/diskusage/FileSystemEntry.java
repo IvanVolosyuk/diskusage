@@ -244,11 +244,10 @@ public class FileSystemEntry {
     int i;
 
     for (i = 0; i < len; i++) {
-      if (children0[i] == directChild) break;
+      if (children0[i] == directChild) return i;
     }
 
-    if (children0[i] != directChild) throw new RuntimeException("something broken");
-    return i;
+    throw new RuntimeException("something broken");
   }
 
   /**

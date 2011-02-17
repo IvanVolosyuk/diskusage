@@ -123,6 +123,14 @@ public class SelectActivity extends Activity {
     dialog.show();
   }
   
+//  @Override
+//  protected void onCreate(Bundle savedInstanceState) {
+//    super.onCreate(savedInstanceState);
+//    setContentView(new TextView(this));
+//    ActionBar bar = getActionBar();
+//    bar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_USE_LOGO);
+//  }
+  
   @Override
   protected void onResume() {
     super.onResume();

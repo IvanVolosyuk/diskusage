@@ -558,6 +558,11 @@ class FileSystemView extends View {
   protected final void onDraw(final Canvas canvas) {
     FileSystemEntry.setupStrings(context);
     fadeAwayEntry(this);
+    if (titleNeedUpdate) {
+      context.setTitle(format(R.string.title_for_path, cursor.position.toTitleString()));
+      titleNeedUpdate = false;
+    }
+
     try {
       boolean animation = false;
       long curr = System.currentTimeMillis();
@@ -621,9 +626,6 @@ class FileSystemView extends View {
           if (viewDepth < 0) {
             targetViewDepth = 0;
           }
-        } else if (titleNeedUpdate) {
-          context.setTitle(format(R.string.title_for_path, cursor.position.toTitleString()));
-          titleNeedUpdate = false;
         }
       }
 
@@ -852,6 +854,33 @@ class FileSystemView extends View {
     titleNeedUpdate = true;
     return true;
   }
+  
+//  public void onOptionItemSelected(MenuItem item) {
+//    // FIXME: use id instead
+//    String title = item.getTitle().toString();
+//    FileSystemEntry entry = cursor.position;
+//
+//    if (title.equals("Show")) {
+//      String path = entry.path2();
+//      Log.d("DiskUsage", "show " + path);
+//      FileSystemView.this.view(entry);
+//      return;
+//    } else if (title.equals("Rescan")) {
+//      context.LoadFiles(context, new AfterLoad() {
+//        public void run(FileSystemEntry newRoot, boolean isCached) {
+//          rescanFinished(newRoot);
+//          if (!isCached) startZoomAnimation();
+//        }
+//      }, true);
+//      return;
+//    } else if (title.equals("Delete")) {
+//      String path = entry.path2();
+//      Log.d("DiskUsage", "ask for deletion of " + path);
+//      FileSystemView.this.askForDeletion(entry);
+//      return;
+//    }
+//  }
+
   
   public void onPrepareOptionsMenu(Menu menu) {
     //Log.d("DiskUsage", "onCreateContextMenu");
@@ -1101,7 +1130,11 @@ class FileSystemView extends View {
 //    FIXME: should not be needed
 //    this.invalidate();
 //    cursor.set(this, entry);
-    cursor.up(this);
+    try {
+      cursor.up(this);
+    } catch (RuntimeException e) {
+      // getPrev -> getIndexOf() can sometimes when this called from moveAwayCursor()
+    }
     if (cursor.position != entry) {
       return;
     }

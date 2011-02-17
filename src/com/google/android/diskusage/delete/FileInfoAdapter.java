@@ -42,8 +42,11 @@ public class FileInfoAdapter extends BaseAdapter {
     this.summary = summary;
   }
   
-  public static String formatMessage(Context context, int numfiles, String sizeString) {
-    return context.getString(R.string.delete_summary, numfiles, sizeString);
+  public static void setMessage(
+      Context context, TextView textView, int numfiles, String sizeString) {
+    String text = context.getString(
+        R.string.delete_summary, numfiles, sizeString);
+    textView.setText(text);
   }
   
   class Entry {
@@ -214,7 +217,7 @@ public class FileInfoAdapter extends BaseAdapter {
         finished = true;
         count = entries.size();
         notifyDataSetChanged();
-        summary.setText(formatMessage(context, count, FileSystemEntry.calcSizeString(totalSize)));
+        setMessage(context, summary, count, FileSystemEntry.calcSizeString(totalSize));
       } else {
         entries.addAll(newEntries);
         notifyDataSetChanged();

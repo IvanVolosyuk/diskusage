@@ -142,7 +142,8 @@ public class BackgroundDelete extends Thread {
     Log.d("DiskUsage", "restore started for " + path);
     FileSystemEntry newEntry = new Scanner(
         // FIXME: hacked allocatedBlocks and heap size
-        20, view.context.getBlockSize(), view.context.getExcludeFilter(), 0, 1).scan(new File(path));
+        20, view.context.getBlockSize(), null, 0, 4).scan(
+            new File(view.context.getRootPath() + "/" + path));
     // FIXME: may be problems in case of two deletions
     entry.parent.insert(newEntry);
     view.restore(newEntry);
