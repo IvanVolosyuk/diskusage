@@ -52,7 +52,7 @@
 <string name="dir_name_size">%1$s (%2$s)</string>
 <string name="app_storage">Программы</string>
 <string name="storage_card">Карта Памяти</string>
-<string name="delete_summary">%1$d файлов, всего: %2$s</string>
+<string name="delete_summary">%1$d файлов, общий размер: %2$s</string>
 <string name="change_filter">Выбрать...</string>
 <string name="apps_filter">Выбор вида отображения</string>
 <string name="internal_only">Без Apps2SD</string>

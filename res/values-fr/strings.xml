@@ -55,7 +55,7 @@
  <string name="apps_bulk_uninstall_not_supported">Désinstallation de multiples applications non encore possible</string>
 <string name="app_storage">Stockage de l\'application</string>
 <string name="storage_card">Stockage sur la carte</string>
-<string name="delete_summary">%1$d fichers, totale: %2$s</string>
+<string name="delete_summary">%1$d fichers, taille totale: %2$s</string>
 <string name="change_filter">Filtres...</string>
 <string name="apps_filter">Filtre application</string>
 <string name="internal_only">Seulement interne</string>
