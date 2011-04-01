@@ -68,6 +68,7 @@ public class Scanner {
   }
   
   FileSystemEntry scan(File file) {
+//    file = new NativeFile(file);
     
     scanDirectory(null, file, 0, excludeFilter);
     Log.d("diskusage", "allocated " + createdNodeSize + " B of heap");
