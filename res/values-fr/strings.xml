@@ -44,11 +44,11 @@
  <string name="deleted_n_directories_and_n_files">Ont été supprimé(s): %1$d répertoires et %2$d fichiers</string>
  <string name="deleted_n_directories_and_files_and_canceled">Suppressions annulées: %1$d répertoires et %2$d fichiers jusque là</string>
  <string name="deleted_n_directories_and_n_files_and_failed">Echec de la suppression!: %1$d répertoires et %2$d fichiers ont été supprimés</string>
- <string name="n_bytes">%4.0f octets</string>
- <string name="n_kilobytes">%4.0f Ko</string>
+ <string name="n_bytes">%d octets</string>
+ <string name="n_kilobytes">%d Ko</string>
  <string name="n_megabytes">%5.2f Mo</string>
  <string name="n_megabytes10">%5.1f Mo</string>
- <string name="n_megabytes100">%4.0f Mo</string>
+ <string name="n_megabytes100">%d Mo</string>
  <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d rép)</string>
  <string name="dir_empty">%s (vide)</string>
  <string name="dir_name_size">%1$s (%2$s)</string>

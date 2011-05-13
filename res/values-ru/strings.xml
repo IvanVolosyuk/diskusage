@@ -42,11 +42,11 @@
 <string name="deleted_n_directories_and_n_files">Удалено %1$d папок и %2$d файлов</string>
 <string name="deleted_n_directories_and_files_and_canceled">Удаление прервано: %1$d папок и %2$d файлов было удалено</string>
 <string name="deleted_n_directories_and_n_files_and_failed">Удаление завершено с ошибкой!: %1$d папок и %2$d файлов было удалено</string>
-<string name="n_bytes">%4.0f б</string>
-<string name="n_kilobytes">%4.0f кб</string>
+<string name="n_bytes">%d б</string>
+<string name="n_kilobytes">%d кб</string>
 <string name="n_megabytes">%5.2f Мб</string>
 <string name="n_megabytes10">%5.1f Мб</string>
-<string name="n_megabytes100">%4.0f Мб</string>
+<string name="n_megabytes100">%d Мб</string>
 <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d папок)</string>
 <string name="dir_empty">%s (пуста)</string>
 <string name="dir_name_size">%1$s (%2$s)</string>

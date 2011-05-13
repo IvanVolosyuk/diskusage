@@ -1,5 +1,25 @@
+/**
+ * DiskUsage - displays sdcard usage on android.
+ * Copyright (C) 2008-2011 Ivan Volosyuk
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
 package com.google.android.diskusage;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -21,10 +41,10 @@ public abstract class LoadableActivity extends Activity {
   public abstract String getRootPath();
   public abstract String getRootTitle();
   
-  abstract FileSystemEntry scan();
+  abstract FileSystemRoot scan() throws IOException, InterruptedException;
   
   class PersistantActivityState {
-    FileSystemEntry root;
+    FileSystemRoot root;
     AfterLoad afterLoad;
     MyProgressDialog loading;
   };
@@ -95,9 +115,10 @@ public abstract class LoadableActivity extends Activity {
     new Thread() {
       @Override
       public void run() {
+        String error;
         try {
           Log.d("diskusage", "running scan for " + getRootPath());
-          final FileSystemEntry newRoot = scan();
+          final FileSystemRoot newRoot = scan();
 
           handler.post(new Runnable() {
             public void run() {
@@ -127,7 +148,7 @@ public abstract class LoadableActivity extends Activity {
               afterLoadCopy.run(state.root, false);
             }
           });
-
+          return;
         } catch (final OutOfMemoryError e) {
           state.root = null;
           state.afterLoad = null;
@@ -140,7 +161,34 @@ public abstract class LoadableActivity extends Activity {
             }
           });
           return;
+        } catch (InterruptedException e) {
+          error = e.getClass().getName() + ":" + e.getMessage();
+          Log.e("diskusage", "native error", e);
+        } catch (IOException e) {
+          error = e.getClass().getName() + ":" + e.getMessage();
+          Log.e("diskusage", "native error", e);
+        } catch (final RuntimeException e) {
+          error = e.getClass().getName() + ":" + e.getMessage();
+          Log.e("diskusage", "native error", e);
         }
+        final String finalError = error;
+        state.root = null;
+        state.afterLoad = null;
+        Log.d("DiskUsage", "out of memory!");
+        handler.post(new Runnable() {
+          public void run() {
+            if (state.loading == null) return;
+            state.loading.dismiss();
+            new AlertDialog.Builder(activity)
+            .setTitle(finalError)
+            .setOnCancelListener(new OnCancelListener() {
+              public void onCancel(DialogInterface dialog) {
+                activity.finish();
+              }
+            }).create().show();
+
+          }
+        });
       }
     }.start();
   }

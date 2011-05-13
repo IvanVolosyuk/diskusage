@@ -140,16 +140,17 @@ public class BackgroundDelete extends Thread {
   
   public void restore() {
     Log.d("DiskUsage", "restore started for " + path);
+    int displayBlockSize = view.masterRoot.getDisplayBlockSize();
     FileSystemEntry newEntry = new Scanner(
         // FIXME: hacked allocatedBlocks and heap size
-        20, view.context.getBlockSize(), null, 0, 4).scan(
+        20, displayBlockSize, null, 0, 4).scan(
             new File(view.context.getRootPath() + "/" + path));
     // FIXME: may be problems in case of two deletions
-    entry.parent.insert(newEntry);
+    entry.parent.insert(newEntry, displayBlockSize);
     view.restore(newEntry);
     
     Log.d("DiskUsage", "restoring undeleted: "
-        + newEntry.name + " " +newEntry.getSizeInBytes());
+        + newEntry.name + " " + newEntry.sizeString());
   }
   
   public void notifyUser() {
@@ -189,6 +190,7 @@ public class BackgroundDelete extends Thread {
     boolean isDirectory = directory.isDirectory();
     if (isDirectory) {
       final File[] files = directory.listFiles();
+      if (files == null) return DELETION_FAILED;
       for (int i = 0; i < files.length; i++) {
         int status = deleteRecursively(files[i]); 
         if (status != DELETION_SUCCESS) return status;

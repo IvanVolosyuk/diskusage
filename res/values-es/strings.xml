@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+ * DiskUsage - displays sdcard usage on android.
+ * Copyright (C) 2008 Ivan Volosyuk
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ -->
+<resources>
+    <string name="app_name">DiskUsage</string>
+<string name="app_description">Utilidad para examinar el contenido de la tarjeta SD y liberar espacio.</string>
+<string name="scaning_directories">Escaneando directorios...</string>
+<string name="button_show">Mostrar</string>
+<string name="button_delete">Borrar</string>
+<string name="button_rescan">Refrescar</string>
+<string name="button_cancel">Cancelar</string>
+<string name="button_background">Background</string>
+<string name="install_oi_file_manager">Instalar &quot;OI File manager&quot; para ver los directorios</string>
+<string name="title_for_path">%s - DiskUsage</string>
+<string name="title_in_oi_file_manager">OI File Manager</string>
+<string name="button_text_in_oi_file_manager">Volver a DiskUsage</string>
+<string name="no_viewer_found">No se ha encontrado un visor</string>
+<string name="ask_to_delete_directory">¿Borrar el directorio %s?</string>
+<string name="ask_to_delete_file">¿Borrar el archivo %s?</string>
+<string name="out_of_memory">¡No hay memória suficiente!</string>
+<string name="empty_or_missing_sdcard">Falta la tarjeta SD o esta vacía</string>
+<string name="path_doesnt_exist">%s\nno exite</string>
+<string name="file_deleted">Archivo borrado</string>
+<string name="error_file_wasnt_deleted">Error: no se puede borrar el archivo</string>
+<string name="deleting_path">Borrando %s</string>
+<string name="deleted_n_directories_and_n_files">Borrados %1$d directorios y %2$d archivos</string>
+<string name="deleted_n_directories_and_files_and_canceled">Se ha cancelado el borrado: %1$d directorios y %2$d archivos</string>
+<string name="deleted_n_directories_and_n_files_and_failed">¡Ha fallado el borrado!: %1$d directorios y %2$d archivos borrados</string>
+<string name="n_bytes">%4d bytes</string>
+<string name="n_kilobytes">%d KiB</string>
+<string name="n_megabytes">%5.2f MiB</string>
+<string name="n_megabytes10">%5.1f MiB</string>
+<string name="n_megabytes100">%d MiB</string>
+<string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d dirs)</string>
+<string name="dir_empty">%s (empty)</string>
+<string name="dir_name_size">%1$s (%2$s)</string>
+<string name="apps_bulk_uninstall_not_supported">No esta soportado eliminar varias aplicaciones</string>
+<string name="app_storage">Espacio de aplicaciones</string>
+<string name="storage_card">Espacio en la tarjeta SD</string>
+<string name="delete_summary">%1$d ficheros, tamaño total: %2$s</string>
+<string name="change_filter">Filtro...</string>
+<string name="apps_filter">Filtro de aplicaciones</string>
+<string name="internal_only">Sólo internas</string>
+<string name="internal_only_desc">Excluir los datos de la tarjeta SD</string>
+<string name="show_apk">Mostrar Apk</string>
+<string name="show_apk_desc">Mostrar los archivos de las aplicaciones.</string>
+<string name="show_data">Mostrar datos</string>
+<string name="show_data_desc">Mostrar el almacenamiento reservado por los datos de aplicación.</string>
+<string name="show_dalvikcache">Mostrar DalvikCache</string>
+<string name="show_dalvikcache_desc">Mostrar la dalvikCache reservada por tus aplicaciones en la partición de datos.</string>
+<string name="show_cache">Mostrar Cache</string>
+<string name="show_cache_desc">La cache de aplicaciones usa una partición distinta y no se puede usar para apliaciones ni datos.</string>
+</resources>

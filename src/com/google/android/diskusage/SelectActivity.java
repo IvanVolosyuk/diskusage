@@ -1,16 +1,38 @@
+/**
+ * DiskUsage - displays sdcard usage on android.
+ * Copyright (C) 2008-2011 Ivan Volosyuk
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
 package com.google.android.diskusage;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.DialogInterface.OnCancelListener;
 import android.os.Bundle;
 import android.os.Handler;
@@ -18,15 +40,45 @@ import android.os.Handler;
 public class SelectActivity extends Activity {
   private AlertDialog dialog;
   Map<String,Bundle> bundles = new TreeMap<String,Bundle>();
-  Map<String, Option> optionInfo = new TreeMap<String, Option>();
+  ArrayList<Runnable> actionList = new ArrayList<Runnable>();
+  private boolean expandRootMountPoints;
   
-  private class Option {
-    String title;
-    MountPoint mountPoint;
+  private abstract class AbstractUsageAction implements Runnable {
+    public void runAction(String key, String title, String rootKey, Class<?> viewer) {
+      Intent i = new Intent(SelectActivity.this, viewer);
+      i.putExtra(DiskUsage.TITLE_KEY, title);
+      i.putExtra(DiskUsage.ROOT_KEY, rootKey);
+      i.putExtra(DiskUsage.KEY_KEY, key);
+      Bundle bundle = bundles.get(key);
+      if (bundle != null) {
+        i.putExtra(DiskUsage.STATE_KEY, bundle);
+      }
+      startActivityForResult(i, 0);
+    }
+  };
+  
+  private class DiskUsageAction extends AbstractUsageAction {
+    private String title;
+    private MountPoint mountPoint;
     
-    Option(String title, MountPoint mountPoint) {
+    DiskUsageAction(String title, MountPoint mountPoint) {
       this.title = title;
       this.mountPoint = mountPoint;
+    }
+
+    public void run() {
+      runAction(getKeyForStorage(mountPoint.root), title, mountPoint.root, DiskUsage.class);
+    }
+  };
+  
+  private class AppUsageAction extends AbstractUsageAction {
+    private String title;
+    public AppUsageAction(String title) {
+      this.title = title;
+    }
+    
+    public void run() {
+      runAction(getKeyForApp(), title, "apps", AppUsage.class);
     }
   };
   public String getKeyForApp() {
@@ -35,6 +87,13 @@ public class SelectActivity extends Activity {
   
   public String getKeyForStorage(String root) {
     return "storage:" + root;
+  }
+  
+  private class ShowHideAction implements Runnable {
+    public void run() {
+      Intent i = new Intent(SelectActivity.this, ShowHideMountPointsActivity.class);
+      startActivity(i);
+    }
   }
   
   public Handler handler = new Handler();
@@ -67,21 +126,54 @@ public class SelectActivity extends Activity {
   
   public void makeDialog() {
     ArrayList<String> options = new ArrayList<String>();
+    actionList.clear();
     
     final String storageCard = getString(R.string.storage_card);
     final String programStorage = getString(R.string.app_storage);
     
     options.add(programStorage);
-    optionInfo.put(programStorage, new Option(programStorage, null));
+    actionList.add(new AppUsageAction(programStorage));
     
     if (MountPoint.hasMultiple()) {
       for (MountPoint mountPoint : MountPoint.getMountPoints().values()) {
         options.add(mountPoint.root);
-        optionInfo.put(mountPoint.root, new Option(mountPoint.root, mountPoint));
+        actionList.add(new DiskUsageAction(mountPoint.root, mountPoint));
       }
     } else {
       options.add(storageCard);
-      optionInfo.put(storageCard, new Option(storageCard, MountPoint.getDefaultStorage()));
+      actionList.add(new DiskUsageAction(storageCard, MountPoint.getDefaultStorage()));
+    }
+    
+    if (!MountPoint.getRootedMountPoints().isEmpty()) {
+      SharedPreferences prefs =  getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
+      Map<String, ?> ignoreList = prefs.getAll();
+      if (!ignoreList.keySet().isEmpty()) {
+        Set<String> ignores = ignoreList.keySet();
+        for (MountPoint mountPoint : MountPoint.getRootedMountPoints().values()) {
+          if (ignores.contains(mountPoint.root)) continue;
+          options.add(mountPoint.root);
+          actionList.add(new DiskUsageAction(mountPoint.root, mountPoint));
+        }
+        options.add("[Show/hide]");
+        actionList.add(new ShowHideAction());
+      } else if (expandRootMountPoints) {
+        for (MountPoint mountPoint : MountPoint.getRootedMountPoints().values()) {
+          options.add(mountPoint.root);
+          actionList.add(new DiskUsageAction(mountPoint.root, mountPoint));
+        }
+        options.add("[Show/hide]");
+        actionList.add(new ShowHideAction());
+      } else {
+        options.add("[Root required]");
+        actionList.add(new Runnable() {
+          @Override
+          public void run() {
+            expandRootMountPoints = true;
+            makeDialog();
+          }
+        });
+        
+      }
     }
     
     final String[] optionsArray = options.toArray(new String[options.size()]);
@@ -91,26 +183,7 @@ public class SelectActivity extends Activity {
         new DialogInterface.OnClickListener() {
       @Override
       public void onClick(DialogInterface dialog, int which) {
-        Option option = optionInfo.get(optionsArray[which]);
-        String key;
-        Intent i;
-        if (option.mountPoint != null) {
-          i = new Intent(SelectActivity.this, DiskUsage.class);
-          i.putExtra(DiskUsage.TITLE_KEY, option.title);
-          i.putExtra(DiskUsage.ROOT_KEY, option.mountPoint.root);
-          key = getKeyForStorage(option.mountPoint.root);
-        } else {
-          i = new Intent(SelectActivity.this, AppUsage.class);
-          i.putExtra(DiskUsage.TITLE_KEY, option.title);
-          i.putExtra(DiskUsage.ROOT_KEY, "apps");
-          key = getKeyForApp();
-        }
-        i.putExtra(DiskUsage.KEY_KEY, key);
-        Bundle bundle = bundles.get(key);
-        if (bundle != null) {
-          i.putExtra(DiskUsage.STATE_KEY, bundle);
-        }
-        startActivityForResult(i, 0);
+        actionList.get(which).run();
       }
     })
     .setTitle("View")

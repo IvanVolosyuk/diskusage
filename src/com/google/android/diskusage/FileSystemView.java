@@ -52,7 +52,7 @@ import android.widget.Toast;
 import com.google.android.diskusage.DiskUsage.AfterLoad;
 
 class FileSystemView extends View {
-  FileSystemEntry masterRoot;
+  FileSystemRoot masterRoot;
   //FileSystemEntry viewRoot;
   protected Cursor cursor;
   boolean titleNeedUpdate = false;
@@ -66,10 +66,12 @@ class FileSystemView extends View {
   protected float targetViewDepth;
   protected long  targetViewTop;
   protected long  targetViewBottom;
+  protected int   targetElementWidth;
 
   private float prevViewDepth;
   private long  prevViewTop;
   private long  prevViewBottom;
+  private int   prevElementWidth;
 
   private float viewDepth;
   private long  viewTop;
@@ -110,6 +112,7 @@ class FileSystemView extends View {
   
   private long touchZoom;
   private int multiNumTouches;
+  private boolean multitouchReset;
   float touchWidth;
   float touchPointX; 
   float minDistance;
@@ -118,12 +121,12 @@ class FileSystemView extends View {
   int maxElementWidth;
   
   private int stats_num_deletions = 0;
-  private boolean screenTouched;
+  private boolean screenTouching;
   
-   static class VersionedMultitouchHandler {
-     boolean handleTouch(MotionEvent ev) {
-       return false;
-     }
+  static class VersionedMultitouchHandler {
+    boolean handleTouch(MotionEvent ev) {
+      return false;
+    }
     public static VersionedMultitouchHandler newInstance(FileSystemView view) {
       final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
       VersionedMultitouchHandler detector = null;
@@ -135,11 +138,11 @@ class FileSystemView extends View {
       return detector;
     }
   }
-  
+
   class MultiTouchHandler extends VersionedMultitouchHandler {
     ArrayList<MotionFilter> filterX = new ArrayList<MotionFilter>();
     ArrayList<MotionFilter> filterY = new ArrayList<MotionFilter>();
-    
+
     private MotionFilter getFilterX(int i) {
       if (filterX.size() <= i)
         filterX.add(new MotionFilter());
@@ -159,14 +162,18 @@ class FileSystemView extends View {
         return false;
       }
 
-      if (action == MotionEvent.ACTION_DOWN && num >= 2) {
+//      Log.d("diskusage", "multi: " + action + " num = " + num);
+      if ((action & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_POINTER_DOWN) {
+//        Log.d("diskusage", "multi down");
+        multitouchReset = true;
         for (int i = 0; i < num; i++) {
           getFilterX(i).noFilter(ev.getX(i));
           getFilterY(i).noFilter(ev.getY(i));
         }
       }
 
-      if (action == MotionEvent.ACTION_MOVE && num >= 2) {
+      if (action == MotionEvent.ACTION_MOVE) {
+//        Log.d("diskusage", "multi move");
         float xmin, xmax, ymin, ymax;
         ymin = ymax = getFilterX(0).doFilter(ev.getY(0));
         xmin = xmax = getFilterY(0).doFilter(ev.getX(0));
@@ -178,7 +185,9 @@ class FileSystemView extends View {
           if (y < ymin) ymin = y;
           if (y > ymax) ymax = y;
         }
-        if (multiNumTouches != num) {
+        if (multitouchReset) {
+//          Log.d("diskusage", "multi move: reset");
+          multitouchReset = false;
           multiNumTouches = num;
           touchMovement = true;
           float dy = ymax - ymin;
@@ -189,7 +198,7 @@ class FileSystemView extends View {
 
           float avg_x = 0.5f * (xmax + xmin);
           float dx = xmax - xmin;
-          minDistanceX = FileSystemEntry.elementWidth;
+          minDistanceX = FileSystemEntry.elementWidth / 2;
           if (dx < minDistanceX) dx = minDistanceX;
           touchWidth = dx / FileSystemEntry.elementWidth;
           touchPointX = viewDepth + avg_x / FileSystemEntry.elementWidth; 
@@ -210,8 +219,9 @@ class FileSystemView extends View {
 
         if (FileSystemEntry.elementWidth < minElementWidth)
           FileSystemEntry.elementWidth = minElementWidth;
-        else if (FileSystemEntry.elementWidth > maxElementWidth)
-          FileSystemEntry.elementWidth = maxElementWidth;
+//        else if (FileSystemEntry.elementWidth > maxElementWidth)
+//          FileSystemEntry.elementWidth = maxElementWidth;
+        targetElementWidth = FileSystemEntry.elementWidth;
 
         targetViewDepth = viewDepth = touchPointX - avg_x / FileSystemEntry.elementWidth;
         maxLevels = screenWidth / (float) FileSystemEntry.elementWidth;
@@ -346,15 +356,16 @@ class FileSystemView extends View {
     if (multiNumTouches > 1) {
       if (action == MotionEvent.ACTION_UP) {
         multiNumTouches = 0;
-        screenTouched = false;
+        screenTouching = false;
         invalidate();
       }
       return true;
     }
 
     if (action == MotionEvent.ACTION_DOWN) {
-      screenTouched = true;
+      screenTouching = true;
       multiNumTouches = 1;
+      multitouchReset = true;
       newTouchX = filterX.noFilter(newTouchX);
       newTouchY = filterY.noFilter(newTouchY);
       touchX = newTouchX;
@@ -377,7 +388,7 @@ class FileSystemView extends View {
       onMotion(newTouchX, newTouchY, moveTime);
       return true;
     } else if (action == MotionEvent.ACTION_UP) {
-      screenTouched = false;
+      screenTouching = false;
       newTouchX = filterX.doFilter(newTouchX);
       newTouchY = filterY.doFilter(newTouchY);
       // This prevents first touch after pinch-zoom, removed
@@ -428,7 +439,8 @@ class FileSystemView extends View {
     return true;
   }
   
-  public FileSystemView(DiskUsage context, FileSystemEntry root) {
+  public FileSystemView(
+      DiskUsage context, FileSystemRoot root) {
     super(context);
     this.context = context;
 
@@ -571,11 +583,14 @@ class FileSystemView extends View {
         viewTop = targetViewTop;
         viewBottom = targetViewBottom;
         viewDepth = targetViewDepth;
+        FileSystemEntry.elementWidth = targetElementWidth;
+        maxLevels = screenWidth / (float) targetElementWidth;
       } else {
         float f = interpolator.getInterpolation((curr - animationStartTime) / (float) animationDuration);
         viewTop = (long)(f * targetViewTop + (1-f) * prevViewTop);
         viewBottom = (long)(f * targetViewBottom + (1-f) * prevViewBottom); 
         viewDepth = f * targetViewDepth + (1-f) * prevViewDepth;
+        FileSystemEntry.elementWidth = (int)(f * targetElementWidth + (1-f) * prevElementWidth);
 
         animation = true;
       }
@@ -600,9 +615,9 @@ class FileSystemView extends View {
 
       if (animation) {
         invalidate();
-      } else if (!screenTouched) {
+      } else if (!screenTouching) {
         if (targetViewTop < 0 || targetViewBottom > masterRoot.encodedSize
-            || viewDepth < 0) {
+            || viewDepth < 0 || FileSystemEntry.elementWidth > maxElementWidth) {
           prepareMotion();
           animationDuration = 300;
           invalidate();
@@ -626,6 +641,9 @@ class FileSystemView extends View {
           if (viewDepth < 0) {
             targetViewDepth = 0;
           }
+          if (targetElementWidth > maxElementWidth) {
+            targetElementWidth = maxElementWidth;
+          }
         }
       }
 
@@ -648,6 +666,7 @@ class FileSystemView extends View {
     prevViewDepth = viewDepth;
     prevViewTop = viewTop;
     prevViewBottom = viewBottom;
+    prevElementWidth = FileSystemEntry.elementWidth;
     animationStartTime = System.currentTimeMillis();
   }
   
@@ -915,7 +934,7 @@ class FileSystemView extends View {
     .setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
         context.LoadFiles(context, new AfterLoad() {
-          public void run(FileSystemEntry newRoot, boolean isCached) {
+          public void run(FileSystemRoot newRoot, boolean isCached) {
             rescanFinished(newRoot);
             if (!isCached) startZoomAnimation();
           }
@@ -935,7 +954,7 @@ class FileSystemView extends View {
     });
   }
   
-  public void rescanFinished(FileSystemEntry newRoot) {
+  public void rescanFinished(FileSystemRoot newRoot) {
     masterRoot = newRoot;
     updateSpecialEntries();
     cursor = new Cursor(masterRoot);
@@ -1110,7 +1129,7 @@ class FileSystemView extends View {
       i.putExtra(DiskUsage.KEY_KEY, context.key);
       i.putExtra(DiskUsage.TITLE_KEY, context.getRootTitle());
       i.putExtra(DiskUsage.ROOT_KEY, context.getRootPath());
-      i.putExtra(DeleteActivity.SIZE_KEY, entry.getSizeInBytes());
+      i.putExtra(DeleteActivity.SIZE_KEY, entry.sizeString());
       context.startActivityForResult(i, 0);
     }
   }
@@ -1169,28 +1188,30 @@ class FileSystemView extends View {
     if (deletingEntry.parent == masterRoot) {
       throw new RuntimeException("sdcard deletion is not available in UI");
     }
+    int displayBlockSize = masterRoot.getDisplayBlockSize(); 
     moveAwayCursor(deletingEntry);
-    deletingEntry.remove();
-    long encodedSizeMasked = deletingEntry.encodedSize & ~FileSystemEntry.blockMask;
+    deletingEntry.remove(displayBlockSize);
+    long deletingEntryBlocks = deletingEntry.getSizeInBlocks();
     if (freeSpace != null) {
-      freeSpace.encodedSize += encodedSizeMasked;
-      masterRoot.encodedSize += encodedSizeMasked;
-      masterRoot.children[0].encodedSize += encodedSizeMasked;
+      freeSpace.setSizeInBlocks(freeSpace.getSizeInBlocks() + deletingEntryBlocks, displayBlockSize);
+      masterRoot.setSizeInBlocks(masterRoot.getSizeInBlocks() + deletingEntryBlocks, displayBlockSize);
+      masterRoot.children[0].setSizeInBlocks(masterRoot.children[0].getSizeInBlocks()
+          + deletingEntryBlocks, displayBlockSize);
       freeSpace.sizeString = null;
     }
 
     FileSystemEntry.deletedEntry = null;
     FileSystemEntry parent = deletingEntry.parent;
     
-    long freeSpaceSize = 0, systemSpaceSize = 0;
+    long freeSpaceEncoded = 0, systemSpaceEncoded = 0;
     if (freeSpace != null) {
-      freeSpaceSize = freeSpace.encodedSize;
-      freeSpace.setSizeInBlocks(-100);
+      freeSpaceEncoded = freeSpace.encodedSize;
+      freeSpace.encodedSize = -2;
     }
     
     if (systemSpace != null) {
-      systemSpaceSize = systemSpace.encodedSize;
-      systemSpace.setSizeInBlocks(-90);
+      systemSpaceEncoded = systemSpace.encodedSize;
+      systemSpace.encodedSize = -1;
     }
     // Sort elements otherwise painting code works incorrect
     while (parent != null) {
@@ -1203,10 +1224,10 @@ class FileSystemView extends View {
     }
     
     if (freeSpace != null) {
-      freeSpace.encodedSize = freeSpaceSize;
+      freeSpace.encodedSize = freeSpaceEncoded;
     }
     if (systemSpace != null) {
-      systemSpace.encodedSize = systemSpaceSize;
+      systemSpace.encodedSize = systemSpaceEncoded;
     }
     deletingEntry = null;
   }
@@ -1248,22 +1269,23 @@ class FileSystemView extends View {
     if (dSize >= 0) return;
     
     FileSystemEntry parent = entry.parent;
+    int displayBlockSize = masterRoot.getDisplayBlockSize(); 
     
-    long dSizeEncoded = dSize << FileSystemEntry.blockOffset;
     while (parent != null) {
-      parent.encodedSize += dSizeEncoded;
+      parent.setSizeInBlocks(parent.getSizeInBlocks() + dSize, displayBlockSize);
       parent = parent.parent;
     }
     if (freeSpace != null) {
-      masterRoot.encodedSize -= dSizeEncoded;
-      masterRoot.children[0].encodedSize -= dSizeEncoded;
-      freeSpace.encodedSize -= dSizeEncoded;
+      masterRoot.setSizeInBlocks(masterRoot.getSizeInBlocks() - dSize, displayBlockSize);
+      masterRoot.children[0].setSizeInBlocks(masterRoot.children[0].getSizeInBlocks()
+          - dSize, displayBlockSize);
+      freeSpace.setSizeInBlocks(freeSpace.getSizeInBlocks() - dSize, displayBlockSize);
     }
     // truncate children
     while (true) {
       long deltaBlocks = newBlocks - entry.getSizeInBlocks();
       if (deltaBlocks == 0) return;
-      entry.encodedSize += (deltaBlocks << FileSystemEntry.blockOffset);
+      entry.setSizeInBlocks(entry.getSizeInBlocks() + deltaBlocks, displayBlockSize);
       if (entry.children == null || entry.children.length == 0)
         return;
       FileSystemEntry[] children = entry.children;
@@ -1287,12 +1309,8 @@ class FileSystemView extends View {
         break;
       }
       if (prevEntry == entry) {
-        String msg = "f = " + f;
-        msg += " newBlocks = " + newBlocks;
-        msg += " blocks = " + blocks;
-        msg += " nchildren = " + children.length;
-        msg += " stats_num_deletions = " + stats_num_deletions;
-        throw new RuntimeException("loop protection " + msg);
+        // Entry was truncated, but not its children
+        break;
       }
     }
   }
@@ -1394,14 +1412,14 @@ class FileSystemView extends View {
     super.onLayout(changed, left, top, right, bottom);
     screenHeight = getHeight();
     screenWidth = getWidth();
-    minElementWidth = screenWidth / 6;
+    minElementWidth = screenWidth / 8;
     maxElementWidth = screenWidth / 2;
     // FIXME: may be too large
     MotionFilter.dx = (screenHeight + screenWidth) / 50;
 
     minDistance = screenHeight > screenWidth ? screenHeight /  10 : screenWidth / 10; 
     Log.d("diskusage", "screen = " + screenWidth + "x" + screenHeight);
-    FileSystemEntry.elementWidth = (int) (screenWidth / maxLevels);
+    FileSystemEntry.elementWidth = targetElementWidth = (int) (screenWidth / maxLevels);
     titleNeedUpdate = true;
     setZoomState();
   }

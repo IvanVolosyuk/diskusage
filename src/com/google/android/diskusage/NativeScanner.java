@@ -20,18 +20,22 @@
 package com.google.android.diskusage;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InvalidObjectException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.PriorityQueue;
 
+import com.google.android.diskusage.DiskUsage.ProgressGenerator;
+
+import android.content.Context;
 import android.util.Log;
 
-import com.google.android.diskusage.DiskUsage.ProgressGenerator;
-import com.google.android.diskusage.FileSystemEntry.ExcludeFilter;
-
-public class Scanner implements ProgressGenerator {
-  private final int maxdepth;
+public class NativeScanner implements ProgressGenerator {
   private final int blockSize;
-  private final ExcludeFilter excludeFilter;
+  private final int blockSizeIn512Bytes;
   private final long sizeThreshold;
   
   private FileSystemEntry createdNode;
@@ -71,13 +75,171 @@ public class Scanner implements ProgressGenerator {
     }
   };
   
-  Scanner(int maxdepth, int blockSize, ExcludeFilter excludeFilter,
-      long allocatedBlocks, int maxHeap) {
-    this.maxdepth = maxdepth;
+  private static final String scanBinary = "/data/data/com.google.android.diskusage/scan";
+  public void runChmod() throws IOException, InterruptedException {
+    Process process;
+    try {
+      process = Runtime.getRuntime().exec(
+          "chmod 0555 " + scanBinary);
+    } catch (IOException e) {
+      try {
+      process = Runtime.getRuntime().exec(
+          "/system/bin/chmod 0555 " + scanBinary);
+      } catch (IOException ee ) {
+        throw new RuntimeException("Failed to chmod", ee);
+      }
+    }
+    process.waitFor();
+  }
+  
+  public void unpackScanBinary(Context context) throws IOException {
+    byte[] buffer = new byte[32768];
+    InputStream is = context.getAssets().open("scan");
+    FileOutputStream os = new FileOutputStream(scanBinary);
+    int len;
+    while ((len = is.read(buffer)) != -1) {
+      os.write(buffer, 0, len);
+    }
+    os.close();
+    is.close();
+  }
+  
+  private static boolean remove = true;
+  
+  public void setupBinary(Context context) throws IOException, InterruptedException {
+    // Remove 'scan' binary every run. TODO: do clean update on package update
+    if (remove) {
+      new File(scanBinary).delete();
+      remove = false;
+    }
+    
+    File binary = new File(scanBinary);
+    if (binary.isFile()) return;
+    unpackScanBinary(context);
+    runChmod();
+  }
+  
+  private Process process;
+  private InputStream is;
+  private Context context;
+  
+  public void runScanner(Context context, String root,
+      boolean rootRequired) throws IOException, InterruptedException {
+    setupBinary(context);
+    if (!rootRequired) {
+      process = Runtime.getRuntime().exec(new String[] { scanBinary, root});
+    } else {
+      IOException e = null;
+      for (String su : new String[] { "su", "/system/bin/su", "/system/xbin/su" }) {
+        try {
+          process = Runtime.getRuntime().exec(new String[] { su });
+          break;
+        } catch(IOException newe) {
+          e = newe;
+        }
+      }
+      
+      if (process == null) {
+        throw e;
+      }
+     
+      OutputStream os = process.getOutputStream();
+      os.write((scanBinary + " " + root).getBytes("UTF-8"));
+      os.flush();
+      os.close();
+    }
+    is = process.getInputStream();
+    while (getByte() != 0);
+  }
+
+  private static final int bufsize = 65536;
+  private int offset = 0;
+  private int allocated = 0;
+  private byte[] buffer = new byte[bufsize];
+  
+  private void move() {
+//    Log.d("diskusage", "MOVE!");
+    if (offset == 0) throw new RuntimeException("Error: too large entity size");
+    System.arraycopy(buffer, offset, buffer, 0, allocated - offset);
+    allocated -= offset;
+    offset = 0;
+  }
+  
+  public void read() throws IOException {
+//    Log.d("diskusage", "READ!");
+    if (allocated == bufsize) {
+      move();
+    }
+    int res = is.read(buffer, allocated, Math.min(bufsize - allocated, 256));
+    if (res <= 0) {
+      throw new RuntimeException("Error: no more data");
+    }
+    allocated += res;
+  }
+  
+  public byte getByte() throws IOException {
+    while (true) {
+      if (offset < allocated) {
+        return buffer[offset++];
+      }
+      read();
+    }
+  }
+  
+  public long getLong() throws IOException {
+    long res = 0;
+    byte b;
+    while ((b = getByte()) != 0) {
+      if (b < '0' || b > '9') throw new RuntimeException("Error: number format error");
+      res = res * 10 + (b - '0');
+    }
+//    Log.d("diskusage", "long = " + res);
+    return res;
+  }
+  
+  public String getString() throws IOException {
+    byte[] buffer = this.buffer;
+    int startPos = offset;
+    
+    
+    while (true) {
+      for (int i = startPos; i < allocated; i++) {
+        if (buffer[i] == 0) {
+          String res = new String(buffer, offset, i - offset, "UTF-8");
+          offset = i + 1;
+//          Log.d("diskusage", "string = " + res);
+          return res;
+        }
+      }
+      int startOffset = startPos - offset;
+      read();
+      startPos = offset + startOffset;
+    }
+  }
+  
+  enum Type {
+    NONE,
+    DIR,
+    FILE
+  };
+  
+  public Type getType() throws IOException {
+    int c = getByte();
+//    Log.d("diskusage", "type = " + (char)c);
+    switch (c) {
+    case 'D': return Type.DIR;
+    case 'F': return Type.FILE;
+    case 'Z': return Type.NONE;
+    default: throw new RuntimeException("Error: incorrect entity type");
+    }
+  }
+  
+  NativeScanner(Context context, int blockSize, long allocatedBlocks, int maxHeap) {
     this.blockSize = blockSize;
-    this.excludeFilter = excludeFilter;
+    this.blockSizeIn512Bytes = blockSize / 512;
     this.sizeThreshold = (allocatedBlocks << FileSystemEntry.blockOffset) / (maxHeap / 2);
     this.maxHeapSize = maxHeap;
+    this.context = context;
 //    this.blockAllowance = (allocatedBlocks << FileSystemEntry.blockOffset) / 2;
 //    this.blockAllowance = (maxHeap / 2) * sizeThreshold;
     Log.d("diskusage", "allocatedBlocks " + allocatedBlocks);
@@ -94,10 +256,11 @@ public class Scanner implements ProgressGenerator {
     Log.d("diskusage", msg + " " + hidden_path + " = " + list.heapSize + " " + list.spaceEfficiency);
   }
   
-  FileSystemEntry scan(File file) {
-//    file = new NativeFile(file);
-    
-    scanDirectory(null, file, 0, excludeFilter);
+  FileSystemEntry scan(MountPoint mountPoint) throws IOException, InterruptedException {
+    runScanner(context, mountPoint.getRoot(), mountPoint.rootRequired);
+    Type type = getType();
+    if (type != Type.DIR) throw new RuntimeException("Error: no mount point");
+    scanDirectory(null, getString(), 0);
     Log.d("diskusage", "allocated " + createdNodeSize + " B of heap");
     
     int extraHeap = 0;
@@ -123,8 +286,10 @@ public class Scanner implements ProgressGenerator {
     }
     Log.d("diskusage", "allocated " + extraHeap + " B of extra heap");
     Log.d("diskusage", "allocated " + (extraHeap + createdNodeSize) + " B total");
+    if (offset != allocated) throw new RuntimeException("Error: extra data, " + (allocated - offset) + " bytes");
+    is.close();
+    process.waitFor();
     return createdNode;
-    
   }
   
   /**
@@ -136,41 +301,16 @@ public class Scanner implements ProgressGenerator {
    * @param file corresponding File object
    * @param depth current directory tree depth
    * @param maxdepth maximum directory tree depth
+   * @throws IOException 
    */
-  private void scanDirectory(FileSystemEntry parent, File file,
-                             int depth, ExcludeFilter excludeFilter) {
-    String name = file.getName();
+  private void scanDirectory(FileSystemEntry parent, String name,
+                             int depth) throws IOException {
+    long dirBlockSize = getLong() / blockSizeIn512Bytes;
+    /*long dirBytesSize =*/ getLong();
     makeNode(parent, name);
     createdNodeNumDirs = 1;
     createdNodeNumFiles = 0;
     
-    ExcludeFilter childFilter = null;
-    if (excludeFilter != null) {
-      // this path is requested for exclusion
-      if (excludeFilter.childFilter == null) {
-        return;
-      }
-      childFilter = excludeFilter.childFilter.get(name);
-      if (childFilter != null && childFilter.childFilter == null) {
-        return;
-      }
-    }
-
-    if (depth == maxdepth) {
-      createdNode.setSizeInBlocks(calculateSize(file), blockSize);
-      // FIXME: get num of dirs and files
-      return;
-    }
-
-    String[] listNames = null;
-    
-    try {
-      listNames = file.list();
-    } catch (SecurityException io) {
-      Log.d("diskusage", "list files", io);
-    }
-    
-    if (listNames == null) return;
     FileSystemEntry thisNode = createdNode;
     int thisNodeSize = createdNodeSize;
     int  thisNodeNumDirs = 1;
@@ -187,21 +327,26 @@ public class Scanner implements ProgressGenerator {
 
     long blocks = 0;
 
-    for (int i = 0; i < listNames.length; i++) {
-      File childFile = new File(file, listNames[i]);
+    while (true) {
+      Type childType = getType();
+      if (childType == Type.NONE) break;
 
 //      if (isLink(child)) continue;
 //      if (isSpecial(child)) continue;
 
       int dirs = 0, files = 1;
-      if (childFile.isFile()) {
-        makeNode(thisNode, childFile.getName());
-        createdNode.initSizeInBytes(childFile.length(), blockSize);
+      if (childType == Type.FILE) {
+        makeNode(thisNode, getString());
+        long childBlocks = getLong() / blockSizeIn512Bytes;
+        long childBytes = getLong();
+        if (childBlocks == 0) continue;
+        createdNode.initSizeInBytesAndBlocks(childBytes, childBlocks, blockSize);
         pos += createdNode.getSizeInBlocks();
         lastCreatedFile = createdNode;
+//        Log.d("diskusage", createdNode.path2());
       } else {
         // directory
-        scanDirectory(thisNode, childFile, depth + 1, childFilter);
+        scanDirectory(thisNode, getString(), depth + 1);
         dirs = createdNodeNumDirs;
         files = createdNodeNumFiles;
       }
@@ -222,7 +367,7 @@ public class Scanner implements ProgressGenerator {
         thisNodeNumDirs += dirs;
       }
     }
-    thisNode.setSizeInBlocks(blocks, blockSize);
+    thisNode.setSizeInBlocks(blocks + dirBlockSize, blockSize);
 
     thisNodeNumDirs += thisNodeNumDirsSmall;
     thisNodeNumFiles += thisNodeNumFilesSmall;
@@ -306,40 +451,5 @@ public class Scanner implements ProgressGenerator {
       print("killed", removed);
 
     }
-  }
-
-  /**
-   * Calculate size of the entry reading directory tree
-   * @param file is file corresponding to this entry
-   * @return size of entry in blocks
-   */
-  private final long calculateSize(File file) {
-    if (isLink(file)) return 0;
-
-    if (file.isFile()) {
-      long size = (file.length() + (blockSize - 1)) / blockSize;
-      if (size == 0) size = 1;
-      return size;
-    }
-
-    File[] list = null;
-    try {
-      list = file.listFiles();
-    } catch (SecurityException io) {
-      Log.e("diskusage", "list files", io);
-    }
-    if (list == null) return 0;
-    long size = 1;
-
-    for (int i = 0; i < list.length; i++)
-      size += calculateSize(list[i]);
-    return size;
-  }
-
-  private static boolean isLink(File file) {
-    try {
-      if (file.getCanonicalPath().equals(file.getPath())) return false;
-    } catch(Throwable t) {}
-    return true;
   }
 }

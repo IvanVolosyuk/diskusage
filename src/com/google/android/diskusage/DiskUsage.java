@@ -20,6 +20,7 @@
 package com.google.android.diskusage;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -34,8 +35,6 @@ import android.os.Handler;
 import android.os.StatFs;
 import android.util.Log;
 import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 
 public class DiskUsage extends LoadableActivity {
   protected FileSystemView view;
@@ -54,7 +53,7 @@ public class DiskUsage extends LoadableActivity {
   private String rootTitle;
   String key;
   
-  protected FileSystemView makeView(DiskUsage diskUsage, FileSystemEntry root) {
+  protected FileSystemView makeView(DiskUsage diskUsage, FileSystemRoot root) {
     return new FileSystemView(this, root);
   }
   
@@ -70,12 +69,6 @@ public class DiskUsage extends LoadableActivity {
     if (receivedState != null) onRestoreInstanceState(receivedState);
   }
   
-  public int getBlockSize() {
-    StatFs data = new StatFs(getRootPath());
-    int blockSize = data.getBlockSize();
-    return blockSize;
-  }
-
   @Override
   protected void onResume() {
     super.onResume();
@@ -92,8 +85,7 @@ public class DiskUsage extends LoadableActivity {
       pkg_removed = null;
     }
     LoadFiles(this, new AfterLoad() {
-      public void run(FileSystemEntry root, boolean isCached) {
-        FileSystemEntry.blockSize = getBlockSize();
+      public void run(FileSystemRoot root, boolean isCached) {
         view = makeView(DiskUsage.this, root);
         if (!isCached) view.startZoomAnimation();
         setContentView(view);
@@ -163,7 +155,7 @@ public class DiskUsage extends LoadableActivity {
   }
   
   public interface AfterLoad {
-    public void run(FileSystemEntry root, boolean isCached);
+    public void run(FileSystemRoot root, boolean isCached);
   }
   
   Handler handler = new Handler();
@@ -205,36 +197,89 @@ public class DiskUsage extends LoadableActivity {
     int numMountPoints = MountPoint.getMountPoints().size();
     return totalMem / (numMountPoints + 1);
   }
-
-  @Override
-  FileSystemEntry scan() {
-    final MountPoint mountPoint = MountPoint.getMountPoints().get(getRootPath());
-    StatFs data = new StatFs(mountPoint.getRoot());
-    final int blockSize = data.getBlockSize();
-    long freeBlocks = data.getAvailableBlocks();
-    long totalBlocks = data.getBlockCount();
-    final long busyBlocks = totalBlocks - freeBlocks;
+  
+  static class FileSystemStats {
+    final int blockSize;
+    final long freeBlocks;
+    final long busyBlocks;
+    final long totalBlocks;
     
-
-    int heap = getMemoryQuota();
-    final Scanner scanner = new Scanner(
-        20, blockSize, mountPoint.getExcludeFilter(), busyBlocks, heap);
-    
-    progressUpdater = new Runnable() {
+    public FileSystemStats(MountPoint mountPoint) {
+      StatFs stats = null;
+      try {
+        stats = new StatFs(mountPoint.getRoot());
+      } catch (IllegalArgumentException e) {
+        Log.e("diskusage",
+            "Failed to get filesystem stats for " + mountPoint.getRoot(), e);
+      }
+      if (stats != null) {
+        blockSize = stats.getBlockSize();
+        freeBlocks = stats.getAvailableBlocks();
+        totalBlocks = stats.getBlockCount();
+        busyBlocks = totalBlocks - freeBlocks;
+      } else {
+        freeBlocks = totalBlocks = busyBlocks = 0;
+        blockSize = 512;
+      }
+    }
+    public String formatUsageInfo() {
+      if (totalBlocks == 0) return "Used <no information>";
+      return String.format("Used %s of %s",
+          FileSystemEntry.calcSizeString(busyBlocks * blockSize),
+          FileSystemEntry.calcSizeString(totalBlocks * blockSize));
+    }
+  };
+  
+  public interface ProgressGenerator {
+    FileSystemEntry lastCreatedFile();
+    long pos();
+  };
+  
+  Runnable makeProgressUpdater(final ProgressGenerator scanner,
+      final FileSystemStats stats) {
+    return new Runnable() {
+      private FileSystemEntry file;
       @Override
       public void run() {
         MyProgressDialog dialog = getPersistantState().loading;
         if (dialog != null) {
-          dialog.setMax(busyBlocks);
-          dialog.setProgress(scanner.pos, scanner.lastCreatedFile);
+          dialog.setMax(stats.busyBlocks);
+          FileSystemEntry lastFile = scanner.lastCreatedFile();
+          if (lastFile != file) {
+            dialog.setProgress(scanner.pos(), lastFile);
+          }
+          file = lastFile;
         }
         handler.postDelayed(this, 50);
       }
     };
+  }
+
+  @Override
+  FileSystemRoot scan() throws IOException, InterruptedException {
+    final MountPoint mountPoint = MountPoint.get(getRootPath());
+    final FileSystemStats stats = new FileSystemStats(mountPoint);
+
+    int heap = getMemoryQuota();
+    FileSystemEntry rootElement = null;
+
+    final NativeScanner scanner = new NativeScanner(DiskUsage.this, stats.blockSize, stats.busyBlocks, heap);
+    progressUpdater = makeProgressUpdater(scanner, stats);
     handler.post(progressUpdater);
     
-    FileSystemEntry rootElement = scanner.scan(
-            new File(mountPoint.getRoot()));
+    try {
+//      if (true) throw new RuntimeException("native fail");
+      rootElement = scanner.scan(mountPoint);
+    } catch (RuntimeException e) {
+      if (mountPoint.rootRequired) throw e;
+      // Legacy code for devices which fail to setup native code
+      handler.removeCallbacks(progressUpdater);
+      final Scanner legacyScanner = new Scanner(
+          20, stats.blockSize, mountPoint.getExcludeFilter(), stats.busyBlocks, heap);
+      progressUpdater = makeProgressUpdater(legacyScanner, stats);
+      handler.post(progressUpdater);
+      rootElement = legacyScanner.scan(new File(mountPoint.root));
+    }
     
     handler.removeCallbacks(progressUpdater);
     
@@ -247,9 +292,9 @@ public class DiskUsage extends LoadableActivity {
     }
     
     if (mountPoint.hasApps2SD) {
-      FileSystemEntry[] apps = loadApps2SD(true, AppFilter.getFilterForDiskUsage(), blockSize);
+      FileSystemEntry[] apps = loadApps2SD(true, AppFilter.getFilterForDiskUsage(), stats.blockSize);
       if (apps != null) {
-        FileSystemEntry apps2sd = FileSystemEntry.makeNode(null, "Apps2SD").setChildren(apps);
+        FileSystemEntry apps2sd = FileSystemEntry.makeNode(null, "Apps2SD").setChildren(apps, stats.blockSize);
         entries.add(apps2sd);
       }
     }
@@ -259,22 +304,22 @@ public class DiskUsage extends LoadableActivity {
       visibleBlocks += e.getSizeInBlocks();
     }
     
-    long systemBlocks = totalBlocks - freeBlocks - visibleBlocks;
+    long systemBlocks = stats.totalBlocks - stats.freeBlocks - visibleBlocks;
     Collections.sort(entries, FileSystemEntry.COMPARE);
     if (systemBlocks > 0) {
-      entries.add(new FileSystemSystemSpace("System data", systemBlocks * blockSize, blockSize));
-      entries.add(new FileSystemFreeSpace("Free space", freeBlocks * blockSize, blockSize));
+      entries.add(new FileSystemSystemSpace("System data", systemBlocks * stats.blockSize, stats.blockSize));
+      entries.add(new FileSystemFreeSpace("Free space", stats.freeBlocks * stats.blockSize, stats.blockSize));
     } else {
-      freeBlocks += systemBlocks;
+      long freeBlocks = stats.freeBlocks + systemBlocks;
       if (freeBlocks > 0) {
-        entries.add(new FileSystemFreeSpace("Free space", freeBlocks * blockSize, blockSize));
+        entries.add(new FileSystemFreeSpace("Free space", freeBlocks * stats.blockSize, stats.blockSize));
       }
     }
     
     rootElement = FileSystemEntry.makeNode(
-        null, getRootTitle()).setChildren(entries.toArray(new FileSystemEntry[0]));
-    FileSystemEntry newRoot = FileSystemEntry.makeNode(
-        null, null).setChildren(new FileSystemEntry[] { rootElement });
+        null, getRootTitle()).setChildren(entries.toArray(new FileSystemEntry[0]), stats.blockSize);
+    FileSystemRoot newRoot = new FileSystemRoot(stats.blockSize);
+    newRoot.setChildren(new FileSystemEntry[] { rootElement }, stats.blockSize);
     return newRoot;
   }
   

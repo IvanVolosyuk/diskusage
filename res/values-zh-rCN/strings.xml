@@ -43,11 +43,11 @@
 <string name="deleted_n_directories_and_n_files">已删除 %1$d 个目录和 %2$d 个文件</string>
 <string name="deleted_n_directories_and_files_and_canceled">删除被取消: %1$d 个目录和 %2$d 个文件已删除</string>
 <string name="deleted_n_directories_and_n_files_and_failed">删除失败!: %1$d 个目录和 %2$d 个文件已删除</string>
-<string name="n_bytes">%4.0f bytes</string>
-<string name="n_kilobytes">%4.0f KiB</string>
+<string name="n_bytes">%d bytes</string>
+<string name="n_kilobytes">%d KiB</string>
 <string name="n_megabytes">%5.2f MB</string>
 <string name="n_megabytes10">%5.1f MB</string>
-<string name="n_megabytes100">%4.0f MB</string>
+<string name="n_megabytes100">%d MB</string>
 <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d 文件夹)</string>
 <string name="dir_empty">%s (空)</string>
 <string name="dir_name_size">%1$s (%2$s)</string>

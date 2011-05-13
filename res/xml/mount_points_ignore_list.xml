@@ -1,0 +1,4 @@
+<PreferenceScreen
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:title="Setup visible mount points">
+</PreferenceScreen>

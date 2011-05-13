@@ -1,3 +1,22 @@
+/**
+ * DiskUsage - displays sdcard usage on android.
+ * Copyright (C) 2008-2011 Ivan Volosyuk
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
 package com.google.android.diskusage;
 
 import java.io.File;
@@ -7,29 +26,15 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.StatFs;
+import android.util.Log;
 
 public class AppUsage extends DiskUsage {
   private AppFilter pendingFilter;
-  private static int blockSizeCache;
 
-  public static int getDataBlockSize() {
-    if (blockSizeCache != 0) return blockSizeCache;
-    final File dataDir = Environment.getDataDirectory();
-    StatFs data = new StatFs(dataDir.getAbsolutePath());
-    int blockSize = data.getBlockSize();
-    return blockSize;
-  }
-  
-  @Override
-  public int getBlockSize() {
-    return getDataBlockSize();
-  }
-  
-  FileSystemEntry wrapApps(FileSystemSpecial appsElement, AppFilter filter, int displayBlockSize) {
+  FileSystemRoot wrapApps(FileSystemSpecial appsElement, AppFilter filter, int displayBlockSize) {
     long freeSize = 0;
     long allocatedSpace = 0;
     long systemSize = 0;
-    int entryBlockSize = getBlockSize();
     if ((filter.useApk || filter.useData) && !filter.useSD) {
       StatFs data = new StatFs("/data");
       int dataBlockSize = data.getBlockSize();
@@ -49,18 +54,18 @@ public class AppUsage extends DiskUsage {
     }
     
     if (filter.useSD) {
-      FileSystemEntry newRoot = FileSystemEntry.makeNode(
-          null, null).setChildren(new FileSystemEntry[] { appsElement });
+      FileSystemRoot newRoot = new FileSystemRoot(displayBlockSize);
+      newRoot.setChildren(new FileSystemEntry[] { appsElement }, displayBlockSize);
       return newRoot;
     }
     
     ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
     entries.add(appsElement);
     if (systemSize > 0) {
-      entries.add(new FileSystemSystemSpace("System data", systemSize, entryBlockSize));
+      entries.add(new FileSystemSystemSpace("System data", systemSize, displayBlockSize));
     }
     if (freeSize > 0) {
-      entries.add(new FileSystemFreeSpace("Free space", freeSize, entryBlockSize));
+      entries.add(new FileSystemFreeSpace("Free space", freeSize, displayBlockSize));
     }
 
     FileSystemEntry[] internalArray = entries.toArray(new FileSystemEntry[] {});
@@ -71,25 +76,26 @@ public class AppUsage extends DiskUsage {
         name = "Data and Cache";
       }
     }
-    FileSystemEntry internalElement = FileSystemEntry.makeNode(null, name).setChildren(internalArray);
+    FileSystemEntry internalElement = FileSystemEntry.makeNode(null, name).setChildren(
+        internalArray, displayBlockSize);
     
-    FileSystemEntry newRoot = FileSystemEntry.makeNode(null, null).setChildren(
-        new FileSystemEntry[] { internalElement });
+    FileSystemRoot newRoot = new FileSystemRoot(displayBlockSize);
+    newRoot.setChildren(new FileSystemEntry[] { internalElement }, displayBlockSize);
     return newRoot;
   }
 
   @Override
-  FileSystemEntry scan() {
+  FileSystemRoot scan() {
     AppFilter filter  = pendingFilter;
-    int blockSize = AppUsage.getDataBlockSize();
-    FileSystemEntry[] appsArray = loadApps2SD(false, filter, blockSize);
-    FileSystemSpecial appsElement = new FileSystemSpecial("Applications", appsArray, blockSize);
+    int displayBlockSize = 512;
+    FileSystemEntry[] appsArray = loadApps2SD(false, filter, displayBlockSize);
+    FileSystemSpecial appsElement = new FileSystemSpecial("Applications", appsArray, displayBlockSize);
     appsElement.filter = filter;
-    return wrapApps(appsElement, filter, blockSize);
+    return wrapApps(appsElement, filter, displayBlockSize);
   }
 
   @Override
-  protected FileSystemView makeView(DiskUsage diskUsage, FileSystemEntry root) {
+  protected FileSystemView makeView(DiskUsage diskUsage, FileSystemRoot root) {
     return new AppView(this, root);
   }
   
@@ -97,6 +103,7 @@ public class AppUsage extends DiskUsage {
   protected void onCreate(Bundle icicle) {
     pendingFilter = AppFilter.loadSavedAppFilter(this);
     super.onCreate(icicle);
+    Log.d("diskusage", "onCreate");
   }
   
   private FileSystemSpecial getAppsElement(FileSystemView view) {
@@ -110,26 +117,26 @@ public class AppUsage extends DiskUsage {
   
   private void updateFilter(AppFilter newFilter) {
     // FIXME: hack
-    int blockSize = FileSystemEntry.blockSize;
     if (view == null) {
       pendingFilter = newFilter;
       return;
     }
 
+    int displayBlockSize = view.masterRoot.getDisplayBlockSize();
     FileSystemSpecial appsElement = getAppsElement(view);
     if (newFilter.equals(appsElement.filter)) {
       return;
     }
     for (FileSystemEntry entry : appsElement.children) {
       FileSystemPackage pkg = (FileSystemPackage) entry;
-      pkg.applyFilter(newFilter, getBlockSize());
+      pkg.applyFilter(newFilter, displayBlockSize);
     }
     java.util.Arrays.sort(appsElement.children, FileSystemEntry.COMPARE);
     
-    appsElement = new FileSystemSpecial(appsElement.name, appsElement.children, getDataBlockSize());
+    appsElement = new FileSystemSpecial(appsElement.name, appsElement.children, displayBlockSize);
     appsElement.filter = newFilter;
     
-    FileSystemEntry newRoot = wrapApps(appsElement, newFilter, blockSize);
+    FileSystemRoot newRoot = wrapApps(appsElement, newFilter, displayBlockSize);
     getPersistantState().root = newRoot;
     view.rescanFinished(newRoot);
     view.startZoomAnimation();
@@ -138,6 +145,8 @@ public class AppUsage extends DiskUsage {
   @Override
   protected void onSaveInstanceState(Bundle outState) {
     super.onSaveInstanceState(outState);
+    Log.d("diskusage", "onSaveInstanceState");
+
     if (view == null) return;
     FileSystemSpecial appsElement = getAppsElement(view);
     outState.putParcelable("filter", appsElement.filter);
@@ -146,6 +155,7 @@ public class AppUsage extends DiskUsage {
   @Override
   protected void onRestoreInstanceState(Bundle inState) {
     super.onRestoreInstanceState(inState);
+    Log.d("diskusage", "onRestoreInstanceState");
     AppFilter newFilter = (AppFilter) inState.getParcelable("filter");
     if (newFilter != null) updateFilter(newFilter);
   }
@@ -155,5 +165,20 @@ public class AppUsage extends DiskUsage {
     super.onActivityResult(a, result, i);
     AppFilter newFilter = AppFilter.loadSavedAppFilter(this);
     updateFilter(newFilter);
+  }
+  
+  @Override
+  protected void onResume() {
+    // TODO Auto-generated method stub
+    super.onResume();
+    Log.d("diskusage", "onResume");
+
+  }
+  
+  @Override
+  protected void onPause() {
+    // TODO Auto-generated method stub
+    super.onPause();
+    Log.d("diskusage", "onPause");
   }
 }

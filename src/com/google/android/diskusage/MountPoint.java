@@ -1,3 +1,22 @@
+/**
+ * DiskUsage - displays sdcard usage on android.
+ * Copyright (C) 2008-2011 Ivan Volosyuk
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
 package com.google.android.diskusage;
 
 import java.io.BufferedReader;
@@ -17,19 +36,18 @@ public class MountPoint {
   FileSystemEntry.ExcludeFilter excludeFilter;
   String root;
   boolean hasApps2SD;
+  boolean rootRequired;
   
-  MountPoint(String root, ExcludeFilter excludeFilter) {
-    this.root = root;
-    this.excludeFilter = excludeFilter;
-  }
-  MountPoint(String root, ExcludeFilter excludeFilter, boolean hasApps2SD) {
+  MountPoint(String root, ExcludeFilter excludeFilter, boolean hasApps2SD, boolean rootRequired) {
     this.root = root;
     this.excludeFilter = excludeFilter;
     this.hasApps2SD = hasApps2SD;
+    this.rootRequired = rootRequired;
   }
   
   private static MountPoint defaultStorage;
   private static Map<String, MountPoint> mountPoints = new TreeMap<String, MountPoint>();
+  private static Map<String, MountPoint> rootedMountPoints = new TreeMap<String, MountPoint>();
   private static boolean init = false;
   static int checksum = 0; 
   
@@ -43,6 +61,20 @@ public class MountPoint {
     return mountPoints;
   }
   
+  public static Map<String,MountPoint> getRootedMountPoints() {
+    initMountPoints();
+    return rootedMountPoints;
+  }
+  
+  public static MountPoint get(String rootPath) {
+    initMountPoints();
+    MountPoint res = mountPoints.get(rootPath);
+    if (res == null) {
+      res = rootedMountPoints.get(rootPath);
+    }
+    return res;
+  }
+
   public static boolean hasMultiple() {
     initMountPoints();
     return mountPoints.size() != 1;
@@ -60,12 +92,17 @@ public class MountPoint {
     if (init) return;
     init = true;
     String storagePath = Environment.getExternalStorageDirectory().getAbsolutePath();
-    ArrayList<String> mountPointsList = new ArrayList<String>();
+    ArrayList<MountPoint> mountPointsList = new ArrayList<MountPoint>();
     HashSet<String> excludePoints = new HashSet<String>();
-    mountPointsList.add(storagePath);
-    defaultStorage = new MountPoint(storagePath, null);
-    mountPoints.put(storagePath, defaultStorage);
+    if (storagePath != null) {
+      defaultStorage = new MountPoint(storagePath, null, false, false); 
+      mountPointsList.add(defaultStorage);
+      mountPoints.put(storagePath, defaultStorage);
+    }
     String storagePrefix = storagePath + "/";
+    
+    boolean rooted = new File("/system/bin/su").isFile()
+                 || new File("/system/xbin/su").isFile();
     
     try {
       // FIXME: debug
@@ -82,21 +119,26 @@ public class MountPoint {
           if (!fsType.equals("vfat") || mountPoint.startsWith("/mnt/asec")
               || mountPoint.startsWith("/mnt/secure")) {
             excludePoints.add(mountPoint);
+            if (rooted && !mountPoint.startsWith("/mnt/asec/")) {
+              mountPointsList.add(new MountPoint(mountPoint, null, false, true));
+            }
           } else {
-            mountPointsList.add(mountPoint);
+            mountPointsList.add(new MountPoint(mountPoint, null, false, false));
           }
+        } else if (rooted && !mountPoint.equals("/proc") && !mountPoint.equals("/sys")) {
+          mountPointsList.add(new MountPoint(mountPoint, null, false, true));
         }
       }
       
-      for (String mountPoint: mountPointsList) {
-        String prefix = mountPoint + "/";
+      for (MountPoint mountPoint: mountPointsList) {
+        String prefix = mountPoint.root + "/";
         boolean has_apps2sd = false;
         ArrayList<String> excludes = new ArrayList<String>();
-        String mountPointName = new File(mountPoint).getName();
+        String mountPointName = new File(mountPoint.root).getName();
         
-        for (String otherMountPoint : mountPointsList) {
-          if (otherMountPoint.startsWith(prefix)) {
-            excludes.add(mountPointName + "/" + otherMountPoint.substring(prefix.length()));
+        for (MountPoint otherMountPoint : mountPointsList) {
+          if (otherMountPoint.root.startsWith(prefix)) {
+            excludes.add(mountPointName + "/" + otherMountPoint.root.substring(prefix.length()));
           }
         }
         for (String otherMountPoint : excludePoints) {
@@ -107,7 +149,14 @@ public class MountPoint {
             excludes.add(mountPointName + "/" + otherMountPoint.substring(prefix.length()));
           }
         }
-        mountPoints.put(mountPoint, new MountPoint(mountPoint, new ExcludeFilter(excludes), has_apps2sd));
+        MountPoint newMountPoint = new MountPoint(
+            mountPoint.root, new ExcludeFilter(excludes),
+            has_apps2sd, mountPoint.rootRequired);
+        if (mountPoint.rootRequired) {
+          rootedMountPoints.put(mountPoint.root, newMountPoint);
+        } else {
+          mountPoints.put(mountPoint.root, newMountPoint);
+        }
       }
       if (!mountPoints.isEmpty()) {
         defaultStorage = mountPoints.values().iterator().next();

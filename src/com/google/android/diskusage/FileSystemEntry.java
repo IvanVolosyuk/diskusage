@@ -19,11 +19,8 @@
 
 package com.google.android.diskusage;
 
-import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
@@ -54,19 +51,6 @@ public class FileSystemEntry {
   private static String dir_empty;
   private static String dir_name_size;
   public static FileSystemEntry deletedEntry;
-  
-  private static final Comparator<FileSystemEntry> alphaComparator =
-    new Comparator<FileSystemEntry>() {
-      public int compare(FileSystemEntry a, FileSystemEntry b) {
-        boolean ha = a.hasChildren();
-        boolean hb = b.hasChildren();
-        if (ha != hb) {
-          if (ha) return -1;
-          else return 1;
-        }
-        return a.name.compareTo(b.name);
-      }
-  };
   
   public boolean hasChildren() {
     return children != null && children.length != 0;
@@ -102,56 +86,97 @@ public class FileSystemEntry {
   }
 
   // Object Fields:
-  FileSystemEntry parent;
-  FileSystemEntry[] children;
-  String name;
-  String sizeString;
 
   
   // The size suitable for painting without any operations (and sorting)
   // Bit layout:
   // 40 bits      | 24 bits
   // sizeInBlocks | reminder
+  // reminder is encoded file size information suitable for formating sizeString.
+  // reminder:
+  // 3 bits         | 21 bits  (2**18 = 44,040,192)
+  // sizeMultiplier | size in multiplier of bytes
+  // sizeMultiplier:
+  // 000 = multiplier=1,         format=(n_bytes "%d bytes", size)
+  // 001 = multiplier=1024,      format=(n_kilobytes "%d KiB", size)
+  // 010 = multiplier=1024,      format=(n_megabytes "%5.2f MiB", size / 1024.f)
+  // 011 = multiplier=1024,      format=(n_megabytes10 "%5.1f MiB", size / 1024.f)
+  // 100 = multiplier=1024*1024, format=(n_megabytes100 "%d MiB", size)
+  
+  // Ranges for sizeMultipliers:
+  // 0: sz < 1024:               "%4.0f bytes", sz 
+  // 1: sz < 1024 * 1024:        "%4.0f KiB", sz * (1f / 1024)
+  // 2: sz < 1024 * 1024 * 10:   "%5.2f MiB", sz * (1f / 1024 / 1024)
+  // 3: sz < 1024 * 1024 * 200:  "%5.1f MiB", sz * (1f / 1024 / 1024)
+  // 4: sz >= 1024 * 1024 * 200: "%4.0f MiB", sz * (1f / 1024 / 1024)
+  // 
+  // FIXME: remove outdate info:
   // reminder can be 0..blockSize (inclusive)
   // size in bytes = (size in blocks * blockSize) + reminder - blockSize; 
   long encodedSize;
+  FileSystemEntry parent;
+  FileSystemEntry[] children;
+  String name;
+  String sizeString;
   
-  static int blockSize;
+  private static final int MULTIPLIER_SHIFT=18;
+  
+  private static final int MULTIPLIER_MASK = 7 << MULTIPLIER_SHIFT;
+  private static final int MULTIPLIER_BYTES = 0 << MULTIPLIER_SHIFT;
+  private static final int MULTIPLIER_KBYTES = 1 << MULTIPLIER_SHIFT;
+  private static final int MULTIPLIER_MBYTES = 2 << MULTIPLIER_SHIFT;
+  private static final int MULTIPLIER_MBYTES10 = 3 << MULTIPLIER_SHIFT;
+  private static final int MULTIPLIER_MBYTES100 = 4 << MULTIPLIER_SHIFT;
+  private static final int SIZE_MASK = (1 << MULTIPLIER_SHIFT) - 1; 
+  
+//  static int blockSize;
   // will take for a while to make this break
   // 16Mb block size on mobile device... probably in year 2020.
   // probably 32 bits for maximum number of block will break before ~2016
   static final int blockOffset = 24;
-  static final long blockMask = (1l << blockOffset) - 1;  
+  static final long blockMask = (1l << blockOffset) - 1;
   
-  long getSizeInBytes() {
-    return ((encodedSize >> blockOffset) * blockSize) - blockSize + (encodedSize & blockMask);
-  }
-
   long getSizeInBlocks() {
     return encodedSize >> blockOffset;
   }
   
-  void setSizeInBlocks(long blocks) {
-    if (blocks == 0) {
-      encodedSize = 0;
-      return;
+  private static String calcSizeStringFromEncoded(long encodedSize) {
+    int size = SIZE_MASK & (int)encodedSize;
+    switch (MULTIPLIER_MASK & (int)encodedSize) {
+    case MULTIPLIER_BYTES: return String.format(n_bytes, size);
+    case MULTIPLIER_KBYTES: return String.format(n_kilobytes, size);
+    case MULTIPLIER_MBYTES: return String.format(n_megabytes, size * (1f / 1024));
+    case MULTIPLIER_MBYTES10: return String.format(n_megabytes10, size * (1f / 1024));
+    case MULTIPLIER_MBYTES100: return String.format(n_megabytes100, size);
     }
-    encodedSize = (blocks << blockOffset) + blockSize;
+    return "";
   }
   
-  FileSystemEntry initSizeInBytes(long size, int blockSize) {
-    long blocks = ((size + (blockSize - 1)) / blockSize);
-    long bytes = (int)(size + blockSize - blocks * blockSize);
-    if (blocks == 0) {
-      this.encodedSize = 0;
-      return this;
-    }
-
-    this.encodedSize = (blocks << blockOffset) + bytes;
+  private long makeBytesPart(long size) {
+    if (size < 1024) return size;
+    if (size < 1024 * 1024) return MULTIPLIER_KBYTES | (size >> 10);
+    if (size < 1024 * 1024 * 10 ) return MULTIPLIER_MBYTES | (size >> 10);
+    if (size < 1024 * 1024 * 200) return MULTIPLIER_MBYTES10 | (size >> 10);
+    return MULTIPLIER_MBYTES100 | (size >> 20);
+  }
+  
+  void setSizeInBlocks(long blocks, int blockSize) {
+    long bytes = blocks * blockSize;
+    encodedSize = (blocks << blockOffset) | makeBytesPart(bytes);
+  }
+  
+  FileSystemEntry initSizeInBytes(long bytes, int blockSize) {
+    long blocks = (bytes + blockSize - 1) / blockSize;
+    encodedSize = (blocks << blockOffset) | makeBytesPart(bytes);
+    return this;
+  }
+  
+  FileSystemEntry initSizeInBytesAndBlocks(long bytes, long blocks, int blockSize) {
+    encodedSize = (blocks << blockOffset) | makeBytesPart(bytes);
     return this;
   }
 
-  public FileSystemEntry setChildren(FileSystemEntry[] children) {
+  public FileSystemEntry setChildren(FileSystemEntry[] children, int blockSize) {
     this.children = children;
     long blocks = 0;
     if (children == null) return this;
@@ -159,7 +184,7 @@ public class FileSystemEntry {
       blocks += children[i].getSizeInBlocks();
       children[i].parent = this;
     }
-    setSizeInBlocks(blocks);
+    setSizeInBlocks(blocks, blockSize);
     return this;
   }
   
@@ -529,41 +554,36 @@ public class FileSystemEntry {
     canvas.drawRect(cursorLeft, cursorTop, cursorRight, cursorBottom, cursor_fg);
   }
   
+  /**
+   * Calculate size string for specified file length in bytes.
+   * 
+   * Currently used by delete activity preview file list loader. 
+   * 
+   * @param sz file size in bytes
+   * @return formated size string
+   */
   public static String calcSizeString(float sz) {
     if (sz < 1024 * 1024 * 10) {
       if (sz < 1024 * 1024) {
         if (sz < 1024) {
           if (sz < 0) sz = 0;
-          return String.format(n_bytes, sz);
+          return String.format(n_bytes, (int)sz);
         }
-        return String.format(n_kilobytes, sz * (1f / 1024));
+        return String.format(n_kilobytes, (int)(sz * (1f / 1024)));
       }
       return String.format(n_megabytes, sz * (1f / 1024 / 1024));
     }
     if (sz < 1024 * 1024 * 200) {
       return String.format(n_megabytes10, sz * (1f / 1024 / 1024));
     }
-    return String.format(n_megabytes100, sz * (1f / 1024 / 1024));
+    return String.format(n_megabytes100, (int)(sz * (1f / 1024 / 1024)));
   }
   
-  private static String calcSizeStringFromEncoded(long encodedSize) {
-    float sz = (encodedSize >> blockOffset) * blockSize;
-
-    if (sz < 1024 * 1024 * 10) {
-      if (sz < 1024 * 1024) {
-        if (sz < 1024) {
-          sz += - blockSize + (encodedSize & blockMask);
-          if (sz < 0) sz = 0;
-          return String.format(n_bytes, sz);
-        }
-        return String.format(n_kilobytes, sz * (1f / 1024));
-      }
-      return String.format(n_megabytes, sz * (1f / 1024 / 1024));
+  public final String sizeString() {
+    if (sizeString != null) {
+      return sizeString;
     }
-    if (sz < 1024 * 1024 * 200) {
-      return String.format(n_megabytes10, sz * (1f / 1024 / 1024));
-    }
-    return String.format(n_megabytes100, sz * (1f / 1024 / 1024));
+    return sizeString = calcSizeStringFromEncoded(encodedSize);
   }
 
 //  public final String pathFromRoot(FileSystemEntry root) {
@@ -573,10 +593,7 @@ public class FileSystemEntry {
 //  }
 
   public final String toTitleString() {
-    String sizeString0 = this.sizeString;
-    if (sizeString0 == null) {
-      sizeString0 = sizeString = calcSizeStringFromEncoded(encodedSize);
-    }
+    String sizeString0 = sizeString();
     if (children != null && children.length != 0)
       return String.format(dir_name_size_num_dirs, name, sizeString0, children.length);
     else if (getSizeInBlocks() == 0) {
@@ -691,7 +708,7 @@ public class FileSystemEntry {
   }
   
   // FIXME: no resort needed
-  public final void remove() {
+  public final void remove(int blockSize) {
     FileSystemEntry[] children0 = parent.children;
     int len = children0.length;
     for (int i = 0; i < len; i++) {
@@ -705,10 +722,10 @@ public class FileSystemEntry {
       
       FileSystemEntry parent0 = parent;
       
-      long encodedSizeMasked = encodedSize & ~blockMask;
+      long blocks = getSizeInBlocks();
       
       while (parent0 != null) {
-        parent0.encodedSize -= encodedSizeMasked;
+        parent0.setSizeInBlocks(parent0.getSizeInBlocks() - blocks, blockSize);
         parent0.sizeString = null;
 //        java.util.Arrays.sort(parent0.children, this);
         parent0 = parent0.parent;
@@ -719,18 +736,18 @@ public class FileSystemEntry {
     // throw new RuntimeException("child is not found: " + this);
   }
 
-  public final void insert(FileSystemEntry newEntry) {
+  public final void insert(FileSystemEntry newEntry, int blockSize) {
     FileSystemEntry[] children0 = new FileSystemEntry[children.length + 1];
     System.arraycopy(children, 0, children0, 0, children.length);
     children0[children.length] = newEntry;
     children = children0;
     newEntry.parent = this;
     FileSystemEntry parent0 = this;
-    long encodedSizeMasked = newEntry.encodedSize & ~blockMask;
+    long blocks = newEntry.getSizeInBlocks();
     
     while (parent0 != null) {
       java.util.Arrays.sort(children, COMPARE);
-      parent0.encodedSize += encodedSizeMasked;
+      parent0.setSizeInBlocks(parent0.getSizeInBlocks() + blocks, blockSize);
       parent0.sizeString = null;
       parent0 = parent0.parent;
     }
