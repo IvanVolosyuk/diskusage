@@ -87,7 +87,7 @@ public class DiskUsage extends LoadableActivity {
   protected FileSystemView makeView(FileSystemState eventHandler) {
     SharedPreferences prefs =
       getSharedPreferences("settings", Context.MODE_PRIVATE);
-    boolean hardwareRenderer = prefs.getBoolean("hw_renderer", true);
+    boolean hardwareRenderer = prefs.getBoolean("hw_renderer", false);
 
     if (hardwareRenderer) {
       return new FileSystemViewGPU(this, eventHandler);
