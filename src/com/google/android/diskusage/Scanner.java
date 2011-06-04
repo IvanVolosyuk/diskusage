@@ -26,7 +26,10 @@ import java.util.PriorityQueue;
 import android.util.Log;
 
 import com.google.android.diskusage.DiskUsage.ProgressGenerator;
-import com.google.android.diskusage.FileSystemEntry.ExcludeFilter;
+import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemEntrySmall;
+import com.google.android.diskusage.entity.FileSystemFile;
+import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
 
 public class Scanner implements ProgressGenerator {
   private final int maxdepth;
@@ -291,7 +294,7 @@ public class Scanner implements ProgressGenerator {
 //      Thread.sleep(10);
 //    } catch (Throwable t) {}
   
-    createdNode = FileSystemEntry.makeNode(parent, name);
+    createdNode = FileSystemFile.makeNode(parent, name);
     createdNodeSize =
       4 /* ref in FileSystemEntry[] */
       + 16 /* FileSystemEntry */

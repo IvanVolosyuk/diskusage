@@ -12,6 +12,7 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
 
 import com.google.android.diskusage.DiskUsage.FileSystemStats;
+import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class ShowHideMountPointsActivity extends PreferenceActivity {
   static final String FILTER_RESULT = "res";

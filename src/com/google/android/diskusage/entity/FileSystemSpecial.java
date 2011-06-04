@@ -17,10 +17,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-package com.google.android.diskusage;
+package com.google.android.diskusage.entity;
+
+import com.google.android.diskusage.AppFilter;
 
 public class FileSystemSpecial extends FileSystemEntry {
-  AppFilter filter;
+  public AppFilter filter;
 
   public FileSystemSpecial(String name, long size, int blockSize) {
     super(null, name);

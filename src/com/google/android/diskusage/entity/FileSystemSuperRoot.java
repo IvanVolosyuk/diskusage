@@ -17,10 +17,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-package com.google.android.diskusage;
+package com.google.android.diskusage.entity;
 
-public class FileSystemFreeSpace extends FileSystemSpecial {
-  public FileSystemFreeSpace(String name, long size, int blockSize) {
-    super(name, size, blockSize);
+/**
+ * Non displayed entry which contains just one entry which is
+ * displayed root of filesystem.
+ */
+public class FileSystemSuperRoot extends FileSystemSpecial {
+  final int blockSize;
+  
+  public FileSystemSuperRoot(int blockSize) {
+    super(null, 0, blockSize);
+    this.blockSize = blockSize;
+  }
+  
+  public int getDisplayBlockSize() {
+    return blockSize;
   }
 }

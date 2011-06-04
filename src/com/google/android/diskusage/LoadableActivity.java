@@ -28,23 +28,33 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnClickListener;
+import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.diskusage.DiskUsage.AfterLoad;
+import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemPackage;
+import com.google.android.diskusage.entity.FileSystemSuperRoot;
 
 public abstract class LoadableActivity extends Activity {
   FileSystemPackage pkg_removed;
   
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    FileSystemEntry.setupStrings(this);
+  }
   
   public abstract String getRootPath();
   public abstract String getRootTitle();
+  public abstract String getKey();
   
-  abstract FileSystemRoot scan() throws IOException, InterruptedException;
+  abstract FileSystemSuperRoot scan() throws IOException, InterruptedException;
   
   class PersistantActivityState {
-    FileSystemRoot root;
+    FileSystemSuperRoot root;
     AfterLoad afterLoad;
     MyProgressDialog loading;
   };
@@ -66,7 +76,7 @@ public abstract class LoadableActivity extends Activity {
  }
   
   protected PersistantActivityState getPersistantState() {
-    String key = getRootPath();
+    String key = getKey();
     
     PersistantActivityState state = persistantActivityState.get(key);
     if (state != null) return state;
@@ -118,7 +128,7 @@ public abstract class LoadableActivity extends Activity {
         String error;
         try {
           Log.d("diskusage", "running scan for " + getRootPath());
-          final FileSystemRoot newRoot = scan();
+          final FileSystemSuperRoot newRoot = scan();
 
           handler.post(new Runnable() {
             public void run() {

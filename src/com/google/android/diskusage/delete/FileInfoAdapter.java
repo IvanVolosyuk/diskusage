@@ -33,8 +33,8 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import com.google.android.diskusage.FileSystemEntry;
 import com.google.android.diskusage.R;
+import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class FileInfoAdapter extends BaseAdapter {
   private int count;
@@ -42,8 +42,7 @@ public class FileInfoAdapter extends BaseAdapter {
   private boolean finished = false;
   LayoutInflater inflater;
 
-  private String rootBase;
-  private String[] roots;
+  private String deletePath;
   private String base;
   
   private ArrayList<String> workingSet = new ArrayList<String>();
@@ -52,12 +51,11 @@ public class FileInfoAdapter extends BaseAdapter {
   long totalSize;
   Context context;
   
-  public FileInfoAdapter(Context context, String rootBase,
-      String[] roots, int count, TextView summary) {
+  public FileInfoAdapter(Context context, String deletePath,
+      int count, TextView summary) {
     this.context = context;
     this.count = count;
-    this.rootBase = rootBase;
-    this.roots = roots;
+    this.deletePath = deletePath;
     this.summary = summary;
   }
   
@@ -95,27 +93,10 @@ public class FileInfoAdapter extends BaseAdapter {
   };
   
   private void prepareRoots() {
-    base = new File(rootBase + "/" + roots[0]).getParent();
-    Set<String> dirs = new TreeSet<String>(reverseCaseInsensitiveOrder);
-    Set<String> files = new TreeSet<String>(reverseCaseInsensitiveOrder);
-
-    for (String root : roots) {
-      File entity = new File(rootBase + "/" + root);
-      if (!entity.exists()) continue;
-      String name = entity.getName();
-      if (entity.isFile()) {
-        files.add(name);
-      } else {
-        dirs.add(name);
-      }
-    }
-    for (String file : files) {
-      workingSet.add(file);
-    }
-    
-    for (String dir : dirs) {
-      workingSet.add(dir);
-    }
+    base = new File(deletePath).getParent();
+    File entity = new File(deletePath);
+    String name = entity.getName();
+    workingSet.add(name);
   }
   
   private boolean loadOne(ArrayList<Entry> newEntries) {

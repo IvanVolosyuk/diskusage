@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemPackage;
+
 import android.app.Activity;
 import android.content.pm.IPackageStatsObserver;
 import android.content.pm.PackageInfo;

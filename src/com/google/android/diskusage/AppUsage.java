@@ -19,45 +19,49 @@
 
 package com.google.android.diskusage;
 
-import java.io.File;
 import java.util.ArrayList;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.StatFs;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MenuItem.OnMenuItemClickListener;
+
+import com.google.android.diskusage.AppFilter.App2SD;
+import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemFreeSpace;
+import com.google.android.diskusage.entity.FileSystemPackage;
+import com.google.android.diskusage.entity.FileSystemSpecial;
+import com.google.android.diskusage.entity.FileSystemSuperRoot;
+import com.google.android.diskusage.entity.FileSystemSystemSpace;
 
 public class AppUsage extends DiskUsage {
   private AppFilter pendingFilter;
 
-  FileSystemRoot wrapApps(FileSystemSpecial appsElement, AppFilter filter, int displayBlockSize) {
+  FileSystemSuperRoot wrapApps(FileSystemSpecial appsElement,
+      AppFilter filter, int displayBlockSize) {
     long freeSize = 0;
     long allocatedSpace = 0;
     long systemSize = 0;
-    if ((filter.useApk || filter.useData) && !filter.useSD) {
+    Log.d("diskusage", "memory = " + filter.memory);
+    if (filter.memory == App2SD.INTERNAL) {
       StatFs data = new StatFs("/data");
       int dataBlockSize = data.getBlockSize();
       freeSize = data.getAvailableBlocks() * dataBlockSize;
       allocatedSpace = data.getBlockCount() * dataBlockSize - freeSize;
-    }
-    if (filter.useCache && ! filter.useSD) {
-      StatFs cache = new StatFs("/cache");
-      int cacheBlockSize = cache.getBlockSize();
-      long cacheFreeSpace = cache.getAvailableBlocks() * cacheBlockSize; 
-      freeSize += cacheFreeSpace;
-      allocatedSpace += cache.getBlockCount() * cacheBlockSize - cacheFreeSpace;
     }
     
     if (allocatedSpace > 0) {
       systemSize = allocatedSpace - appsElement.getSizeInBlocks() * displayBlockSize;
     }
     
-    if (filter.useSD) {
-      FileSystemRoot newRoot = new FileSystemRoot(displayBlockSize);
-      newRoot.setChildren(new FileSystemEntry[] { appsElement }, displayBlockSize);
-      return newRoot;
-    }
+//    if (filter.useSD) {
+//      FileSystemRoot newRoot = new FileSystemRoot(displayBlockSize);
+//      newRoot.setChildren(new FileSystemEntry[] { appsElement }, displayBlockSize);
+//      return newRoot;
+//    }
     
     ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
     entries.add(appsElement);
@@ -70,22 +74,22 @@ public class AppUsage extends DiskUsage {
 
     FileSystemEntry[] internalArray = entries.toArray(new FileSystemEntry[] {});
     String name = "Data";
-    if (filter.useCache) {
-      name = "Cache";
-      if (filter.useApk || filter.useData) {
-        name = "Data and Cache";
-      }
+    if (filter.memory == App2SD.BOTH) {
+      name = "Data & Storage";
+    } else if (filter.memory == App2SD.APPS2SD) {
+      name = "Storage";
     }
-    FileSystemEntry internalElement = FileSystemEntry.makeNode(null, name).setChildren(
+    FileSystemEntry internalElement =
+      FileSystemEntry.makeNode(null, name).setChildren(
         internalArray, displayBlockSize);
     
-    FileSystemRoot newRoot = new FileSystemRoot(displayBlockSize);
+    FileSystemSuperRoot newRoot = new FileSystemSuperRoot(displayBlockSize);
     newRoot.setChildren(new FileSystemEntry[] { internalElement }, displayBlockSize);
     return newRoot;
   }
 
   @Override
-  FileSystemRoot scan() {
+  FileSystemSuperRoot scan() {
     AppFilter filter  = pendingFilter;
     int displayBlockSize = 512;
     FileSystemEntry[] appsArray = loadApps2SD(false, filter, displayBlockSize);
@@ -95,18 +99,13 @@ public class AppUsage extends DiskUsage {
   }
 
   @Override
-  protected FileSystemView makeView(DiskUsage diskUsage, FileSystemRoot root) {
-    return new AppView(this, root);
-  }
-  
-  @Override
   protected void onCreate(Bundle icicle) {
     pendingFilter = AppFilter.loadSavedAppFilter(this);
     super.onCreate(icicle);
     Log.d("diskusage", "onCreate");
   }
   
-  private FileSystemSpecial getAppsElement(FileSystemView view) {
+  private FileSystemSpecial getAppsElement(FileSystemState view) {
     FileSystemEntry root = view.masterRoot;
     FileSystemEntry apps = root.children[0].children[0];
     if (apps instanceof FileSystemPackage) {
@@ -117,13 +116,13 @@ public class AppUsage extends DiskUsage {
   
   private void updateFilter(AppFilter newFilter) {
     // FIXME: hack
-    if (view == null) {
+    if (fileSystemState == null) {
       pendingFilter = newFilter;
       return;
     }
 
-    int displayBlockSize = view.masterRoot.getDisplayBlockSize();
-    FileSystemSpecial appsElement = getAppsElement(view);
+    int displayBlockSize = fileSystemState.masterRoot.getDisplayBlockSize();
+    FileSystemSpecial appsElement = getAppsElement(fileSystemState);
     if (newFilter.equals(appsElement.filter)) {
       return;
     }
@@ -133,13 +132,14 @@ public class AppUsage extends DiskUsage {
     }
     java.util.Arrays.sort(appsElement.children, FileSystemEntry.COMPARE);
     
-    appsElement = new FileSystemSpecial(appsElement.name, appsElement.children, displayBlockSize);
+    appsElement = new FileSystemSpecial(appsElement.name, appsElement.children,
+        displayBlockSize);
     appsElement.filter = newFilter;
     
-    FileSystemRoot newRoot = wrapApps(appsElement, newFilter, displayBlockSize);
+    FileSystemSuperRoot newRoot = wrapApps(appsElement, newFilter, displayBlockSize);
     getPersistantState().root = newRoot;
-    view.rescanFinished(newRoot);
-    view.startZoomAnimation();
+    afterLoadAction.clear();
+    fileSystemState.startZoomAnimationInRenderThread(newRoot, true);
   }
   
   @Override
@@ -147,8 +147,9 @@ public class AppUsage extends DiskUsage {
     super.onSaveInstanceState(outState);
     Log.d("diskusage", "onSaveInstanceState");
 
-    if (view == null) return;
-    FileSystemSpecial appsElement = getAppsElement(view);
+    if (fileSystemState == null) return;
+    fileSystemState.killRenderThread();
+    FileSystemSpecial appsElement = getAppsElement(fileSystemState);
     outState.putParcelable("filter", appsElement.filter);
   }
   
@@ -165,6 +166,41 @@ public class AppUsage extends DiskUsage {
     super.onActivityResult(a, result, i);
     AppFilter newFilter = AppFilter.loadSavedAppFilter(this);
     updateFilter(newFilter);
+  }
+  
+  private void showFilterDialog() {
+    Intent i = new Intent(this, FilterActivity.class);
+    i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+    this.startActivityForResult(i, 0);
+  }
+  
+//  private void view(FileSystemEntry entry) {
+//    while (entry != null) {
+//      if (entry instanceof FileSystemPackage) {
+//        viewPackage((FileSystemPackage) entry);
+//        return;
+//      }
+//      entry = entry.parent;
+//    }
+//  }
+  
+  @Override
+  public final boolean onPrepareOptionsMenu(Menu menu) {
+    //Log.d("DiskUsage", "onCreateContextMenu");
+    menu.clear();
+    if (fileSystemState == null) return true;
+    addShowMenuEntry(menu);
+    addRendererSwitchItem(menu);
+    addRescanMenuEntry(menu);
+    
+    menu.add(getString(R.string.change_filter))
+    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
+      public boolean onMenuItemClick(MenuItem item) {
+        showFilterDialog();
+        return true;
+      }
+    });
+    return true;
   }
   
   @Override

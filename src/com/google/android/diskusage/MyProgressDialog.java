@@ -23,6 +23,8 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import com.google.android.diskusage.entity.FileSystemEntry;
+
 import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Paint;

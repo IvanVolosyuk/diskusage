@@ -17,17 +17,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-package com.google.android.diskusage;
+package com.google.android.diskusage.entity;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import com.google.android.diskusage.AppFilter;
+import com.google.android.diskusage.AppFilter.App2SD;
+
 import android.content.pm.PackageStats;
 import android.util.Log;
 
 public class FileSystemPackage extends FileSystemEntry {
-  final String pkg;
+  public final String pkg;
   final int codeSize;
   final int dataSize;
   final int cacheSize;
@@ -114,32 +117,31 @@ public class FileSystemPackage extends FileSystemEntry {
     return (flags & SDCARD_FLAG) != 0;
   }
   
+  private boolean select(App2SD selector, boolean isOnSD) {
+    return selector == App2SD.BOTH
+    || (isOnSD == (selector == App2SD.APPS2SD));
+  }
+  
   public void applyFilter(AppFilter filter, int blockSize) {
-    sizeString = null;
+    clearDrawingCache();
     long blocks = 0;
     ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
     
-    if (onSD() && !filter.useSD) {
-      
-    } else {
-      if (filter.useApk) {
+    if (select(filter.apps, onSD())) {
+      if (filter.showApk && select(filter.memory, onSD())) {
         entries.add(FileSystemEntry.makeNode(null, "apk")
             .initSizeInBytes(codeSize, blockSize));
       }
-    }
-    if (filter.useData) {
-      entries.add(FileSystemEntry.makeNode(null, "data")
-          .initSizeInBytes(dataSize, blockSize));
-    }
-    if (filter.useDalvikCache) {
-      entries.add(FileSystemEntry.makeNode(null, "dalvikCache")
-          .initSizeInBytes(dalvikCacheSize, blockSize));
+      if (filter.showData && select(filter.memory, false)) {
+        entries.add(FileSystemEntry.makeNode(null, "data")
+            .initSizeInBytes(dataSize, blockSize));
+      }
+      if (filter.showDalvikCache && select(filter.memory, false)) {
+        entries.add(FileSystemEntry.makeNode(null, "dalvikCache")
+            .initSizeInBytes(dalvikCacheSize, blockSize));
+      }
     }
     
-    if (filter.useCache) {
-      entries.add(FileSystemEntry.makeNode(null, "cache")
-          .initSizeInBytes(cacheSize, blockSize));
-    }
     for (FileSystemEntry e : entries) {
       blocks += e.getSizeInBlocks();
     }

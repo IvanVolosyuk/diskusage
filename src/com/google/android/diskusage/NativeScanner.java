@@ -29,6 +29,9 @@ import java.util.ArrayList;
 import java.util.PriorityQueue;
 
 import com.google.android.diskusage.DiskUsage.ProgressGenerator;
+import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemEntrySmall;
+import com.google.android.diskusage.entity.FileSystemFile;
 
 import android.content.Context;
 import android.util.Log;
@@ -436,7 +439,7 @@ public class NativeScanner implements ProgressGenerator {
 //      Thread.sleep(10);
 //    } catch (Throwable t) {}
   
-    createdNode = FileSystemEntry.makeNode(parent, name);
+    createdNode = FileSystemFile.makeNode(parent, name);
     createdNodeSize =
       4 /* ref in FileSystemEntry[] */
       + 16 /* FileSystemEntry */

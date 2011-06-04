@@ -19,78 +19,88 @@
 
 package com.google.android.diskusage;
 
-class Cursor {
-	FileSystemEntry root;
-	FileSystemEntry position;
-	long top;
-	int depth;
-	
-	Cursor(FileSystemEntry root) {
-		this.root = root;
-		
-		if (root.children == null || root.children.length == 0) {
-		  throw new RuntimeException("no place for position");
-		}
-		position = root.children[0]; 
-		depth = 0;
-		top = 0;
-	}
-	
-	void down(FileSystemView view) {
-		FileSystemEntry newCursor = position.getNext();
-		if (newCursor == position) return;
-		view.invalidate(this);
-		top += position.encodedSize;
-		position = newCursor;
-		view.invalidate(this);
-		view.titleNeedUpdate = true;
-	}
-	
-	void up(FileSystemView view) {
-		FileSystemEntry newCursor = position.getPrev();
-		if (newCursor == position) return;
-		view.invalidate(this);
-		top -= newCursor.encodedSize;
-		position = newCursor;
-		view.invalidate(this);
-		view.titleNeedUpdate = true;
-	}
-	
-	void right(FileSystemView view) {
-		if (position.children == null) return;
-		if (position.children.length == 0) return;
-		view.invalidate(this);
-		position = position.children[0];
-		depth++;
-		// Log.d("Sample", "position depth = " + depth);
-		view.invalidate(this);
-		view.titleNeedUpdate = true;
-	}
-	
-	boolean left(FileSystemView view) {
-		if (position.parent == root) return false;
-		view.invalidate(this);
-		position = position.parent;
-		top = root.getOffset(position);
-		depth--;
-		// Log.d("Sample", "position depth = " + depth);
-		view.invalidate(this);
-		view.titleNeedUpdate = true;
-		return true;
-	}
-	
-	void set(FileSystemView view, FileSystemEntry newpos) {
-	        if (newpos == root) throw new RuntimeException("will break zoomOut()");
-		view.invalidate(this);
-		position = newpos;
-		depth = root.depth(position) - 1;
-		// Log.d("Sample", "position depth = " + depth);
-		top = root.getOffset(position);
-		view.invalidate(this);
-		view.titleNeedUpdate = true;
-	}
-	
-	void refresh(FileSystemView view) {
-	  set(view, position);
-	}
+import com.google.android.diskusage.FileSystemState.MainThreadAction;
+import com.google.android.diskusage.entity.FileSystemEntry;
+
+public class Cursor {
+  FileSystemEntry root;
+  public FileSystemEntry position;
+  public long top;
+  public int depth;
+
+  Cursor(FileSystemState state,
+      FileSystemEntry root) {
+    this.root = root;
+
+    if (root.children == null || root.children.length == 0) {
+      throw new RuntimeException("no place for position");
+    }
+    position = root.children[0]; 
+    depth = 0;
+    top = 0;
+    updateTitle(state);
+  }
+
+  public void updateTitle(FileSystemState state) {
+    state.mainThreadAction.updateTitle(position);
+  }
+
+
+  void down(FileSystemState view) {
+    FileSystemEntry newCursor = position.getNext();
+    if (newCursor == position) return;
+    view.invalidate(this);
+    top += position.encodedSize;
+    position = newCursor;
+    view.invalidate(this);
+    updateTitle(view);
+  }
+
+  void up(FileSystemState view) {
+    FileSystemEntry newCursor = position.getPrev();
+    if (newCursor == position) return;
+    view.invalidate(this);
+    top -= newCursor.encodedSize;
+    position = newCursor;
+    view.invalidate(this);
+    updateTitle(view);
+  }
+
+  void right(FileSystemState state) {
+    if (position.children == null) return;
+    if (position.children.length == 0) return;
+    state.invalidate(this);
+    position = position.children[0];
+    depth++;
+    // Log.d("Sample", "position depth = " + depth);
+    state.invalidate(this);
+    updateTitle(state);
+  }
+
+  boolean left(FileSystemState state) {
+    if (position.parent == root) return false;
+    state.invalidate(this);
+    position = position.parent;
+    top = root.getOffset(position);
+    depth--;
+    // Log.d("Sample", "position depth = " + depth);
+    state.invalidate(this);
+    updateTitle(state);
+    return true;
+  }
+
+  void set(FileSystemState state, FileSystemEntry newpos) {
+    if (newpos == root) throw new RuntimeException("will break zoomOut()");
+    state.invalidate(this);
+    position = newpos;
+    depth = root.depth(position) - 1;
+    // Log.d("Sample", "position depth = " + depth);
+    top = root.getOffset(position);
+    state.invalidate(this);
+    updateTitle(state);
+  }
+
+  void refresh(FileSystemState view) {
+    set(view, position);
+  }
 }

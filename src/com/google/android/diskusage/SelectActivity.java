@@ -22,11 +22,15 @@ package com.google.android.diskusage;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
+import com.google.android.diskusage.entity.FileSystemEntry;
+
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -34,8 +38,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.DialogInterface.OnCancelListener;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.widget.TextView;
 
 public class SelectActivity extends Activity {
   private AlertDialog dialog;
@@ -67,7 +73,7 @@ public class SelectActivity extends Activity {
     }
 
     public void run() {
-      runAction(getKeyForStorage(mountPoint.root), title, mountPoint.root, DiskUsage.class);
+      runAction(getKeyForStorage(mountPoint), title, mountPoint.root, DiskUsage.class);
     }
   };
   
@@ -85,8 +91,8 @@ public class SelectActivity extends Activity {
     return "app";
   }
   
-  public String getKeyForStorage(String root) {
-    return "storage:" + root;
+  public String getKeyForStorage(MountPoint mountPoint) {
+    return (mountPoint.rootRequired ? "rooted" : "storage:") + mountPoint.root;
   }
   
   private class ShowHideAction implements Runnable {
@@ -131,8 +137,12 @@ public class SelectActivity extends Activity {
     final String storageCard = getString(R.string.storage_card);
     final String programStorage = getString(R.string.app_storage);
     
-    options.add(programStorage);
-    actionList.add(new AppUsageAction(programStorage));
+    final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+    
+    if(sdkVersion < Build.VERSION_CODES.HONEYCOMB){
+      options.add(programStorage);
+      actionList.add(new AppUsageAction(programStorage));
+    }
     
     if (MountPoint.hasMultiple()) {
       for (MountPoint mountPoint : MountPoint.getMountPoints().values()) {
@@ -196,17 +206,20 @@ public class SelectActivity extends Activity {
     dialog.show();
   }
   
-//  @Override
-//  protected void onCreate(Bundle savedInstanceState) {
-//    super.onCreate(savedInstanceState);
-//    setContentView(new TextView(this));
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    FileSystemEntry.setupStrings(this);
+    setContentView(new TextView(this));
 //    ActionBar bar = getActionBar();
 //    bar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_USE_LOGO);
-//  }
+  }
   
   @Override
   protected void onResume() {
     super.onResume();
+//    ActionBar actionBar = getActionBar();
+//    actionBar.setDisplayHomeAsUpEnabled(true);
     makeDialog();
     handler.post(checkForMountsUpdates);
   }

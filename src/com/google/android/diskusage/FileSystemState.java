@@ -19,54 +19,132 @@
 
 package com.google.android.diskusage;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.zip.GZIPInputStream;
 
-import android.app.AlertDialog;
-import android.content.ActivityNotFoundException;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Rect;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.View;
-import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.Toast;
 
-import com.google.android.diskusage.DiskUsage.AfterLoad;
+import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemFreeSpace;
+import com.google.android.diskusage.entity.FileSystemSuperRoot;
+import com.google.android.diskusage.entity.FileSystemSystemSpace;
+import com.google.android.diskusage.opengl.FileSystemViewGPU;
+import com.google.android.diskusage.opengl.RenderingThread;
 
-class FileSystemView extends View {
-  FileSystemRoot masterRoot;
+public class FileSystemState {
+  
+  public interface FileSystemView {
+    /** Does nothing in GPU View. */
+    public void requestRepaint();
+    /** Does nothing in GPU View. */
+    public void requestRepaint(int l, int t, int r, int b);
+    /** Sends event to wake up rendering thread. */
+    public void requestRepaintGPU();
+    /** Post event to main thread from other thread. */
+    public boolean post(Runnable r);
+    /** Run action in renderer thread. */
+    public void runInRenderThread(Runnable r);
+    public void killRenderThread();
+  };
+  
+  static class MainThreadAction {
+    protected DiskUsage context;
+    
+    public MainThreadAction(DiskUsage context) {
+      this.context = context;
+    }
+    public void updateTitle(FileSystemEntry position) {
+      context.setSelectedEntity(position);
+    }
+
+    public void warnOnFileSelect() {
+      Toast.makeText(context,
+          "Press menu to preview or delete", Toast.LENGTH_SHORT).show();
+    }
+    
+    public void view(FileSystemEntry entry) {
+      context.view(entry);
+    }
+    public void finishOnBack() {
+      context.finishOnBack();
+    }
+    
+    public MainThreadAction indirect() {
+      return new MainThreadActionIndirect(context);
+    }
+    public MainThreadAction direct() {
+      return new MainThreadAction(context);
+    }
+  }
+  
+  static class MainThreadActionIndirect extends MainThreadAction {
+    public MainThreadActionIndirect(DiskUsage context) {
+      super(context);
+    }
+    
+    public void updateTitle(final FileSystemEntry position) {
+      context.handler.post(new Runnable() {
+        @Override
+        public void run() {
+          context.setSelectedEntity(position);
+        }
+      });
+    }
+
+    public void warnOnFileSelect() {
+      context.handler.post(new Runnable() {
+        @Override
+        public void run() {
+          Toast.makeText(context,
+              "Press menu to preview or delete", Toast.LENGTH_SHORT).show();
+        }
+      });
+    }
+    
+    public void view(final FileSystemEntry entry) {
+      context.handler.post(new Runnable() {
+        @Override
+        public void run() {
+          context.view(entry);
+        }
+      });
+    }
+    public void finishOnBack() {
+      context.handler.post(new Runnable() {
+        @Override
+        public void run() {
+          context.finishOnBack();
+        }
+      });
+    }
+  }
+  
+  private FileSystemView view;
+  FileSystemSuperRoot masterRoot;
   //FileSystemEntry viewRoot;
-  protected Cursor cursor;
-  boolean titleNeedUpdate = false;
-  DiskUsage context;
+  private Cursor cursor;
+//  boolean titleNeedUpdate = false;
+  MainThreadAction mainThreadAction;
   
   private int numSpecialEntries = 0;
   private FileSystemFreeSpace freeSpace;
   private FileSystemSystemSpace systemSpace;
   private long freeSpaceZoom = 0;
 
-  protected float targetViewDepth;
-  protected long  targetViewTop;
-  protected long  targetViewBottom;
-  protected int   targetElementWidth;
+  private float targetViewDepth;
+  private long  targetViewTop;
+  private long  targetViewBottom;
+  private int   targetElementWidth;
 
   private float prevViewDepth;
   private long  prevViewTop;
@@ -83,20 +161,13 @@ class FileSystemView extends View {
   private int screenWidth;
   private int screenHeight;
 
-  float yscale;
+  private float yscale;
 
   private long animationStartTime;
   private Interpolator interpolator = new DecelerateInterpolator();
   private static long animationDuration = 900; 
   private static long deletionAnimationDuration = 900; 
-  protected float maxLevels = 3.2f;
-
-  
-  // Enable simple view caching (useful for motions), but labels are painted
-  // inconsistently.
-  private final boolean useCache = false;
-
-  static HashMap<String, String> extensionToMime;
+  private float maxLevels = 3.2f;
 
   private boolean fullZoom;
   private boolean warnOnFileSelect;
@@ -113,21 +184,22 @@ class FileSystemView extends View {
   private long touchZoom;
   private int multiNumTouches;
   private boolean multitouchReset;
-  float touchWidth;
-  float touchPointX; 
-  float minDistance;
-  float minDistanceX;
-  int minElementWidth;
-  int maxElementWidth;
+  private float touchWidth;
+  private float touchPointX; 
+  private float minDistance;
+  private float minDistanceX;
+  private int minElementWidth;
+  private int maxElementWidth;
   
   private int stats_num_deletions = 0;
   private boolean screenTouching;
   
-  static class VersionedMultitouchHandler {
-    boolean handleTouch(MotionEvent ev) {
+  public static class VersionedMultitouchHandler {
+    boolean handleTouch(MyMotionEvent ev) {
       return false;
     }
-    public static VersionedMultitouchHandler newInstance(FileSystemView view) {
+    private static VersionedMultitouchHandler newInstance(
+        FileSystemState view) {
       final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
       VersionedMultitouchHandler detector = null;
       if (sdkVersion < Build.VERSION_CODES.ECLAIR) {
@@ -137,9 +209,16 @@ class FileSystemView extends View {
       }
       return detector;
     }
+    
+    public MyMotionEvent newMyMotionEvent(MotionEvent ev) {
+      MyMotionEvent myev = new MyMotionEvent(ev);
+      setupMulti(ev, myev);
+      return myev;
+    }
+    protected void setupMulti(MotionEvent ev, MyMotionEvent myev) {}
   }
-
-  class MultiTouchHandler extends VersionedMultitouchHandler {
+  
+  private final class MultiTouchHandler extends VersionedMultitouchHandler {
     ArrayList<MotionFilter> filterX = new ArrayList<MotionFilter>();
     ArrayList<MotionFilter> filterY = new ArrayList<MotionFilter>();
 
@@ -155,7 +234,22 @@ class FileSystemView extends View {
       return filterY.get(i);      
     }
     
-    boolean handleTouch(MotionEvent ev) {
+    @Override
+    public void setupMulti(MotionEvent ev, MyMotionEvent myev) {
+      int pointerCount;
+      float[] xx, yy;
+      pointerCount = ev.getPointerCount();
+      xx = new float[pointerCount];
+      yy = new float[pointerCount];
+      for (int i = 0; i < pointerCount; i++) {
+        xx[i] = ev.getX(i);
+        yy[i] = ev.getY(i);
+      }
+      myev.setupMulti(pointerCount, xx, yy);
+    }
+    
+    @Override
+    boolean handleTouch(MyMotionEvent ev) {
       int action = ev.getAction();
       Integer num = (Integer) ev.getPointerCount();
       if (num == 1) {
@@ -237,14 +331,14 @@ class FileSystemView extends View {
         targetViewTop = viewTop;
         targetViewBottom = viewBottom;
         animationStartTime = 0;
-        FileSystemView.this.invalidate();
+        requestRepaint();
         return true;
       }
       return true;
     }
   };
   
-  VersionedMultitouchHandler multitouchHandler =
+  public VersionedMultitouchHandler multitouchHandler =
     VersionedMultitouchHandler.newInstance(this);
   
   public void onMotion(float newTouchX, float newTouchY, long moveTime) {
@@ -290,30 +384,28 @@ class FileSystemView extends View {
     animationStartTime = 0;
     touchX = newTouchX;
     touchY = newTouchY;
-    invalidate();
+    requestRepaint();
     return;
   }
   
-  static class MotionFilter {
+  private static class MotionFilter {
     public static float dx = 5;
     float cur;
     float cur2;
     float dx2;; 
-    int idle = 0;
     
-    float noFilter(float value) {
+    private float noFilter(float value) {
       cur = value;
       cur2 = value;
       dx2 = 0;
       return value;
     }
     
-    float doFilter(float val) {
+    private float doFilter(float val) {
       if (val > cur + dx) {
         cur += val - (cur + dx);
         dx2--;
         if (dx2 < 0) dx2 = 0;
-        idle = 0;
       } else if (val < cur - dx) {
         cur += val - (cur - dx);
         dx2--;
@@ -333,9 +425,38 @@ class FileSystemView extends View {
   
   private MotionFilter filterX = new MotionFilter();
   private MotionFilter filterY = new MotionFilter();
+  
+  public static class MyMotionEvent {
+    long eventTime;
+    float x, y;
+    float[] xx, yy;
+    int action;
+    int pointerCount;
+    
+    public MyMotionEvent(MotionEvent ev) {
+      eventTime = ev.getEventTime();
+      x = ev.getX();
+      y = ev.getY();
+      action = ev.getAction();
+    }
+    
+    public void setupMulti(int pointerCount, float[] xx, float[] yy) {
+      this.pointerCount = pointerCount;
+      this.xx = xx;
+      this.yy = yy;
+    }
 
-  @Override
-  public final boolean onTouchEvent(MotionEvent ev) {
+    public float getX() { return x; }
+    public float getY() { return y; }
+    public int getAction() { return action; }
+    public long getEventTime() { return eventTime; }
+    public Integer getPointerCount() { return pointerCount; }
+    public float getX(int i) { return xx[i]; }
+    public float getY(int i) { return yy[i]; }
+  }
+
+  public final boolean onTouchEvent(MyMotionEvent ev) {
+    try { // finally requestRepaintGPU()
     if (sdcardIsEmpty())
       return true;
     
@@ -357,7 +478,7 @@ class FileSystemView extends View {
       if (action == MotionEvent.ACTION_UP) {
         multiNumTouches = 0;
         screenTouching = false;
-        invalidate();
+        requestRepaint();
       }
       return true;
     }
@@ -400,7 +521,7 @@ class FileSystemView extends View {
           return true;
         }
         if (masterRoot.depth(touchEntry) > (int)touchDepth + 1) return true;
-        touchSelect(touchEntry);
+        touchSelect(touchEntry, ev.getEventTime());
         return true;
       }
       touchMovement = false;
@@ -418,6 +539,7 @@ class FileSystemView extends View {
         targetViewTop -= offset;
         targetViewBottom -= offset;
 
+        
         if (targetViewTop < -allowedOverflow) {
           long oldTop = targetViewTop;
           targetViewTop = -allowedOverflow;
@@ -432,29 +554,68 @@ class FileSystemView extends View {
       }
       
       if (animationStartTime != 0) return true;
-      prepareMotion();
+      prepareMotion(ev.getEventTime());
       animationDuration = 300;
-      invalidate();
+      requestRepaint();
+    }
+    
+    } finally {
+      requestRepaintGPU();
     }
     return true;
   }
   
-  public FileSystemView(
-      DiskUsage context, FileSystemRoot root) {
-    super(context);
-    this.context = context;
+  public FileSystemState(
+      DiskUsage context, FileSystemSuperRoot root) {
+    this.mainThreadAction = new MainThreadAction(context);
 
+    zoomState = ZoomState.ZOOM_ALLOCATED;
+    targetViewBottom = root.encodedSize;
     //this.viewRoot = root;
     this.masterRoot = root;
     updateSpecialEntries();
-    zoomState = ZoomState.ZOOM_ALLOCATED;
-//    this.setBackgroundColor(0x80000000);
-//    this.setBackgroundDrawable(null);
-    this.setFocusable(true);
-    this.setFocusableInTouchMode(true);
-    targetViewBottom = root.encodedSize;
-    cursor = new Cursor(masterRoot);
-    setBackgroundColor(Color.GRAY);
+    cursor = new Cursor(this, masterRoot);
+  }
+  
+  private void rescanFinished(FileSystemSuperRoot newRoot) {
+    masterRoot = newRoot;
+    updateSpecialEntries();
+    cursor = new Cursor(this, masterRoot);
+    requestRepaint();
+    requestRepaintGPU();
+  }
+  
+  public void startZoomAnimationInRenderThread(final FileSystemSuperRoot newRoot,
+      final boolean animate) {
+    view.runInRenderThread(new Runnable() {
+      @Override
+      public void run() {
+        if (newRoot != null) rescanFinished(newRoot);
+        if (animate) {
+          long large = masterRoot.encodedSize * 10;
+          long center = masterRoot.encodedSize / 2; 
+          viewTop = center - large;
+          viewBottom = center + large;
+          viewDepth = 0;
+          prepareMotion(SystemClock.uptimeMillis());
+          animationDuration = 300;
+          targetViewTop = 0;
+          targetViewBottom = masterRoot.encodedSize;
+          targetViewDepth = 0;
+          zoomState = ZoomState.ZOOM_ALLOCATED;
+          setZoomState();
+        }
+      }
+    });
+  }
+  
+  public void setView(FileSystemView view) {
+    this.view = view;
+    if (view instanceof FileSystemViewGPU) {
+      mainThreadAction = mainThreadAction.indirect();
+    } else {
+      mainThreadAction = mainThreadAction.direct();
+    }
   }
   
   private void updateSpecialEntries() {
@@ -477,197 +638,125 @@ class FileSystemView extends View {
     }
   }
   
-  private Bitmap cacheBitmap;
-  private Canvas cacheCanvas;
-  private long cacheTop;
-  private long cacheBottom;
-  private float cacheMinDepth;
-  private float cacheMaxDepth;
-  
-  private void makeCacheBitmap() {
-    Log.d("DiskUsage", "making new cache");
-    // make movement prediction
-    float preX = 0, postX = 0, preY = 0, postY = 0;
-/*    if (touchOffsetX > 0) {
-            preX = (int)Math.min(touchOffsetX * 5, touchX);
-    }
+  private final boolean preDraw() {
+    fadeAwayEntry();
 
-    if (touchOffsetX < 0) {
-            postX = (int)Math.min(-touchOffsetX * 5, screenWidth - touchX);
-    }
-    if (touchOffsetY > 0) {
-            preY = (int)Math.min(touchOffsetY * 5, touchY);
-    }
-
-    if (touchOffsetY < 0) {
-            postX = (int)Math.min(-touchOffsetY * 5, screenWidth - touchY);
-    }*/
-    preX = postX = screenWidth / 3;
-    preY = postY = screenHeight / 2;
-    
-
-    if (cacheBitmap == null || cacheBitmap.isRecycled()) {
-      cacheBitmap = Bitmap.createBitmap(
-                    (int)(screenWidth + preX + postX),
-                    (int)(screenHeight + preY + postY), Bitmap.Config.RGB_565);
-      cacheCanvas = new Canvas(cacheBitmap);
-      cacheCanvas.drawColor(Color.GRAY);
+    boolean animation = deletingEntry != null;
+    long curr = SystemClock.uptimeMillis();
+    if (curr > animationStartTime + animationDuration) {
+      // no animation
+      viewTop = targetViewTop;
+      viewBottom = targetViewBottom;
+      viewDepth = targetViewDepth;
+      FileSystemEntry.elementWidth = targetElementWidth;
+      maxLevels = screenWidth / (float) targetElementWidth;
     } else {
-      cacheCanvas.drawColor(Color.GRAY);
+      double f = (double) interpolator.getInterpolation((curr - animationStartTime) / (float) animationDuration);
+      viewTop = (long)(f * targetViewTop + (1-f) * prevViewTop);
+      viewBottom = (long)(f * targetViewBottom + (1-f) * prevViewBottom); 
+      viewDepth = (float)(f * targetViewDepth + (1-f) * prevViewDepth);
+      FileSystemEntry.elementWidth = (int)(f * targetElementWidth + (1-f) * prevElementWidth);
+
+      animation = true;
     }
 
-    cacheTop = viewTop - (long)(preY / yscale);
-    cacheBottom = viewBottom + (long) (postY / yscale);
-    cacheMinDepth = viewDepth - preX / FileSystemEntry.elementWidth;
-    cacheMaxDepth = viewDepth + postX / FileSystemEntry.elementWidth;
-    paintSlow(cacheCanvas, cacheTop, cacheBottom, cacheMinDepth, new Rect(), screenHeight * 2);
-  }
-  
-  private final void paintCached(final Canvas canvas) {
-    Log.d("DiskUsage", "painting cached");
-    yscale = screenHeight / (float)(this.viewBottom - this.viewTop);
-    int yoffset = (int)((viewTop - cacheTop) * yscale);
-    int xoffset = (int)((viewDepth - cacheMinDepth) * FileSystemEntry.elementWidth);
-    canvas.drawBitmap(cacheBitmap, new Rect(
-        xoffset, yoffset,
-        xoffset + screenWidth,
-        yoffset + screenHeight),
-        new Rect(0, 0, screenWidth, screenHeight), null);
+    long dt = (viewBottom - viewTop) / 40;
+    displayTop = viewTop - dt;
+    displayBottom = viewBottom + dt;
     
+    yscale = screenHeight / (float)(displayBottom - displayTop);
+    return animation;
   }
   
-  private final boolean checkCacheValid() {
-    if (cacheBitmap == null || cacheBitmap.isRecycled()) return false;
-    if (viewTop < cacheTop) return false;
-    if (viewBottom > cacheBottom) return false;
-    if (viewDepth < cacheMinDepth || viewDepth > cacheMaxDepth) return false;
-    return true;
+  private final boolean postDraw(boolean animation) {
+    boolean needRepaint = false;
+    if (animation) {
+//      view.requestRepaint();
+      return true;
+    } else if (!screenTouching) {
+      if (targetViewTop < 0 || targetViewBottom > masterRoot.encodedSize
+          || viewDepth < 0 || FileSystemEntry.elementWidth > maxElementWidth) {
+        prepareMotion(SystemClock.uptimeMillis());
+        animationDuration = 300;
+//        view.requestRepaint();
+        needRepaint = true;
+        if (targetViewTop < 0) {
+          long oldTop = targetViewTop;
+          targetViewTop = 0;
+          targetViewBottom += targetViewTop - oldTop;
+        } else if (targetViewBottom > masterRoot.encodedSize) {
+          long oldBottom = targetViewBottom;
+          targetViewBottom = masterRoot.encodedSize;
+          targetViewTop += targetViewBottom - oldBottom;
+        }
+        if (targetViewTop < 0) {
+          targetViewTop = 0;
+        }
+        
+        if (targetViewBottom > masterRoot.encodedSize) {
+          targetViewBottom = masterRoot.encodedSize;
+        }
+
+        if (viewDepth < 0) {
+          targetViewDepth = 0;
+        }
+        if (targetElementWidth > maxElementWidth) {
+          targetElementWidth = maxElementWidth;
+        }
+      }
+    }
+    return needRepaint;
   }
   
+  private final void paintSlowGPU(final RenderingThread rt,
+      long viewTop, long viewBottom, float viewDepth, int screenWidth, int screenHeight) {
+    Rect bounds2 = new Rect(0, 0, screenWidth, screenHeight);
+    masterRoot.paintGPU(rt, bounds2, cursor, viewTop, viewDepth, yscale, screenHeight, numSpecialEntries);
+  }
+  
+  public boolean onDrawGPU(RenderingThread rt) {
+    try {
+      boolean animation = preDraw();
+      paintSlowGPU(rt, displayTop, displayBottom, viewDepth, screenWidth, screenHeight);
+      return postDraw(animation);
+    } catch (Throwable t) {
+      Log.d("DiskUsage", "Got exception", t);
+    }
+    return false;
+  }
   
   private final void paintSlow(final Canvas canvas,
       long viewTop, long viewBottom, float viewDepth, Rect bounds, int screenHeight) {
-    //Log.d("DiskUsage", "painting slow");
-//    Paint p = new Paint();
-//    p.setColor(Color.GRAY);
-//    p.setAlpha(100);
-//
-//    canvas.drawColor(p.getColor());
     if (bounds.bottom != 0 || bounds.top != 0 || bounds.left != 0 || bounds.right != 0) {
-      // Log.d("DiskUsage", "bounds: " + bounds);
       masterRoot.paint(canvas, bounds, cursor, viewTop, viewDepth, yscale, screenHeight, numSpecialEntries);
-//      Paint p = new Paint();
-//      p.setColor(Color.RED);
-//      p.setStyle(Style.STROKE);
-//      canvas.drawRect(bounds, p);
     } else {
       Rect bounds2 = new Rect(0, 0, screenWidth, screenHeight);
       masterRoot.paint(canvas, bounds2, cursor, viewTop, viewDepth, yscale, screenHeight, numSpecialEntries);
     }
   }
   
-  @Override
-  protected final void onDraw(final Canvas canvas) {
-    FileSystemEntry.setupStrings(context);
-    fadeAwayEntry(this);
-    if (titleNeedUpdate) {
-      context.setTitle(format(R.string.title_for_path, cursor.position.toTitleString()));
-      titleNeedUpdate = false;
-    }
-
+  public final void onDraw(final Canvas canvas) {
     try {
-      boolean animation = false;
-      long curr = System.currentTimeMillis();
-      if (curr > animationStartTime + animationDuration) {
-        // no animation
-        viewTop = targetViewTop;
-        viewBottom = targetViewBottom;
-        viewDepth = targetViewDepth;
-        FileSystemEntry.elementWidth = targetElementWidth;
-        maxLevels = screenWidth / (float) targetElementWidth;
-      } else {
-        float f = interpolator.getInterpolation((curr - animationStartTime) / (float) animationDuration);
-        viewTop = (long)(f * targetViewTop + (1-f) * prevViewTop);
-        viewBottom = (long)(f * targetViewBottom + (1-f) * prevViewBottom); 
-        viewDepth = f * targetViewDepth + (1-f) * prevViewDepth;
-        FileSystemEntry.elementWidth = (int)(f * targetElementWidth + (1-f) * prevElementWidth);
-
-        animation = true;
-      }
-
+      boolean animation = preDraw();
       Rect bounds = canvas.getClipBounds();
-      long dt = (viewBottom - viewTop) / 40;
-      displayTop = viewTop - dt;
-      displayBottom = viewBottom + dt;
-      
-      long align = (displayBottom - displayTop) / screenHeight;
-      displayTop = displayTop / align * align;
-      displayBottom = displayTop + align * screenHeight;
-      
-      yscale = screenHeight / (float)(displayBottom - displayTop);
-      if (useCache && (touchMovement || animationDuration == 300)) {
-        if (!checkCacheValid()) makeCacheBitmap();
-        paintCached(canvas);
-      } else {
-        cacheBitmap = null;
-        paintSlow(canvas, displayTop, displayBottom, viewDepth, bounds, screenHeight);
+      paintSlow(canvas, displayTop, displayBottom, viewDepth, bounds, screenHeight);
+      boolean needRepaint = postDraw(animation);
+      if (needRepaint) {
+        requestRepaint();
       }
-
-      if (animation) {
-        invalidate();
-      } else if (!screenTouching) {
-        if (targetViewTop < 0 || targetViewBottom > masterRoot.encodedSize
-            || viewDepth < 0 || FileSystemEntry.elementWidth > maxElementWidth) {
-          prepareMotion();
-          animationDuration = 300;
-          invalidate();
-          if (targetViewTop < 0) {
-            long oldTop = targetViewTop;
-            targetViewTop = 0;
-            targetViewBottom += targetViewTop - oldTop;
-          } else if (targetViewBottom > masterRoot.encodedSize) {
-            long oldBottom = targetViewBottom;
-            targetViewBottom = masterRoot.encodedSize;
-            targetViewTop += targetViewBottom - oldBottom;
-          }
-          if (targetViewTop < 0) {
-            targetViewTop = 0;
-          }
-          
-          if (targetViewBottom > masterRoot.encodedSize) {
-            targetViewBottom = masterRoot.encodedSize;
-          }
-
-          if (viewDepth < 0) {
-            targetViewDepth = 0;
-          }
-          if (targetElementWidth > maxElementWidth) {
-            targetElementWidth = maxElementWidth;
-          }
-        }
-      }
-
     } catch (Throwable t) {
       Log.d("DiskUsage", "Got exception", t);
     }
   }
   
-  private String format(int id, Object... args) {
-    return context.getString(id, args);
-  }
-  
-  private String str(int id) {
-    return context.getString(id);
-  }
-
-  final void prepareMotion() {
+  private final void prepareMotion(long time) {
     Log.d("diskusage", "prepare motion");
     animationDuration = 900;
     prevViewDepth = viewDepth;
     prevViewTop = viewTop;
     prevViewBottom = viewBottom;
     prevElementWidth = FileSystemEntry.elementWidth;
-    animationStartTime = System.currentTimeMillis();
+    animationStartTime = time;
   }
   
   final void invalidate(Cursor cursor) {
@@ -675,7 +764,7 @@ class FileSystemView extends View {
     float cursory0 = (cursor.top - displayTop) * yscale;
     float cursorx1 = cursorx0 + FileSystemEntry.elementWidth;
     float cursory1 = cursory0 + cursor.position.encodedSize * yscale;
-    invalidate((int)cursorx0, (int)cursory0, (int)cursorx1 + 2, (int)cursory1 + 2);
+    requestRepaint((int)cursorx0, (int)cursory0, (int)cursorx1 + 2, (int)cursory1 + 2);
   }
   
   long prevMoveTime;
@@ -687,12 +776,12 @@ class FileSystemView extends View {
    * multitouch on eclair
    * Fling works bad on eclair, use 10ms approximation for last movement
    */
-  private void touchSelect(FileSystemEntry entry) {
+  private void touchSelect(FileSystemEntry entry, long eventTime) {
     FileSystemEntry prevCursor = cursor.position;
     int prevDepth = cursor.depth;
     cursor.set(this, entry);
     int currDepth = cursor.depth;
-    prepareMotion();
+    prepareMotion(eventTime);
     
     if ((entry == masterRoot.children[0]) || (entry instanceof FileSystemFreeSpace)) {
       Log.d("diskusage", "special case for " + entry.name);
@@ -702,8 +791,8 @@ class FileSystemView extends View {
     
     zoomState = ZoomState.ZOOM_OTHER;
     
-    zoomFitLabelMoveUp();
-    zoomFitToScreen();
+    zoomFitLabelMoveUp(eventTime);
+    zoomFitToScreen(eventTime);
     boolean has_children = entry.children != null && entry.children.length != 0; 
     if (!has_children) {
       Log.d("diskusage", "zoom file");
@@ -711,8 +800,7 @@ class FileSystemView extends View {
       if (targetViewTop == prevViewTop
           && targetViewBottom == prevViewBottom) {
         if ((!warnOnFileSelect) && (!(entry instanceof FileSystemSystemSpace))) {
-          Toast.makeText(context,
-              "Press menu to preview or delete", Toast.LENGTH_SHORT).show();
+          mainThreadAction.warnOnFileSelect();
           warnOnFileSelect = true;
         }
       }
@@ -761,8 +849,8 @@ class FileSystemView extends View {
       fullZoom = false;
       targetViewTop = cursor.top + 1;
       targetViewBottom = cursor.top + cursor.position.encodedSize - 1;
-      zoomFitLabelMoveUp();
-      zoomFitToScreen();
+      zoomFitLabelMoveUp(eventTime);
+      zoomFitToScreen(eventTime);
     }
     long freeSpaceClip = getFreeSpaceZoom();
     if (targetViewBottom > freeSpaceClip) {
@@ -771,7 +859,7 @@ class FileSystemView extends View {
     }
   }
   
-  public final void zoomFitLabel() {
+  private final void zoomFitLabel(long eventTime) {
     if (cursor.position.encodedSize == 0) {
       //Log.d("DiskUsage", "position is of zero size");
       return;
@@ -784,7 +872,7 @@ class FileSystemView extends View {
     } else {
       //Log.d("DiskUsage", "zoom in");
       float new_yscale = FileSystemEntry.fontSize * 2.5f / cursor.position.encodedSize;
-      prepareMotion();
+      prepareMotion(eventTime);
 
       targetViewTop = targetViewBottom - (long) (screenHeight / new_yscale);
 
@@ -804,17 +892,17 @@ class FileSystemView extends View {
     }
   }
 
-  public final void zoomFitLabelMoveUp() {
+  private final void zoomFitLabelMoveUp(long eventTime) {
     if (cursor.position.encodedSize == 0) {
       //Log.d("DiskUsage", "position is of zero size");
       return;
     }
     
-    zoomFitLabel();
+    zoomFitLabel(eventTime);
 
     if (targetViewBottom < cursor.top + cursor.position.encodedSize) {
       //Log.d("DiskUsage", "move up as needed");
-      prepareMotion();
+      prepareMotion(eventTime);
 
       long offset = cursor.top + cursor.position.encodedSize 
       - (long)(targetViewTop * 0.2 + targetViewBottom * 0.8);
@@ -826,10 +914,10 @@ class FileSystemView extends View {
         targetViewTop -= diff;
       }
     }
-    invalidate();
+    requestRepaint();
   }
 
-  public final void zoomFitToScreen() {
+  private final void zoomFitToScreen(long eventTime) {
     if (targetViewTop < cursor.top &&
         targetViewBottom > cursor.top + cursor.position.encodedSize) {
 
@@ -839,17 +927,17 @@ class FileSystemView extends View {
 
     //Log.d("DiskUsage", "zoom out");
 
-    prepareMotion();
+    prepareMotion(eventTime);
 
     FileSystemEntry viewRoot = cursor.position.parent;
     targetViewTop = masterRoot.getOffset(viewRoot);
     long size = viewRoot.encodedSize;
     targetViewBottom = targetViewTop + size;
-    zoomFitLabelMoveUp();
-    invalidate();
+    zoomFitLabelMoveUp(eventTime);
+    requestRepaint();
   }
 
-  final boolean back() {
+  private final boolean back(long eventTime) {
     FileSystemEntry newpos = cursor.position.parent;
     if (newpos == masterRoot) {
       return false;
@@ -857,297 +945,29 @@ class FileSystemView extends View {
     cursor.set(this, newpos);
     
     if (masterRoot.children != null && newpos == masterRoot.children[0]) {
-      prepareMotion();
+      prepareMotion(eventTime);
       zoomState = ZoomState.ZOOM_FULL;
       setZoomState();
-      titleNeedUpdate = true;
       return true;
     }
 
     int requiredDepth = cursor.depth - (cursor.position.parent == masterRoot ? 0 : 1); 
     if (targetViewDepth > requiredDepth) {
-      prepareMotion();
+      prepareMotion(eventTime);
       targetViewDepth = requiredDepth;
     }
-    zoomFitToScreen();
-    titleNeedUpdate = true;
+    zoomFitToScreen(eventTime);
     return true;
   }
   
-//  public void onOptionItemSelected(MenuItem item) {
-//    // FIXME: use id instead
-//    String title = item.getTitle().toString();
-//    FileSystemEntry entry = cursor.position;
-//
-//    if (title.equals("Show")) {
-//      String path = entry.path2();
-//      Log.d("DiskUsage", "show " + path);
-//      FileSystemView.this.view(entry);
-//      return;
-//    } else if (title.equals("Rescan")) {
-//      context.LoadFiles(context, new AfterLoad() {
-//        public void run(FileSystemEntry newRoot, boolean isCached) {
-//          rescanFinished(newRoot);
-//          if (!isCached) startZoomAnimation();
-//        }
-//      }, true);
-//      return;
-//    } else if (title.equals("Delete")) {
-//      String path = entry.path2();
-//      Log.d("DiskUsage", "ask for deletion of " + path);
-//      FileSystemView.this.askForDeletion(entry);
-//      return;
-//    }
-//  }
-
-  
-  public void onPrepareOptionsMenu(Menu menu) {
-    //Log.d("DiskUsage", "onCreateContextMenu");
-    menu.clear();
-    boolean showFileMenu = false;
-    FileSystemEntry entry = null;
-
-    if (!sdcardIsEmpty()) {
-      entry = cursor.position;
-      // FIXME: hack to disable removal of /sdcard
-      if (entry == masterRoot.children[0] || entry instanceof FileSystemSpecial) {
-        // Toast.makeText(context, "Select directory or file first", Toast.LENGTH_SHORT).show();
-      } else {
-        showFileMenu = true;
-      }
-    }
-    
-    final FileSystemEntry menuForEntry = entry;
-
-    menu.add(str(R.string.button_show))
-    .setEnabled(showFileMenu)
-    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        String path = menuForEntry.path2();
-        Log.d("DiskUsage", "show " + path);
-        FileSystemView.this.view(menuForEntry);
-        return true;
-      }
-    });
-    
-    menu.add(context.getString(R.string.button_rescan))
-    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        context.LoadFiles(context, new AfterLoad() {
-          public void run(FileSystemRoot newRoot, boolean isCached) {
-            rescanFinished(newRoot);
-            if (!isCached) startZoomAnimation();
-          }
-        }, true);
-        return true;
-      }
-    });
-    menu.add(str(R.string.button_delete))
-    .setEnabled(showFileMenu)
-    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        String path = menuForEntry.path2();
-        Log.d("DiskUsage", "ask for deletion of " + path);
-        FileSystemView.this.askForDeletion(menuForEntry);
-        return true;
-      }
-    });
+  public boolean isGPU() {
+    return view instanceof FileSystemViewGPU;
   }
   
-  public void rescanFinished(FileSystemRoot newRoot) {
-    masterRoot = newRoot;
-    updateSpecialEntries();
-    cursor = new Cursor(masterRoot);
-    titleNeedUpdate = true;
-    invalidate();
-  }
-  
-  private void view(FileSystemEntry entry) {
-    Intent intent = new Intent(Intent.ACTION_VIEW);
-    intent.addCategory(Intent.CATEGORY_DEFAULT);
-    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    if (entry instanceof FileSystemEntrySmall) {
-      entry = entry.parent;
-    }
-    File file = new File(context.getRootPath() + "/" + entry.path2());
-    Uri uri = Uri.fromFile(file);
-    
-    if (file.isDirectory()) {
-      intent = new Intent(Intent.ACTION_VIEW);
-      intent.addCategory(Intent.CATEGORY_DEFAULT);
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setDataAndType(uri, "vnd.android.cursor.item/com.metago.filemanager.dir");
-      
-      try {
-        context.startActivity(intent);
-        return;
-      } catch(ActivityNotFoundException e) {
-      }
-
-      intent = new Intent("org.openintents.action.VIEW_DIRECTORY");
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setData(uri);
-      
-      try {
-        context.startActivity(intent);
-        return;
-      } catch(ActivityNotFoundException e) {
-      }
-
-      intent = new Intent("org.openintents.action.PICK_DIRECTORY");
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setData(uri);
-      intent.putExtra("org.openintents.extra.TITLE",
-          str(R.string.title_in_oi_file_manager));
-      intent.putExtra("org.openintents.extra.BUTTON_TEXT",
-          str(R.string.button_text_in_oi_file_manager));
-      try {
-        context.startActivity(intent);
-        return;
-      } catch(ActivityNotFoundException e) {
-      }
-      Toast.makeText(context, str(R.string.install_oi_file_manager),
-          Toast.LENGTH_SHORT).show();
-      return;
-    }
-
-    String fileName = entry.name;
-    int dot = fileName.lastIndexOf(".");
-    if (dot != -1) {
-      String extension = fileName.substring(dot + 1).toLowerCase(); 
-      String mime = getMimeByExtension(extension);
-      try {
-        if (mime != null) {
-          intent.setDataAndType(uri, mime);
-        } else {
-          intent.setDataAndType(uri, "binary/octet-stream");
-        }
-        context.startActivity(intent);
-        return;
-      } catch (ActivityNotFoundException e) {
-      }
-    }
-    Toast.makeText(context, str(R.string.no_viewer_found),
-        Toast.LENGTH_SHORT).show();
-  }
-  
-  private String getMimeByExtension(String extension) {
-    if (extensionToMime == null) {
-      initExtensions();
-    }
-    return extensionToMime.get(extension);
-  }
-
-  private void initExtensions() {
-    extensionToMime = new HashMap<String, String>();
-    try {
-      InputStream is = new GZIPInputStream(
-          context.getResources().openRawResource(R.raw.mimes));
-      ByteArrayOutputStream os = new ByteArrayOutputStream();
-      byte[] buf = new byte[16384];
-      while (true) {
-        int r = is.read(buf);
-        if (r <= 0) break;
-        os.write(buf, 0, r);
-      }
-      String[] lines = os.toString().split("\n");
-      String mime = null;
-      for (int i = 0; i < lines.length; i++) {
-        String val = lines[i];
-        if (val.length() == 0) mime = null;
-        else if (mime == null) mime = val;
-        else extensionToMime.put(val, mime);
-      }
-    } catch (Exception e) {
-      throw new RuntimeException("failed to open mime db", e);
-    }
-  }
-  
-//  private String[] resolveSmallEntry(FileSystemEntrySmall smallEntry) {
-//    FileSystemEntry parent = smallEntry.parent;
-//    String parentPath = parent.path2();
-//    String[] allNames = new File(context.getRootPath() + "/" + parentPath).list();
-//    Set<String> parentFiles = new TreeSet<String>();
-//    for (FileSystemEntry child: parent.children) {
-//      parentFiles.add(child.name);
-//    }
-//    List<String> result = new ArrayList<String>();
-//    for (String name : allNames) {
-//      if (parentFiles.contains(name)) continue;
-//      result.add(parentPath + "/" + name);
-//    }
-//    return result.toArray(new String[result.size()]);
-//  }
-  
-  private void askForDeletion(final FileSystemEntry entry) {
-    final String path = entry.path2();
-    Log.d("DiskUsage", "Deletion requested for " + path);
-    
-    if (entry instanceof FileSystemEntrySmall) {
-//      // FIXME: find out list of files
-//      Intent i = new Intent(context, DeleteActivity.class);
-//      i.putExtra("path", resolveSmallEntry((FileSystemEntrySmall) entry));
-//      i.putExtra(DiskUsage.KEY_KEY, context.key);
-//      i.putExtra(DiskUsage.TITLE_KEY, context.getRootTitle());
-//      i.putExtra(DiskUsage.ROOT_KEY, context.getRootPath());
-//      i.putExtra(DeleteActivity.NUM_FILES_KEY, entry.getNumFiles());
-//      i.putExtra(DeleteActivity.SIZE_KEY, entry.getSizeInBytes());
-//      context.startActivityForResult(i, 0);
-      Toast.makeText(context,
-          "Delete directory instead", Toast.LENGTH_SHORT).show();
-
-      return;
-    }
-    if (entry.children == null || entry.children.length == 0) {
-      if (entry instanceof FileSystemPackage) {
-        context.pkg_removed = (FileSystemPackage) entry;
-        BackgroundDelete.startDelete(FileSystemView.this, entry);
-        return;
-      }
-
-      // Delete single file or directory
-      new AlertDialog.Builder(this.context)
-      .setTitle(new File(context.getRootPath() + "/" + path).isDirectory()
-          ? format(R.string.ask_to_delete_directory, path)
-          : format(R.string.ask_to_delete_file, path))
-      .setPositiveButton(str(R.string.button_delete),
-          new DialogInterface.OnClickListener() {
-        public void onClick(DialogInterface dialog, int which) {
-          BackgroundDelete.startDelete(FileSystemView.this, entry);
-        }
-      })
-      .setNegativeButton(str(R.string.button_cancel),
-          new DialogInterface.OnClickListener() {
-        public void onClick(DialogInterface dialog, int whichButton) {
-        }
-      }).create().show();
-    } else {
-      Intent i = new Intent(context, DeleteActivity.class);
-      i.putExtra("path", path);
-      i.putExtra(DeleteActivity.NUM_FILES_KEY, entry.getNumFiles());
-
-      i.putExtra(DiskUsage.KEY_KEY, context.key);
-      i.putExtra(DiskUsage.TITLE_KEY, context.getRootTitle());
-      i.putExtra(DiskUsage.ROOT_KEY, context.getRootPath());
-      i.putExtra(DeleteActivity.SIZE_KEY, entry.sizeString());
-      context.startActivityForResult(i, 0);
-    }
-  }
-  
-  void continueDelete(String path) {
-    FileSystemEntry entry = masterRoot.getEntryByName(path);
-    if (entry != null) {
-      BackgroundDelete.startDelete(this, entry);
-    } else {
-      Toast.makeText(getContext(), 
-          "Oops. Can't find directory to be deleted.", Toast.LENGTH_SHORT);
-    }
-  }
-  
-  public final void moveAwayCursor(FileSystemEntry entry) {
+  private final void moveAwayCursor(FileSystemEntry entry) {
     if (cursor.position != entry) return;
 //    FIXME: should not be needed
-//    this.invalidate();
+//    view.requestRepaint();
 //    cursor.set(this, entry);
     try {
       cursor.up(this);
@@ -1164,27 +984,23 @@ class FileSystemView extends View {
 //    }
   }
   
-  public final void remove(FileSystemEntry entry) {
-    stats_num_deletions++;
-//    this.invalidate();
-//    cursor.set(this, entry);
-//    cursor.up(this);
-//    if (cursor.position == entry) {
-//      cursor.left(this);
-//    }
-//    if (cursor.position == entry) {
-//      cursor.position = masterRoot.children[0];
-//    }
-    fadeAwayEntryStart(entry, this);
-    invalidate();
-//    cursor.refresh(this);
+  public final void removeInRenderThread(final FileSystemEntry entry) {
+    view.runInRenderThread(new Runnable() {
+      @Override
+      public void run() {
+        stats_num_deletions++;
+        fadeAwayEntryStart(entry, FileSystemState.this);
+      }
+    });
+    requestRepaintGPU();
+    requestRepaint();
   }
   
   private FileSystemEntry deletingEntry = null;
   private long deletingAnimationStartTime = 0;
   private long deletingInitialSize;
   
-  public final void deleteDeletingEntry() {
+  private final void deleteDeletingEntry() {
     if (deletingEntry.parent == masterRoot) {
       throw new RuntimeException("sdcard deletion is not available in UI");
     }
@@ -1197,7 +1013,7 @@ class FileSystemView extends View {
       masterRoot.setSizeInBlocks(masterRoot.getSizeInBlocks() + deletingEntryBlocks, displayBlockSize);
       masterRoot.children[0].setSizeInBlocks(masterRoot.children[0].getSizeInBlocks()
           + deletingEntryBlocks, displayBlockSize);
-      freeSpace.sizeString = null;
+      freeSpace.clearDrawingCache();
     }
 
     FileSystemEntry.deletedEntry = null;
@@ -1230,9 +1046,10 @@ class FileSystemView extends View {
       systemSpace.encodedSize = systemSpaceEncoded;
     }
     deletingEntry = null;
+    cursor.set(this, cursor.position);
   }
   
-  public final void fadeAwayEntryStart(FileSystemEntry entry, FileSystemView view) {
+  private final void fadeAwayEntryStart(FileSystemEntry entry, FileSystemState view) {
     if (deletingEntry != null) {
       deleteDeletingEntry();
     }
@@ -1242,12 +1059,35 @@ class FileSystemView extends View {
     deletingInitialSize = entry.getSizeInBlocks();
   }
   
-  public final void fadeAwayEntry(FileSystemView view) {
+  // Should be called from main thread
+  void requestRepaint() {
+    // Does nothing in GPU View
+    view.requestRepaint();
+  }
+  
+  // Should be called from main thread
+  private void requestRepaint(int l, int t, int r, int b) {
+    // Does nothing in GPU View
+    view.requestRepaint(l, t, r, b);
+  }
+  
+  // Should be called from main thread
+  void requestRepaintGPU() {
+    // Only for GPU View
+    view.requestRepaintGPU();
+  }
+  
+  // *** Called from different threads ***
+  void post(Runnable r) {
+    view.post(r);
+  }
+  
+  private final void fadeAwayEntry() {
     FileSystemEntry entry = deletingEntry;
     if (entry == null) return;
 //    Log.d("diskusage", "deletion in progress");
     
-    long time = System.currentTimeMillis();
+    long time = SystemClock.uptimeMillis();
     
     if (deletingAnimationStartTime == 0) {
       deletingAnimationStartTime = time;
@@ -1258,7 +1098,7 @@ class FileSystemView extends View {
       deleteDeletingEntry();
       return;
     }
-    this.invalidate();
+    requestRepaint();
     float f = interpolator.getInterpolation(dt / (float) animationDuration);
 //    Log.d("diskusage", "f = + " + f);
     long prevSize = entry.getSizeInBlocks();
@@ -1316,33 +1156,28 @@ class FileSystemView extends View {
   }
   
   public final void restore(FileSystemEntry entry) {
-    if (deletingEntry != null) {
-      deleteDeletingEntry();
-    }
-    // if (cursor.position == masterRoot)
-    //   cursor.position = entry;
-    // cursor.refresh(this);
-    // zoomCursor();
-    // zoomOutCursor();
+    view.runInRenderThread(new Runnable() {
+      @Override
+      public void run() {
+        if (deletingEntry != null) {
+          deleteDeletingEntry();
+        }
+      }
+    });
   }
   
   public final boolean sdcardIsEmpty() {
     return cursor.position == masterRoot;
   }
   
-  @Override
   public final boolean onKeyDown(final int keyCode, final KeyEvent event) {
     if (sdcardIsEmpty())
-      return super.onKeyDown(keyCode, event);
+      return false;
+    
+    try { // finally requestRepaintGPU()
     
     if (keyCode == KeyEvent.KEYCODE_BACK) {
-      Bundle outState = new Bundle();
-      context.onSaveInstanceState(outState);
-      Intent result = new Intent();
-      result.putExtra(DiskUsage.STATE_KEY, outState);
-      result.putExtra(DiskUsage.KEY_KEY, context.key);
-      context.setResult(0, result);
-      context.finish();
+      mainThreadAction.finishOnBack();
       return true;
     }
     
@@ -1355,40 +1190,37 @@ class FileSystemView extends View {
       case KeyEvent.KEYCODE_DPAD_DOWN:
         return true;
       }
-      return super.onKeyDown(keyCode, event);
+      return false;
     }
     
     if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
       cursor.down(this);
-      zoomFitLabelMoveUp();
-      zoomFitToScreen();
-      titleNeedUpdate = true;
+      zoomFitLabelMoveUp(event.getEventTime());
+      zoomFitToScreen(event.getEventTime());
       return true; 
     }
 
     if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
       cursor.up(this);
-      zoomFitLabel();
-      zoomFitToScreen();
-      titleNeedUpdate = true;
+      zoomFitLabel(event.getEventTime());
+      zoomFitToScreen(event.getEventTime());
       return true;
     }
 
     if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-      back();
+      back(event.getEventTime());
       return true;
     }
 
     if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
       cursor.right(this);
-      zoomFitLabelMoveUp();
+      zoomFitLabelMoveUp(event.getEventTime());
 
       float requiredDepth = cursor.depth + 1 + (cursor.position.children == null ? 0 : 1) - maxLevels;
       if (viewDepth < requiredDepth) {
-        prepareMotion();
+        prepareMotion(event.getEventTime());
         targetViewDepth = requiredDepth;
       }
-      titleNeedUpdate = true;
       return true;
     }
 
@@ -1396,7 +1228,7 @@ class FileSystemView extends View {
       final FileSystemEntry selected = cursor.position;
       // FIXME: hack to disable removal of /sdcard
       if (selected == masterRoot.children[0]) return true;
-      view(selected);
+      mainThreadAction.view(selected);
     }
 
     /*if ((keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ENTER)) {
@@ -1404,14 +1236,18 @@ class FileSystemView extends View {
     }*/
 
     //Log.d("DiskUsage", "Key down = " + keyCode + " " + event);
-    return super.onKeyDown(keyCode, event);
+    } finally {
+      requestRepaintGPU();
+    }
+    return false;
   }
   
-  @Override
-  protected final void onLayout(boolean changed, int left, int top, int right, int bottom) {
-    super.onLayout(changed, left, top, right, bottom);
-    screenHeight = getHeight();
-    screenWidth = getWidth();
+  // FIXME: can be called from different thread
+  public final void onLayout(
+      boolean changed, int left, int top, int right,
+      int bottom, int width, int height) {
+    screenWidth = width;
+    screenHeight = height;
     minElementWidth = screenWidth / 8;
     maxElementWidth = screenWidth / 2;
     // FIXME: may be too large
@@ -1420,25 +1256,29 @@ class FileSystemView extends View {
     minDistance = screenHeight > screenWidth ? screenHeight /  10 : screenWidth / 10; 
     Log.d("diskusage", "screen = " + screenWidth + "x" + screenHeight);
     FileSystemEntry.elementWidth = targetElementWidth = (int) (screenWidth / maxLevels);
-    titleNeedUpdate = true;
     setZoomState();
   }
 
-  public void restoreState(Bundle inState) {
-    String cursorName = inState.getString("cursor");
-    if (cursorName == null) return;
-    FileSystemEntry entry = masterRoot.getEntryByName(cursorName);
-    if (entry == null) return;
-    cursor.set(this, entry);
-    targetViewDepth = prevViewDepth = viewDepth = inState.getFloat("viewDepth");
-    targetViewTop = prevViewTop = viewTop = inState.getLong("viewTop");
-    targetViewBottom = prevViewBottom = viewBottom = inState.getLong("viewBottom");
-    switch (inState.getInt("zoomState")) {
-    case 0: zoomState = ZoomState.ZOOM_ALLOCATED; break;
-    case 1: zoomState = ZoomState.ZOOM_FULL; break;
-    default: zoomState = ZoomState.ZOOM_OTHER; break;
-    }
-    maxLevels = inState.getFloat("maxLevels");
+  public void restoreStateInRenderThread(final Bundle inState) {
+    view.runInRenderThread(new Runnable() {
+      @Override
+      public void run() {
+        String cursorName = inState.getString("cursor");
+        if (cursorName == null) return;
+        FileSystemEntry entry = masterRoot.getEntryByName(cursorName);
+        if (entry == null) return;
+        cursor.set(FileSystemState.this, entry);
+        targetViewDepth = prevViewDepth = viewDepth = inState.getFloat("viewDepth");
+        targetViewTop = prevViewTop = viewTop = inState.getLong("viewTop");
+        targetViewBottom = prevViewBottom = viewBottom = inState.getLong("viewBottom");
+        switch (inState.getInt("zoomState")) {
+        case 0: zoomState = ZoomState.ZOOM_ALLOCATED; break;
+        case 1: zoomState = ZoomState.ZOOM_FULL; break;
+        default: zoomState = ZoomState.ZOOM_OTHER; break;
+        }
+        maxLevels = inState.getFloat("maxLevels");
+      }
+    });
   }
 
   public void saveState(Bundle outState) {
@@ -1452,31 +1292,11 @@ class FileSystemView extends View {
             zoomState == ZoomState.ZOOM_FULL ? 1 : 2));
   }
 
-  public final void resetCursor() {
-    cursor.set(this, masterRoot.children[0]);
-  }
-
-  public void startZoomAnimation() {
-    long large = masterRoot.encodedSize * 10;
-    long center = masterRoot.encodedSize / 2; 
-    viewTop = center - large;
-    viewBottom = center + large;
-    viewDepth = 0;
-    prepareMotion();
-    animationDuration = 300;
-    targetViewTop = 0;
-    targetViewBottom = masterRoot.encodedSize;
-    targetViewDepth = 0;
-    zoomState = ZoomState.ZOOM_ALLOCATED;
-    setZoomState();
-  }
-  
   private long getFreeSpaceZoom() {
     if (freeSpaceZoom != 0) return freeSpaceZoom;
     if (freeSpace == null) return masterRoot.encodedSize;
     
     freeSpaceZoom = masterRoot.encodedSize;
-    FileSystemEntry.setupStrings(context);
     long busy = masterRoot.encodedSize - freeSpace.encodedSize;
     float message = FileSystemEntry.fontSize * 2 + 1f;
     float height = screenHeight / 41f * 40f;
@@ -1510,5 +1330,9 @@ class FileSystemView extends View {
     ZOOM_ALLOCATED,
     ZOOM_OTHER
   };
-  ZoomState zoomState = ZoomState.ZOOM_OTHER;
+  private ZoomState zoomState = ZoomState.ZOOM_OTHER;
+
+  public void killRenderThread() {
+    view.killRenderThread();
+  }
 }

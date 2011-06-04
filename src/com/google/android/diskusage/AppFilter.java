@@ -23,24 +23,62 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.util.Log;
 
 public class AppFilter implements Parcelable {
   public boolean enableChildren;
-  public boolean useApk;
-  public boolean useData;
-  public boolean useCache;
-  public boolean useDalvikCache;
-  public boolean useSD;
+  public boolean showApk;
+  public boolean showData;
+  public boolean showDalvikCache;
+  public App2SD apps;
+  public App2SD memory;
+  
+  public enum App2SD {
+    INTERNAL("internal"),
+    APPS2SD("app2sd"),
+    BOTH("both");
+    
+    private String id;
+    
+    private App2SD(String id) {
+      this.id = id;
+    }
+    
+    public static App2SD forId(String id) {
+      if ("internal".equals(id)) {
+        return INTERNAL;
+      }
+      if ("app2sd".equals(id)) {
+        return APPS2SD;
+      }
+      return BOTH;
+    }
+    public String toString() {
+      return id;
+    }
+  };
+  
 
 
   public static AppFilter getFilterForDiskUsage() {
     AppFilter filter = new AppFilter();
     filter.enableChildren = false;
-    filter.useApk = true;
-    filter.useData = false;
-    filter.useDalvikCache = false;
-    filter.useCache = false;
-    filter.useSD = true;
+    filter.showApk = true;
+    filter.showData = false;
+    filter.showDalvikCache = false;
+    filter.apps = App2SD.APPS2SD;
+    filter.memory = App2SD.APPS2SD;
+    return filter;
+  }
+  
+  public static AppFilter getFilterForHoneycomb() {
+    AppFilter filter = new AppFilter();
+    filter.enableChildren = true;
+    filter.showApk = true;
+    filter.showData = true;
+    filter.showDalvikCache = true;
+    filter.apps = App2SD.BOTH;
+    filter.memory = App2SD.INTERNAL;
     return filter;
   }
   
@@ -48,11 +86,11 @@ public class AppFilter implements Parcelable {
     if (!(o instanceof AppFilter)) return false;
     AppFilter filter = (AppFilter) o;
     if (filter.enableChildren != enableChildren) return false;
-    if (filter.useApk != useApk) return false;
-    if (filter.useData != useData) return false;
-    if (filter.useDalvikCache != useDalvikCache) return false;
-    if (filter.useCache != useCache) return false;
-    if (filter.useSD != useSD) return false;
+    if (filter.showApk != showApk) return false;
+    if (filter.showData != showData) return false;
+    if (filter.showDalvikCache != showDalvikCache) return false;
+    if (filter.apps != apps) return false;
+    if (filter.memory != memory) return false;
     return true;
   }
   
@@ -61,11 +99,11 @@ public class AppFilter implements Parcelable {
       context.getSharedPreferences("settings", Context.MODE_PRIVATE);
     AppFilter filter = new AppFilter();
     filter.enableChildren = true;
-    filter.useApk = prefs.getBoolean("show_apk", true);
-    filter.useData = prefs.getBoolean("show_data", true);
-    filter.useDalvikCache = prefs.getBoolean("show_dalvikCache", true);
-    filter.useCache = prefs.getBoolean("show_cache", false);
-    filter.useSD = !prefs.getBoolean("internal_only", true);
+    filter.showApk = prefs.getBoolean("show_apk", true);
+    filter.showData = prefs.getBoolean("show_data", true);
+    filter.showDalvikCache = prefs.getBoolean("show_dalvikCache", true);
+    filter.apps = App2SD.forId(prefs.getString("apps", "both"));
+    filter.memory = App2SD.forId(prefs.getString("memory", "internal"));
     return filter;
   }
 
@@ -75,11 +113,11 @@ public class AppFilter implements Parcelable {
     boolean[] arr = new boolean[6];
     in.readBooleanArray(arr);
     enableChildren = arr[0];
-    useApk = arr[1];
-    useData = arr[2];
-    useCache = arr[3];
-    useSD = arr[4];
-    useDalvikCache = arr[5];
+    showApk = arr[1];
+    showData = arr[2];
+    showDalvikCache = arr[5];
+    apps = App2SD.forId(in.readString());
+    memory = App2SD.forId(in.readString());
   }
 
   @Override
@@ -90,8 +128,10 @@ public class AppFilter implements Parcelable {
   @Override
   public void writeToParcel(Parcel dest, int flags) {
     dest.writeBooleanArray(new boolean[] {
-        enableChildren, useApk, useData,useCache, useSD, useDalvikCache
+        enableChildren, showApk, showData, false, false, showDalvikCache
     });
+    dest.writeString(apps.toString());
+    dest.writeString(memory.toString());
   }
   
   public static final Parcelable.Creator<AppFilter> CREATOR =

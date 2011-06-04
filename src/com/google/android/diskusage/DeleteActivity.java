@@ -22,6 +22,7 @@ package com.google.android.diskusage;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Debug;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -29,6 +30,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.google.android.diskusage.delete.FileInfoAdapter;
+import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class DeleteActivity extends Activity {
   public static final String NUM_FILES_KEY = "numFiles";
@@ -39,6 +41,12 @@ public class DeleteActivity extends Activity {
     super.onResume();
 //    Debug.startMethodTracing("diskusage");
     FileSystemEntry.setupStrings(this);
+    
+    final String path = getIntent().getStringExtra(
+        DiskUsage.DELETE_PATH_KEY);
+    final String absolutePath = getIntent().getStringExtra(
+        DiskUsage.DELETE_ABSOLUTE_PATH_KEY);
+    Log.d("diskusage", "DeleteActivity: " + path + " -> " + absolutePath);
 
     setContentView(R.layout.delete_view);
     ListView lv = (ListView) findViewById(R.id.list);
@@ -48,14 +56,11 @@ public class DeleteActivity extends Activity {
     FileInfoAdapter.setMessage(
         this, summary, count, sizeString);
 
-//    String[] path = getIntent().getStringArrayExtra("path");
-    String path = getIntent().getStringExtra("path");
     final Intent responseIntent = new Intent();
-    responseIntent.putExtra("path", path);
+    responseIntent.putExtra(DiskUsage.DELETE_PATH_KEY, path);
     lv.setAdapter(new FileInfoAdapter(
         this,
-        getIntent().getStringExtra(DiskUsage.ROOT_KEY),
-        new String[] { getIntent().getStringExtra("path") },
+        absolutePath,
         count,
         summary));
     Button ok = (Button) findViewById(R.id.ok_button);

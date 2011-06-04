@@ -21,6 +21,9 @@ package com.google.android.diskusage;
 
 import java.io.File;
 
+import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemPackage;
+
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -32,7 +35,7 @@ public class BackgroundDelete extends Thread {
   ProgressDialog dialog;
   File file;
   String path;
-  FileSystemView view;
+  DiskUsage diskUsage;
   FileSystemEntry entry;
   
   private static final int DELETION_SUCCESS = 0;
@@ -45,61 +48,50 @@ public class BackgroundDelete extends Thread {
   private int numDeletedDirectories = 0;
   private int numDeletedFiles = 0;
   
-  private BackgroundDelete(final FileSystemView view, final FileSystemEntry entry) {
-    this.view = view;
+  private BackgroundDelete(final DiskUsage diskUsage, final FileSystemEntry entry) {
+    this.diskUsage = diskUsage;
     this.entry = entry;
     
     path = entry.path2();
-    if (path.startsWith("Apps2SD/")) {
-      if (entry instanceof FileSystemPackage) {
-        FileSystemPackage pkg = (FileSystemPackage) entry;
-        uninstall(pkg);
-        return;
-      }
-    } else if (path.startsWith("Apps2SD")) {
-      Toast.makeText(view.context, format(R.string.apps_bulk_uninstall_not_supported, path),
-          Toast.LENGTH_LONG).show();
-      return;
-    }
-    String deleteRoot = view.context.getRootPath() + "/" + path;
+    String deleteRoot = entry.absolutePath();
     file = new File(deleteRoot);
     for (MountPoint mountPoint : MountPoint.getMountPoints().values()) {
       if ((mountPoint.root + "/").startsWith(deleteRoot + "/")) {
-        Toast.makeText(view.context, "This delete operation will erase entire storage - canceled.",
+        Toast.makeText(diskUsage, "This delete operation will erase entire storage - canceled.",
             Toast.LENGTH_LONG).show();
         return;
       }
     }
     
     if (!file.exists()) {
-      Toast.makeText(view.context, format(R.string.path_doesnt_exist, path),
+      Toast.makeText(diskUsage, format(R.string.path_doesnt_exist, path),
           Toast.LENGTH_LONG).show();
-      view.remove(entry);
+      diskUsage.fileSystemState.removeInRenderThread(entry);
       return;
     }
     
     if (file.isFile()) {
       if (file.delete()) {
-        Toast.makeText(view.context, str(R.string.file_deleted),
+        Toast.makeText(diskUsage, str(R.string.file_deleted),
             Toast.LENGTH_SHORT).show();
-        view.remove(entry);
+        diskUsage.fileSystemState.removeInRenderThread(entry);
       } else {
-        Toast.makeText(view.context, str(R.string.error_file_wasnt_deleted),
+        Toast.makeText(diskUsage, str(R.string.error_file_wasnt_deleted),
             Toast.LENGTH_SHORT).show();
       }
       return;
     }
-    dialog = new ProgressDialog(view.context);
+    dialog = new ProgressDialog(diskUsage);
     dialog.setMessage(format(R.string.deleting_path, path));
     dialog.setIndeterminate(true);
-    dialog.setButton(view.context.getString(R.string.button_background),
+    dialog.setButton(diskUsage.getString(R.string.button_background),
         new DialogInterface.OnClickListener() {
       public void onClick(DialogInterface dialog, int which) {
         background();
         dialog = null;
       }
     });
-    dialog.setButton2(view.context.getString(R.string.button_cancel),
+    dialog.setButton2(diskUsage.getString(R.string.button_cancel),
         new DialogInterface.OnClickListener() {
       public void onClick(DialogInterface dialog, int which) {
         cancel();
@@ -114,24 +106,25 @@ public class BackgroundDelete extends Thread {
     String pkg_name = pkg.pkg;
     Uri packageURI = Uri.parse("package:" + pkg_name);
     Intent uninstallIntent = new Intent(Intent.ACTION_DELETE, packageURI);
-    view.context.startActivity(uninstallIntent);
+    diskUsage.startActivity(uninstallIntent);
   }
 
-  static void startDelete(FileSystemView view, FileSystemEntry entry) {
-    new BackgroundDelete(view, entry);
+  static void startDelete(DiskUsage diskUsage, FileSystemEntry entry) {
+    new BackgroundDelete(diskUsage, entry);
   }
   
   @Override
   public void run() {
     deletionStatus = deleteRecursively(file);
     // FIXME: use notification object when backgrounded
-    view.post(new Runnable() {
+    diskUsage.handler.post(new Runnable() {
       public void run() {
         if (dialog != null) dialog.dismiss();
-        view.remove(entry);
+        diskUsage.fileSystemState.removeInRenderThread(entry);
         if (deletionStatus != DELETION_SUCCESS) {
           restore();
-          view.invalidate();
+          diskUsage.fileSystemState.requestRepaint();
+          diskUsage.fileSystemState.requestRepaintGPU();
         }
         notifyUser();
       }
@@ -140,14 +133,14 @@ public class BackgroundDelete extends Thread {
   
   public void restore() {
     Log.d("DiskUsage", "restore started for " + path);
-    int displayBlockSize = view.masterRoot.getDisplayBlockSize();
+    int displayBlockSize = diskUsage.fileSystemState.masterRoot.getDisplayBlockSize();
     FileSystemEntry newEntry = new Scanner(
         // FIXME: hacked allocatedBlocks and heap size
         20, displayBlockSize, null, 0, 4).scan(
-            new File(view.context.getRootPath() + "/" + path));
+            new File(diskUsage.getRootPath() + "/" + path));
     // FIXME: may be problems in case of two deletions
     entry.parent.insert(newEntry, displayBlockSize);
-    view.restore(newEntry);
+    diskUsage.fileSystemState.restore(newEntry);
     
     Log.d("DiskUsage", "restoring undeleted: "
         + newEntry.name + " " + newEntry.sizeString());
@@ -159,17 +152,17 @@ public class BackgroundDelete extends Thread {
         + " files " + numDeletedFiles);
 
     if (deletionStatus == DELETION_SUCCESS) {
-      Toast.makeText(view.context,
+      Toast.makeText(diskUsage,
           format(R.string.deleted_n_directories_and_n_files,
               numDeletedDirectories, numDeletedFiles),
               Toast.LENGTH_LONG).show();
     } else if (deletionStatus == DELETION_CANCELED) {
-      Toast.makeText(view.context,
+      Toast.makeText(diskUsage,
           format(R.string.deleted_n_directories_and_files_and_canceled,
               numDeletedDirectories, numDeletedFiles),
               Toast.LENGTH_LONG).show();
     } else {
-      Toast.makeText(view.context,
+      Toast.makeText(diskUsage,
           format(R.string.deleted_n_directories_and_n_files_and_failed,
               numDeletedDirectories, numDeletedFiles),
               Toast.LENGTH_LONG).show();
@@ -210,10 +203,10 @@ public class BackgroundDelete extends Thread {
   }
 
   private String format(int id, Object... args) {
-    return view.context.getString(id, args);
+    return diskUsage.getString(id, args);
   }
   private String str(int id) {
-    return view.context.getString(id);
+    return diskUsage.getString(id);
   }
 }
 
