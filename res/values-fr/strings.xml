@@ -29,7 +29,7 @@
  <string name="button_cancel">Annuler</string>
  <string name="button_background">En tache de fond</string>
  <string name="install_oi_file_manager">Installer &quot;OI File Manager&quot; pour afficher le contenu des répertoires</string>
- <string name="title_for_path">%s - DiskUsage</string>
+ <string name="title_for_path">%s</string>
  <string name="title_in_oi_file_manager">OI File Manager</string>
  <string name="button_text_in_oi_file_manager">Retourner à DiskUsage</string>
  <string name="no_viewer_found">Aucun lecteur pour ce type de document</string>

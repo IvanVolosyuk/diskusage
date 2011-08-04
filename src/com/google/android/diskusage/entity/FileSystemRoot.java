@@ -11,4 +11,15 @@ public class FileSystemRoot extends FileSystemEntry {
   public static FileSystemRoot makeNode(String name, String rootPath) {
     return new FileSystemRoot(name, rootPath);
   }
+
+  @Override
+  public FileSystemEntry create() {
+    return new FileSystemRoot(this.name, this.rootPath);
+  }
+
+  @Override
+  public FileSystemEntry filter(CharSequence pattern, int blockSize) {
+    // don't match name
+    return filterChildren(pattern, blockSize);
+  }
 }

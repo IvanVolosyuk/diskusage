@@ -21,24 +21,20 @@ package com.google.android.diskusage;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Collections;
-
-import com.google.android.diskusage.entity.FileSystemEntry;
 
 import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Paint;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.StyleSpan;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class MyProgressDialog extends AlertDialog {
   private Context context;

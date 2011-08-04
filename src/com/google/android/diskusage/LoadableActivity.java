@@ -180,6 +180,8 @@ public abstract class LoadableActivity extends Activity {
         } catch (final RuntimeException e) {
           error = e.getClass().getName() + ":" + e.getMessage();
           Log.e("diskusage", "native error", e);
+        } catch (final StackOverflowError e) {
+          error = "Filesystem is damaged.";
         }
         final String finalError = error;
         state.root = null;

@@ -30,4 +30,14 @@ public class FileSystemEntrySmall extends FileSystemEntry {
       FileSystemEntry parent, String name, int numFiles) {
     return new FileSystemEntrySmall(parent, name, numFiles);
   }
+
+  @Override
+  public FileSystemEntry create() {
+    return new FileSystemEntrySmall(null, this.name, this.numFiles);
+  }
+
+  @Override
+  public FileSystemEntry filter(CharSequence pattern, int blockSize) {
+    return null;
+  }
 }

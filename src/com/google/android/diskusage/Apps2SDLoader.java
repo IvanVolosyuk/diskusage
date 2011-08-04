@@ -20,10 +20,7 @@
 package com.google.android.diskusage;
 
 import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.File;
 import java.io.FileReader;
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,19 +28,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.google.android.diskusage.entity.FileSystemEntry;
-import com.google.android.diskusage.entity.FileSystemPackage;
-
-import android.app.Activity;
 import android.content.pm.IPackageStatsObserver;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageStats;
-import android.os.Build;
 import android.os.Handler;
 import android.os.RemoteException;
 import android.os.StatFs;
 import android.util.Log;
+
+import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemPackage;
 
 public class Apps2SDLoader {
 

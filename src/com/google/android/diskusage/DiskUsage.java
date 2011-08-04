@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import android.app.ActionBar;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
@@ -45,19 +44,16 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.MenuItem.OnMenuItemClickListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.diskusage.FileSystemState.FileSystemView;
 import com.google.android.diskusage.entity.FileSystemEntry;
 import com.google.android.diskusage.entity.FileSystemEntrySmall;
-import com.google.android.diskusage.entity.FileSystemFile;
 import com.google.android.diskusage.entity.FileSystemFreeSpace;
 import com.google.android.diskusage.entity.FileSystemPackage;
 import com.google.android.diskusage.entity.FileSystemRoot;
 import com.google.android.diskusage.entity.FileSystemSuperRoot;
-import com.google.android.diskusage.entity.FileSystemSpecial;
 import com.google.android.diskusage.entity.FileSystemSystemSpace;
 import com.google.android.diskusage.opengl.FileSystemViewGPU;
 import com.google.android.diskusage.utils.MimeTypes;
@@ -82,25 +78,14 @@ public class DiskUsage extends LoadableActivity {
   private String rootTitle;
   String key;
   private static final MimeTypes mimeTypes = new MimeTypes();
-  private FileSystemEntry selectedEntity;
-
-  protected FileSystemView makeView(FileSystemState eventHandler) {
-    SharedPreferences prefs =
-      getSharedPreferences("settings", Context.MODE_PRIVATE);
-    boolean hardwareRenderer = prefs.getBoolean("hw_renderer", false);
-
-    if (hardwareRenderer) {
-      return new FileSystemViewGPU(this, eventHandler);
-    } else {
-      return new FileSystemViewCPU(this, eventHandler);
-    }
-  }
+  DiskUsageMenu menu = DiskUsageMenu.getInstance(this);
+  RendererManager rendererManager = new RendererManager(this);
   
-  @Override
   protected void onCreate(Bundle icicle) {
     super.onCreate(icicle);
+    Log.d("diskusage", "onCreate()");
     setContentView(new TextView(this));
-    platform.onCreate();
+    menu.onCreate();
     Intent i = getIntent();
     rootPath = i.getStringExtra(ROOT_KEY);
     rootTitle = i.getStringExtra(TITLE_KEY);
@@ -110,44 +95,21 @@ public class DiskUsage extends LoadableActivity {
     if (receivedState != null) onRestoreInstanceState(receivedState);
   }
   
-  static class Platform {
-    void onCreate() {}
-    public void invalidateOptionsMenu() {}
-    public void setShowAsAction(MenuItem item) {}
-    public boolean mergedStorage() { return false; }
-
-    static Platform getInstance(DiskUsage context) {
-      final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
-      if (sdkVersion >= Build.VERSION_CODES.HONEYCOMB) {
-        return context.new Honeycomb();
-      } else {
-        return new Platform();
-      }
-    }
+  public boolean isMergedStorage() {
+    final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+    return sdkVersion >= Build.VERSION_CODES.HONEYCOMB;
   }
-  
-  private class Honeycomb extends Platform {
-    @Override
-    void onCreate() {
-      ActionBar actionBar = DiskUsage.this.getActionBar();
-      actionBar.setDisplayHomeAsUpEnabled(true);
-    }
-    public void invalidateOptionsMenu() {
-      DiskUsage.this.invalidateOptionsMenu();
-    }
-    public void setShowAsAction(MenuItem item) {
-      item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-    }
-    public boolean mergedStorage() { return true; }
-  }
-  
-  Platform platform = Platform.getInstance(this);
   
   ArrayList<Runnable> afterLoadAction = new ArrayList<Runnable>();
+  
+  public void applyPatternNewRoot(FileSystemSuperRoot newRoot, String searchQuery) {
+    fileSystemState.replaceRootKeepCursor(newRoot, searchQuery);
+  }
   
   @Override
   protected void onResume() {
     super.onResume();
+    rendererManager.onResume();
     if (pkg_removed != null) {
       // Check if package removed
       String pkg_name = pkg_removed.pkg;
@@ -161,12 +123,11 @@ public class DiskUsage extends LoadableActivity {
       pkg_removed = null;
     }
     LoadFiles(this, new AfterLoad() {
-      public void run(FileSystemSuperRoot root, boolean isCached) {
+      public void run(final FileSystemSuperRoot root, boolean isCached) {
         fileSystemState = new FileSystemState(DiskUsage.this, root);
-        FileSystemView view = makeView(fileSystemState);
-        fileSystemState.startZoomAnimationInRenderThread(null, !isCached);
-        setContentView((View)view);
-        ((View)view).requestFocus();
+        rendererManager.makeView(fileSystemState, root);
+        fileSystemState.startZoomAnimationInRenderThread(null, !isCached, false);
+        
         for (Runnable r : afterLoadAction) {
           r.run();
         }
@@ -182,6 +143,7 @@ public class DiskUsage extends LoadableActivity {
   
   @Override
   protected void onPause() {
+    rendererManager.onPause();
     super.onPause();
     if (fileSystemState != null) {
       fileSystemState.killRenderThread();
@@ -263,30 +225,8 @@ public class DiskUsage extends LoadableActivity {
     pkg_removed = pkg;
   }
   
-  protected void addRendererSwitchItem(Menu menu) {
-    final boolean isGPU = fileSystemState.isGPU();
-    // FIXME: i18n
-    menu.add(isGPU ? "Software Renderer" : "Hardware Renderer")
-    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        fileSystemState.killRenderThread();
-        SharedPreferences prefs =
-          getSharedPreferences("settings", Context.MODE_PRIVATE);
-        boolean hardwareRenderer = prefs.getBoolean("hw_renderer", true);
-        prefs.edit().putBoolean("hw_renderer", !hardwareRenderer).commit();
-
-        View newView = isGPU ?
-            new FileSystemViewCPU(DiskUsage.this, fileSystemState) :
-              new FileSystemViewGPU(DiskUsage.this, fileSystemState);
-        DiskUsage.this.setContentView(newView);
-        newView.requestFocus();
-        return true;
-      }
-    });
-  }
-  
   void continueDelete(String path) {
-    FileSystemEntry entry = fileSystemState.masterRoot.getEntryByName(path);
+    FileSystemEntry entry = fileSystemState.masterRoot.getEntryByName(path, true);
     if (entry != null) {
       BackgroundDelete.startDelete(this, entry);
     } else {
@@ -295,7 +235,7 @@ public class DiskUsage extends LoadableActivity {
     }
   }
   
-  private void askForDeletion(final FileSystemEntry entry) {
+  public void askForDeletion(final FileSystemEntry entry) {
     final String path = entry.path2();
     final String fullPath = entry.absolutePath();
     Log.d("DiskUsage", "Deletion requested for " + path);
@@ -428,7 +368,24 @@ public class DiskUsage extends LoadableActivity {
         Toast.LENGTH_SHORT).show();
   }
   
+  public void rescan() {
+    LoadFiles(DiskUsage.this, new AfterLoad() {
+      public void run(FileSystemSuperRoot newRoot, boolean isCached) {
+        fileSystemState.startZoomAnimationInRenderThread(newRoot, !isCached, false);
+      }
+    }, true);
+  }
+  
+  public void showFilterDialog() {
+    Intent i = new Intent(this, FilterActivity.class);
+    i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+    startActivityForResult(i, 0);
+  }
+  
   public void finishOnBack() {
+    if (!menu.readyToFinish()) {
+      return;
+    }
     Bundle outState = new Bundle();
     onSaveInstanceState(outState);
     Intent result = new Intent();
@@ -439,73 +396,8 @@ public class DiskUsage extends LoadableActivity {
   }
   
   public void setSelectedEntity(FileSystemEntry position) {
-    this.selectedEntity = position;
-    platform.invalidateOptionsMenu();
+    menu.update(position);
     setTitle(format(R.string.title_for_path, position.toTitleString()));
-  }
-  
-  public void addRescanMenuEntry(Menu menu) {
-    menu.add(getString(R.string.button_rescan))
-    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        LoadFiles(DiskUsage.this, new AfterLoad() {
-          public void run(FileSystemSuperRoot newRoot, boolean isCached) {
-            fileSystemState.startZoomAnimationInRenderThread(newRoot, !isCached);
-          }
-        }, true);
-        return true;
-      }
-    });
-  }
-  
-  public boolean addShowMenuEntry(Menu menu) {
-    boolean showFileMenu = false;
-    FileSystemEntry entry = null;
-
-    if (!fileSystemState.sdcardIsEmpty()) {
-      entry = selectedEntity;
-      // FIXME: hack to disable removal of /sdcard
-      if (entry == fileSystemState.masterRoot.children[0] || entry instanceof FileSystemSpecial) {
-        // Toast.makeText(context, "Select directory or file first", Toast.LENGTH_SHORT).show();
-      } else {
-        showFileMenu = true;
-      }
-    }
-    
-    final FileSystemEntry menuForEntry = entry;
-    
-    MenuItem item = menu.add(str(R.string.button_show))
-    .setEnabled(showFileMenu)
-    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        view(menuForEntry);
-        return true;
-      }
-    });
-    platform.setShowAsAction(item);
-    return showFileMenu;
-  }
-  
-  @Override
-  public boolean onPrepareOptionsMenu(Menu menu) {
-    //Log.d("DiskUsage", "onCreateContextMenu");
-    menu.clear();
-    if (fileSystemState == null) return true;
-
-    boolean showFileMenu = addShowMenuEntry(menu);
-    addRendererSwitchItem(menu);
-    addRescanMenuEntry(menu);
-    
-    final FileSystemEntry menuForEntry = selectedEntity;
-    menu.add(str(R.string.button_delete))
-    .setEnabled(showFileMenu && menuForEntry instanceof FileSystemFile)
-    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        askForDeletion(menuForEntry);
-        return true;
-      }
-    });
-    return true;
   }
   
   @Override
@@ -523,6 +415,7 @@ public class DiskUsage extends LoadableActivity {
     
     fileSystemState.killRenderThread();
     fileSystemState.saveState(outState);
+    menu.onSaveInstanceState(outState);
   }
 
   protected void onRestoreInstanceState(final Bundle inState) {
@@ -538,6 +431,8 @@ public class DiskUsage extends LoadableActivity {
         }
       });
     }
+    
+    menu.onRestoreInstanceState(inState);
   }
   
   public interface AfterLoad {
@@ -660,7 +555,7 @@ public class DiskUsage extends LoadableActivity {
     handler.post(progressUpdater);
     
     MountPoint realMountPoint = mountPoint;
-    boolean fakeDataHoneycomb = (platform.mergedStorage()
+    boolean fakeDataHoneycomb = (isMergedStorage()
         && key.equals("storage:/data"));
     if (fakeDataHoneycomb) realMountPoint = MountPoint.getHoneycombSdcard();
     
@@ -755,6 +650,13 @@ public class DiskUsage extends LoadableActivity {
   }
   
   @Override
+  public boolean onPrepareOptionsMenu(Menu menu) {
+    super.onPrepareOptionsMenu(menu);
+    this.menu.onPrepareOptionsMenu(menu);
+    return true;
+  }
+  
+  @Override
   public String getRootTitle() {
     return rootTitle;
   }
@@ -766,5 +668,9 @@ public class DiskUsage extends LoadableActivity {
   
   public String getKey() {
     return key;
+  }
+  
+  public void searchRequest() {
+    menu.searchRequest();
   }
 }

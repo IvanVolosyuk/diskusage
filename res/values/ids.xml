@@ -1,0 +1,7 @@
+<resources>
+<string-array name="select_app_and_storage_ids">
+  <item>internal</item>
+  <item>app2sd</item>
+  <item>both</item>
+</string-array>
+</resources>

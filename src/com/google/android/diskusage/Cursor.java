@@ -19,7 +19,6 @@
 
 package com.google.android.diskusage;
 
-import com.google.android.diskusage.FileSystemState.MainThreadAction;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class Cursor {

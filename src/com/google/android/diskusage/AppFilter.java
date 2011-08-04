@@ -23,7 +23,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.util.Log;
 
 public class AppFilter implements Parcelable {
   public boolean enableChildren;

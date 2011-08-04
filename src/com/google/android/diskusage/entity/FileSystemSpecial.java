@@ -33,4 +33,17 @@ public class FileSystemSpecial extends FileSystemEntry {
     super(null, name);
     this.setChildren(children, blockSize);
   }
+
+  @Override
+  public FileSystemEntry filter(CharSequence pattern, int blockSize) {
+    return filterChildren(pattern, blockSize);
+  }
+  
+  @Override
+  public FileSystemEntry create() {
+    // dummy values for size
+    FileSystemSpecial copy = new FileSystemSpecial(this.name, 0, 512);
+    copy.filter = filter;
+    return copy;
+  }
 }

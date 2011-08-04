@@ -19,16 +19,11 @@
 
 package com.google.android.diskusage;
 
-import com.google.android.diskusage.entity.FileSystemEntry;
-
-import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
-import android.preference.ListPreference;
-import android.preference.Preference;
 import android.preference.PreferenceActivity;
-import android.preference.Preference.OnPreferenceChangeListener;
-import android.util.AttributeSet;
+
+import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class FilterActivity extends PreferenceActivity {
   @Override

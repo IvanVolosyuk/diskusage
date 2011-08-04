@@ -20,16 +20,11 @@
 package com.google.android.diskusage.entity;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
-
-import com.google.android.diskusage.Cursor;
-import com.google.android.diskusage.R;
-import com.google.android.diskusage.R.string;
-import com.google.android.diskusage.opengl.DrawingCache;
-import com.google.android.diskusage.opengl.RenderingThread;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -37,6 +32,11 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.Log;
+
+import com.google.android.diskusage.Cursor;
+import com.google.android.diskusage.R;
+import com.google.android.diskusage.opengl.DrawingCache;
+import com.google.android.diskusage.opengl.RenderingThread;
 
 public class FileSystemEntry {
   private static final Paint bg = new Paint();
@@ -248,7 +248,7 @@ public class FileSystemEntry {
       }
       this.childFilter = excludeFilter;
     }
-  };
+  }
   
   protected FileSystemEntry(FileSystemEntry parent, String name) {
     this.name = name;
@@ -269,11 +269,73 @@ public class FileSystemEntry {
       return aa.encodedSize < bb.encodedSize ? 1 : -1;
     }
   }
-  
-  public static Compare COMPARE = new Compare();
 
   /**
-   * Find index of directChild in 'children' field of this entry. 
+   * For sorting according to size.
+   */
+  public static Compare COMPARE = new Compare();
+
+  public FileSystemEntry create() {
+    return new FileSystemEntry(null, this.name);
+  }
+
+  public class SearchInterruptedException extends RuntimeException {
+    private static final long serialVersionUID = -3986013022885904101L;
+  };
+
+  public FileSystemEntry copy() {
+    if (Thread.interrupted()) throw new SearchInterruptedException();
+    FileSystemEntry copy = create();
+    if (this.children != null) {
+      FileSystemEntry[] children = new FileSystemEntry[this.children.length];
+      for (int i = 0; i < this.children.length; i++) {
+        FileSystemEntry childCopy = children[i] = this.children[i].copy();
+        childCopy.parent = copy;
+      }
+      copy.children = children;
+    }
+    copy.encodedSize = this.encodedSize;
+    return copy;
+  }
+
+  public FileSystemEntry filterChildren(CharSequence pattern, int blockSize) {
+//    res = Pattern.compile(Pattern.quote(pattern.toString()), Pattern.CASE_INSENSITIVE).matcher(name).find();
+
+    if (children == null) return null;
+    ArrayList<FileSystemEntry> filtered_children = new ArrayList<FileSystemEntry>();
+
+    for (FileSystemEntry child : this.children) {
+      FileSystemEntry childCopy = child.filter(pattern, blockSize);
+      if (childCopy != null) {
+        filtered_children.add(childCopy);
+      }
+    }
+    if (filtered_children.size() == 0) return null;
+    FileSystemEntry[] children = new FileSystemEntry[filtered_children.size()];
+    filtered_children.toArray(children);
+    Arrays.sort(children, COMPARE);
+    FileSystemEntry copy = create();
+    copy.children = children;
+    long size = 0;
+    
+
+    for (FileSystemEntry child : children) {
+      size += child.getSizeInBlocks();
+      child.parent = copy;
+    }
+    copy.setSizeInBlocks(size, blockSize);
+    return copy;
+  }
+
+  public FileSystemEntry filter(CharSequence pattern, int blockSize) {
+    if (name.toLowerCase().contains(pattern)) {
+      return copy();
+    }
+    return filterChildren(pattern, blockSize);
+  }
+
+  /**
+   * Find index of directChild in 'children' field of this entry.
    * @param directChild
    * @return index of the directChild in 'children' field.
    */
@@ -900,6 +962,10 @@ public class FileSystemEntry {
   }
   
   public final String absolutePath() {
+    if (this == null) {
+      // FIXME: to prevent crash appeared on some users.
+      return "";
+    }
     if (this instanceof FileSystemRoot) {
       return ((FileSystemRoot)this).rootPath;
     }
@@ -1034,8 +1100,9 @@ public class FileSystemEntry {
 
   /**
    * Walks through the path and finds the specified entry, null otherwise.
+   * @param exactMatch TODO
    */
-  public final FileSystemEntry getEntryByName(String path) {
+  public final FileSystemEntry getEntryByName(String path, boolean exactMatch) {
     Log.d("diskusage", "getEntryForName = " + path);
     String[] pathElements = path.split("/");
     FileSystemEntry entry = this.children[0];

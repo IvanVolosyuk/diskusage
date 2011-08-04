@@ -19,15 +19,14 @@
 
 package com.google.android.diskusage.entity;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-
+import android.content.pm.PackageStats;
+import android.util.Log;
 import com.google.android.diskusage.AppFilter;
 import com.google.android.diskusage.AppFilter.App2SD;
 
-import android.content.pm.PackageStats;
-import android.util.Log;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class FileSystemPackage extends FileSystemEntry {
   public final String pkg;
@@ -141,12 +140,12 @@ public class FileSystemPackage extends FileSystemEntry {
             .initSizeInBytes(dalvikCacheSize, blockSize));
       }
     }
-    
+
     for (FileSystemEntry e : entries) {
       blocks += e.getSizeInBlocks();
     }
     setSizeInBlocks(blocks, blockSize);
-    
+
     if (filter.enableChildren) {
       for (FileSystemEntry e : entries) {
         e.parent = this;
@@ -156,5 +155,22 @@ public class FileSystemPackage extends FileSystemEntry {
     } else {
       children = null;
     }
+  }
+
+  private FileSystemPackage(String name, String pkg, int codeSize, int dataSize, int cacheSize,
+                            int dalvikCacheSize, int flags) {
+    super(null, name);
+    this.pkg = pkg;
+    this.codeSize = codeSize;
+    this.dataSize = dataSize;
+    this.cacheSize = cacheSize;
+    this.dalvikCacheSize = dalvikCacheSize;
+    this.flags = flags;
+  }
+
+  @Override
+  public FileSystemEntry create() {
+    return new FileSystemPackage(this.name, this.pkg, this.codeSize, this.dataSize, this.cacheSize,
+                                 this.dalvikCacheSize, this.flags);
   }
 }

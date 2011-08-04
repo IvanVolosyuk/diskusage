@@ -25,14 +25,12 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.StatFs;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.MenuItem.OnMenuItemClickListener;
 
 import com.google.android.diskusage.AppFilter.App2SD;
 import com.google.android.diskusage.entity.FileSystemEntry;
 import com.google.android.diskusage.entity.FileSystemFreeSpace;
 import com.google.android.diskusage.entity.FileSystemPackage;
+import com.google.android.diskusage.entity.FileSystemRoot;
 import com.google.android.diskusage.entity.FileSystemSpecial;
 import com.google.android.diskusage.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.entity.FileSystemSystemSpace;
@@ -80,7 +78,7 @@ public class AppUsage extends DiskUsage {
       name = "Storage";
     }
     FileSystemEntry internalElement =
-      FileSystemEntry.makeNode(null, name).setChildren(
+      FileSystemRoot.makeNode(name, "/Apps").setChildren(
         internalArray, displayBlockSize);
     
     FileSystemSuperRoot newRoot = new FileSystemSuperRoot(displayBlockSize);
@@ -139,7 +137,7 @@ public class AppUsage extends DiskUsage {
     FileSystemSuperRoot newRoot = wrapApps(appsElement, newFilter, displayBlockSize);
     getPersistantState().root = newRoot;
     afterLoadAction.clear();
-    fileSystemState.startZoomAnimationInRenderThread(newRoot, true);
+    fileSystemState.startZoomAnimationInRenderThread(newRoot, true, false);
   }
   
   @Override
@@ -166,41 +164,6 @@ public class AppUsage extends DiskUsage {
     super.onActivityResult(a, result, i);
     AppFilter newFilter = AppFilter.loadSavedAppFilter(this);
     updateFilter(newFilter);
-  }
-  
-  private void showFilterDialog() {
-    Intent i = new Intent(this, FilterActivity.class);
-    i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-    this.startActivityForResult(i, 0);
-  }
-  
-//  private void view(FileSystemEntry entry) {
-//    while (entry != null) {
-//      if (entry instanceof FileSystemPackage) {
-//        viewPackage((FileSystemPackage) entry);
-//        return;
-//      }
-//      entry = entry.parent;
-//    }
-//  }
-  
-  @Override
-  public final boolean onPrepareOptionsMenu(Menu menu) {
-    //Log.d("DiskUsage", "onCreateContextMenu");
-    menu.clear();
-    if (fileSystemState == null) return true;
-    addShowMenuEntry(menu);
-    addRendererSwitchItem(menu);
-    addRescanMenuEntry(menu);
-    
-    menu.add(getString(R.string.change_filter))
-    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        showFilterDialog();
-        return true;
-      }
-    });
-    return true;
   }
   
   @Override

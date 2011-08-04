@@ -1,17 +1,14 @@
 package com.google.android.diskusage;
 
-import com.google.android.diskusage.FileSystemState.FileSystemView;
-import com.google.android.diskusage.FileSystemState.MyMotionEvent;
-import com.google.android.diskusage.entity.FileSystemEntry;
-import com.google.android.diskusage.entity.FileSystemSuperRoot;
-
-import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+
+import com.google.android.diskusage.FileSystemState.FileSystemView;
+import com.google.android.diskusage.entity.FileSystemEntry;
 
 public final class FileSystemViewCPU extends View implements FileSystemView {
   private final FileSystemState eventHandler;

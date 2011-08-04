@@ -20,4 +20,5 @@
 
 <resources>
     <drawable name="transparent">#00000000</drawable>
+    <color name="almost_white">#CFFFFFFF</color>
 </resources>

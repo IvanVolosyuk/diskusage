@@ -23,4 +23,9 @@ public class FileSystemSystemSpace extends FileSystemSpecial {
   public FileSystemSystemSpace(String name, long size, int blockSize) {
     super(name, size, blockSize);
   }
+
+  @Override
+  public FileSystemEntry filter(CharSequence pattern, int blockSize) {
+    return null;
+  }
 }

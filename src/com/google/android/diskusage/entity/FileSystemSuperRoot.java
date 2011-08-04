@@ -25,13 +25,24 @@ package com.google.android.diskusage.entity;
  */
 public class FileSystemSuperRoot extends FileSystemSpecial {
   final int blockSize;
-  
+
   public FileSystemSuperRoot(int blockSize) {
     super(null, 0, blockSize);
     this.blockSize = blockSize;
   }
-  
+
   public int getDisplayBlockSize() {
     return blockSize;
+  }
+
+  @Override
+  public FileSystemEntry create() {
+    return new FileSystemSuperRoot(this.blockSize);
+  }
+
+  @Override
+  public FileSystemEntry filter(CharSequence pattern, int blockSize) {
+    // don't match name
+    return filterChildren(pattern, blockSize);
   }
 }

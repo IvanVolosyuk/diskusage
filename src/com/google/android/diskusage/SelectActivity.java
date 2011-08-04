@@ -22,15 +22,11 @@ package com.google.android.diskusage;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
-import com.google.android.diskusage.entity.FileSystemEntry;
-
-import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -42,6 +38,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.widget.TextView;
+
+import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class SelectActivity extends Activity {
   private AlertDialog dialog;

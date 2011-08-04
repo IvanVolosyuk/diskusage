@@ -27,7 +27,7 @@
 <string name="button_cancel">Cancelar</string>
 <string name="button_background">Background</string>
 <string name="install_oi_file_manager">Instalar &quot;OI File manager&quot; para ver los directorios</string>
-<string name="title_for_path">%s - DiskUsage</string>
+<string name="title_for_path">%s</string>
 <string name="title_in_oi_file_manager">OI File Manager</string>
 <string name="button_text_in_oi_file_manager">Volver a DiskUsage</string>
 <string name="no_viewer_found">No se ha encontrado un visor</string>

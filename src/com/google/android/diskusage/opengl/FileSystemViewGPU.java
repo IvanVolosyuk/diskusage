@@ -54,7 +54,9 @@ public final class FileSystemViewGPU extends SurfaceView
   }
   
   public void requestRepaintGPU() {
-    thread.addEmptyEvent();
+    if (thread != null) {
+      thread.addEmptyEvent();
+    }
   }
   
   public void requestRepaint() {}
@@ -78,6 +80,7 @@ public final class FileSystemViewGPU extends SurfaceView
       case KeyEvent.KEYCODE_DPAD_RIGHT:
       case KeyEvent.KEYCODE_DPAD_UP:
       case KeyEvent.KEYCODE_DPAD_DOWN:
+      case KeyEvent.KEYCODE_SEARCH:
         return true;
     };
 
@@ -93,7 +96,9 @@ public final class FileSystemViewGPU extends SurfaceView
   @Override
   public void surfaceChanged(SurfaceHolder holder, int format, int width,
       int height) {
+    Log.d("diskusage", "surfaceChange = " + width + "x" + height);
     thread.addEvent(thread.new SurfaceChangedEvent(holder, width, height));
+    requestRepaintGPU();
   }
 
   @Override
@@ -112,6 +117,12 @@ public final class FileSystemViewGPU extends SurfaceView
     Log.d("diskusage", "FileSystemViewGPU.onDetachedFromWindow");
       super.onDetachedFromWindow();
       thread.addEvent(thread.new ExitEvent());
+  }
+  
+  @Override
+  public void invalidate() {
+    super.invalidate();
+    requestRepaintGPU();
   }
 
   @Override

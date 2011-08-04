@@ -23,18 +23,17 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InvalidObjectException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.PriorityQueue;
+
+import android.content.Context;
+import android.util.Log;
 
 import com.google.android.diskusage.DiskUsage.ProgressGenerator;
 import com.google.android.diskusage.entity.FileSystemEntry;
 import com.google.android.diskusage.entity.FileSystemEntrySmall;
 import com.google.android.diskusage.entity.FileSystemFile;
-
-import android.content.Context;
-import android.util.Log;
 
 public class NativeScanner implements ProgressGenerator {
   private final int blockSize;

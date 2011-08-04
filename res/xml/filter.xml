@@ -1,11 +1,20 @@
 <PreferenceScreen
   xmlns:android="http://schemas.android.com/apk/res/android"
   android:title="@string/apps_filter">
-  <CheckBoxPreference
-    android:title="@string/internal_only"
-    android:summary="@string/internal_only_desc"
-    android:defaultValue="true"
-    android:key="internal_only"/>
+  <ListPreference
+    android:title="@string/select_apps"
+    android:summary=""
+    android:key="apps"
+    android:entries="@array/select_apps"
+    android:entryValues="@array/select_app_and_storage_ids"
+    android:defaultValue="both"/>
+  <ListPreference
+    android:title="@string/select_storage"
+    android:summary=""
+    android:key="memory"
+    android:entries="@array/select_storage"
+    android:entryValues="@array/select_app_and_storage_ids"
+    android:defaultValue="internal"/>
   <CheckBoxPreference
     android:title="@string/show_apk"
     android:summary="@string/show_apk_desc"
@@ -21,9 +30,4 @@
     android:defaultValue="true"
     android:summary="@string/show_dalvikcache_desc"
     android:key="show_dalvikCache"/>
-  <CheckBoxPreference
-    android:title="@string/show_cache"
-    android:defaultValue="false"
-    android:summary="@string/show_cache_desc"
-    android:key="show_cache"/>
 </PreferenceScreen>

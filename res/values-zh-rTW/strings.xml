@@ -28,7 +28,7 @@
 <string name="button_cancel">取消</string>
 <string name="button_background">后臺</string>
 <string name="install_oi_file_manager">安裝 &quot;OI File manager&quot; 來檢視內容表</string>
-<string name="title_for_path">%s - DiskUsage</string>
+<string name="title_for_path">%s</string>
 <string name="title_in_oi_file_manager">OI File Manager</string>
 <string name="button_text_in_oi_file_manager">返回到 DiskUsage</string>
 <string name="no_viewer_found">沒有找到檢視器</string>

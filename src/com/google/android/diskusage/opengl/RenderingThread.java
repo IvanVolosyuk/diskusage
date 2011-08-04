@@ -5,12 +5,10 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 
 import javax.microedition.khronos.opengles.GL10;
 
 import android.content.Context;
-import android.graphics.AvoidXfermode;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -20,6 +18,7 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.opengl.GLUtils;
+import android.os.SystemClock;
 import android.util.Log;
 
 import com.google.android.diskusage.FileSystemState;
@@ -468,7 +467,7 @@ public class RenderingThread extends AbstractRenderingThread {
   
   public void nextBitmapMap() {
     currentBitmapMap.commit();
-    if (bitmaps.size() >= 80 && hasReusableBitmap()) {
+    if (bitmaps.size() >= 40 && hasReusableBitmap()) {
 //      Log.d("diskusage", "get least used bitmap, bitmaps = 5");
       currentBitmapMap = getLeastUsedBitmap();
       return;
@@ -677,6 +676,7 @@ public class RenderingThread extends AbstractRenderingThread {
     gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT,
         GL10.GL_FASTEST);
     gl.glViewport(0, 0, width, height);
+    Log.d("diskusage", "updated viewport = " + width + "x" + height);
     
     
     gl.glMatrixMode(GL10.GL_PROJECTION);
@@ -709,6 +709,6 @@ public class RenderingThread extends AbstractRenderingThread {
     gl.glEnable(GL10.GL_TEXTURE_2D);
     gl.glVertexPointer(3, GL10.GL_FLOAT, 0, vertexBuffer);
 //    gl.glEnable(GL10.GL_DEPTH_TEST);
-
+    eventHandler.draw300ms();
   }
 }

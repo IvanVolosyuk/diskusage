@@ -1,5 +1,9 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-<!-- 
+    <item android:id="@+id/menu_search"
+        android:title="Search"
+        android:icon="@drawable/icon"
+        android:showAsAction="ifRoom"
+        android:actionViewClass="android.widget.SearchView"/>
     <item android:id="@+id/show"
         android:title="Show"
         android:showAsAction="ifRoom|withText" />
@@ -8,7 +12,7 @@
         android:showAsAction="ifRoom|withText" />
     <item android:id="@+id/delete"
         android:title="Delete"
-        android:showAsAction="ifRoom|withText" />  -->
+        android:showAsAction="ifRoom|withText" />
 </menu>
     
     

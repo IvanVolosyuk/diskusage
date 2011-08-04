@@ -78,6 +78,9 @@ public class FileSystemState {
     public void finishOnBack() {
       context.finishOnBack();
     }
+    public void searchRequest() {
+      context.searchRequest();
+    }
     
     public MainThreadAction indirect() {
       return new MainThreadActionIndirect(context);
@@ -124,6 +127,15 @@ public class FileSystemState {
         @Override
         public void run() {
           context.finishOnBack();
+        }
+      });
+    }
+    
+    public void searchRequest() {
+      context.handler.post(new Runnable() {
+        @Override
+        public void run() {
+          context.searchRequest();
         }
       });
     }
@@ -574,7 +586,14 @@ public class FileSystemState {
     //this.viewRoot = root;
     this.masterRoot = root;
     updateSpecialEntries();
+    resetCursor();
+  }
+  
+  public void resetCursor() {
+    // FIXME: dirty hacks
     cursor = new Cursor(this, masterRoot);
+    touchEntry = null;
+    touchMovement = false;
   }
   
   private void rescanFinished(FileSystemSuperRoot newRoot) {
@@ -585,8 +604,44 @@ public class FileSystemState {
     requestRepaintGPU();
   }
   
+  public void replaceRootKeepCursor(final FileSystemSuperRoot newRoot,
+                                    String searchQuery) {
+    view.runInRenderThread(new Runnable() {
+      @Override
+      public void run() {
+        FileSystemEntry oldPosition = cursor.position;
+        FileSystemEntry newPosition =
+          newRoot.getEntryByName(oldPosition.path2(), false);
+        if (newPosition == null) newPosition = newRoot.children[0];
+        int newDepth = newRoot.depth(newPosition);
+        int oldDepth = masterRoot.depth(cursor.position);
+        for (; oldDepth > newDepth; oldDepth--) {
+          oldPosition = oldPosition.parent;
+        }
+        long oldTop = masterRoot.getOffset(oldPosition);
+        long oldSize = oldPosition.encodedSize;
+        long oldBottom = oldTop + oldSize;
+        long newTop = newRoot.getOffset(newPosition);
+        long newSize = newPosition.encodedSize;
+        long newBottom = newTop + newSize;
+        double above = (oldTop - targetViewTop) / (double)oldSize;
+        double bellow = (targetViewBottom - oldBottom) / (double)oldSize;
+        long newViewTop = newTop - (long)(above * newSize);
+        long newViewBottom = (long)(bellow * newSize) + newBottom;
+        prepareMotion(SystemClock.uptimeMillis());
+        targetViewTop = viewTop = newViewTop;
+        targetViewBottom = viewBottom = newViewBottom;
+        if (targetViewTop > newTop) targetViewTop = newTop;
+        if (targetViewBottom < newBottom) targetViewBottom = newBottom;
+        animationDuration = 300;
+        rescanFinished(newRoot);
+        cursor.set(FileSystemState.this, newPosition);
+      }
+    });
+  }
+  
   public void startZoomAnimationInRenderThread(final FileSystemSuperRoot newRoot,
-      final boolean animate) {
+      final boolean animate, final boolean keepCursor) {
     view.runInRenderThread(new Runnable() {
       @Override
       public void run() {
@@ -607,6 +662,11 @@ public class FileSystemState {
         }
       }
     });
+  }
+  
+  public void defaultZoom() {
+    zoomState = ZoomState.ZOOM_ALLOCATED;
+    setZoomState();
   }
   
   public void setView(FileSystemView view) {
@@ -715,8 +775,11 @@ public class FileSystemState {
   }
   
   public boolean onDrawGPU(RenderingThread rt) {
+    Log.d("diskusage", "drawFrame (pre) viewTop = " + viewTop + " viewBottom = " + viewBottom);
+
     try {
       boolean animation = preDraw();
+      Log.d("diskusage", "drawFrame viewTop = " + viewTop + " viewBottom = " + viewBottom);
       paintSlowGPU(rt, displayTop, displayBottom, viewDepth, screenWidth, screenHeight);
       return postDraw(animation);
     } catch (Throwable t) {
@@ -749,7 +812,7 @@ public class FileSystemState {
     }
   }
   
-  private final void prepareMotion(long time) {
+  public final void prepareMotion(long time) {
     Log.d("diskusage", "prepare motion");
     animationDuration = 900;
     prevViewDepth = viewDepth;
@@ -1175,6 +1238,11 @@ public class FileSystemState {
       return false;
     
     try { // finally requestRepaintGPU()
+      
+    if (keyCode == KeyEvent.KEYCODE_SEARCH) {
+      mainThreadAction.searchRequest();
+      return true;
+    }
     
     if (keyCode == KeyEvent.KEYCODE_BACK) {
       mainThreadAction.finishOnBack();
@@ -1265,7 +1333,7 @@ public class FileSystemState {
       public void run() {
         String cursorName = inState.getString("cursor");
         if (cursorName == null) return;
-        FileSystemEntry entry = masterRoot.getEntryByName(cursorName);
+        FileSystemEntry entry = masterRoot.getEntryByName(cursorName, true);
         if (entry == null) return;
         cursor.set(FileSystemState.this, entry);
         targetViewDepth = prevViewDepth = viewDepth = inState.getFloat("viewDepth");
@@ -1334,5 +1402,15 @@ public class FileSystemState {
 
   public void killRenderThread() {
     view.killRenderThread();
+  }
+
+  public void draw300ms() {
+    long curr = SystemClock.uptimeMillis();
+    if (curr > animationStartTime + animationDuration) {
+      viewTop = targetViewTop;
+      viewBottom = targetViewBottom;
+      prepareMotion(SystemClock.uptimeMillis());
+      animationDuration = 300;
+    }
   }
 }

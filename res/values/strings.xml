@@ -27,7 +27,7 @@
 <string name="button_cancel">Cancel</string>
 <string name="button_background">Background</string>
 <string name="install_oi_file_manager">Install &quot;OI File manager&quot; to view directories</string>
-<string name="title_for_path">%s - DiskUsage</string>
+<string name="title_for_path">%s</string>
 <string name="title_in_oi_file_manager">OI File Manager</string>
 <string name="button_text_in_oi_file_manager">Return to DiskUsage</string>
 <string name="no_viewer_found">No viewer found</string>
@@ -66,4 +66,16 @@
 <string name="show_dalvikcache_desc">Display dalvikCache allocated for your apps on your data partition.</string>
 <string name="show_cache">Show Cache</string>
 <string name="show_cache_desc">Application cache uses different partition and can\'t be used by apk and data.</string>
+<string name="select_apps">Select apps</string>
+<string name="select_storage">Select storage</string>
+<string-array name="select_apps">
+  <item>On phone.</item>
+  <item>On sd card.</item>
+  <item>Both.</item>
+</string-array>
+<string-array name="select_storage">
+  <item>Show phone memory.</item>
+  <item>Show sd card memory.</item>
+  <item>Show both.</item>
+</string-array>
 </resources>
