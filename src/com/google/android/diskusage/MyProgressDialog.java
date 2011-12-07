@@ -205,6 +205,7 @@ public class MyProgressDialog extends AlertDialog {
     LayoutInflater inflater = LayoutInflater.from(context);
     View view = inflater.inflate(R.layout.progress, null);
     progressBar = (ProgressBar) view.findViewById(R.id.progress);
+    progressBar.setMax(10000);
     detailsView = (TextView) view.findViewById(R.id.progress_details);
     percentView = (TextView) view.findViewById(R.id.progress_percent);
     progressPercentFormat = NumberFormat.getPercentInstance();

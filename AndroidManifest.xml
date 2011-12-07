@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.google.android.diskusage"
     android:installLocation="auto"
-    android:versionCode="3010"
-    android:versionName="3.1">
+    android:versionCode="3020"
+    android:versionName="3.2">
     <uses-sdk android:minSdkVersion="1" android:targetSdkVersion="11"/>
     <application android:icon="@drawable/icon"
                  android:label="@string/app_name"

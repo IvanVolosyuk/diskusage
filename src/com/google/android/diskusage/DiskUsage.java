@@ -475,7 +475,7 @@ public class DiskUsage extends LoadableActivity {
   
   private int getMemoryQuota() {
     int totalMem = memoryClass.maxHeap();
-    int numMountPoints = MountPoint.getMountPoints().size();
+    int numMountPoints = MountPoint.getMountPoints(this).size();
     return totalMem / (numMountPoints + 1);
   }
   
@@ -540,9 +540,9 @@ public class DiskUsage extends LoadableActivity {
   FileSystemSuperRoot scan() throws IOException, InterruptedException {
     MountPoint mountPoint0 = null;
     if (key.startsWith("rooted")) {
-      mountPoint0 = MountPoint.getRooted(getRootPath());
+      mountPoint0 = MountPoint.getRooted(this, getRootPath());
     } else {
-      mountPoint0 = MountPoint.getNormal(getRootPath());
+      mountPoint0 = MountPoint.getNormal(this, getRootPath());
     }
     final MountPoint mountPoint = mountPoint0;
     final FileSystemStats stats = new FileSystemStats(mountPoint);
@@ -557,7 +557,7 @@ public class DiskUsage extends LoadableActivity {
     MountPoint realMountPoint = mountPoint;
     boolean fakeDataHoneycomb = (isMergedStorage()
         && key.equals("storage:/data"));
-    if (fakeDataHoneycomb) realMountPoint = MountPoint.getHoneycombSdcard();
+    if (fakeDataHoneycomb) realMountPoint = MountPoint.getHoneycombSdcard(this);
     
     try {
 //      if (true) throw new RuntimeException("native fail");
@@ -646,7 +646,7 @@ public class DiskUsage extends LoadableActivity {
   }
   
   public FileSystemEntry.ExcludeFilter getExcludeFilter() {
-    return MountPoint.getMountPoints().get(getRootPath()).getExcludeFilter();
+    return MountPoint.getMountPoints(this).get(getRootPath()).getExcludeFilter();
   }
   
   @Override

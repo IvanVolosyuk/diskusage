@@ -27,7 +27,7 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
   @Override
   protected void onResume() {
     super.onResume();
-    Map<String, MountPoint> mountPoints = MountPoint.getRootedMountPoints();
+    Map<String, MountPoint> mountPoints = MountPoint.getRootedMountPoints(this);
     PreferenceScreen prefs = getPreferenceScreen();
     prefs.removeAll();
     SharedPreferences shprefs =  getSharedPreferences("ignore_list", Context.MODE_PRIVATE);

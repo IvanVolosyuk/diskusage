@@ -21,6 +21,7 @@ package com.google.android.diskusage;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
@@ -106,6 +107,7 @@ public class SelectActivity extends Activity {
     public void run() {
       boolean reload = false;
       try {
+//        BufferedReader reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.mounts_honeycomb), "UTF-8"));
         BufferedReader reader = new BufferedReader(new FileReader("/proc/mounts"));
         String line;
         int checksum = 0;
@@ -135,29 +137,27 @@ public class SelectActivity extends Activity {
     final String storageCard = getString(R.string.storage_card);
     final String programStorage = getString(R.string.app_storage);
     
-    final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
-    
-    if(sdkVersion < Build.VERSION_CODES.HONEYCOMB){
+    if(MountPoint.getHoneycombSdcard(this) == null){
       options.add(programStorage);
       actionList.add(new AppUsageAction(programStorage));
     }
     
-    if (MountPoint.hasMultiple()) {
-      for (MountPoint mountPoint : MountPoint.getMountPoints().values()) {
+    if (MountPoint.hasMultiple(this)) {
+      for (MountPoint mountPoint : MountPoint.getMountPoints(this).values()) {
         options.add(mountPoint.root);
         actionList.add(new DiskUsageAction(mountPoint.root, mountPoint));
       }
     } else {
       options.add(storageCard);
-      actionList.add(new DiskUsageAction(storageCard, MountPoint.getDefaultStorage()));
+      actionList.add(new DiskUsageAction(storageCard, MountPoint.getDefaultStorage(this)));
     }
     
-    if (!MountPoint.getRootedMountPoints().isEmpty()) {
+    if (!MountPoint.getRootedMountPoints(this).isEmpty()) {
       SharedPreferences prefs =  getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
       Map<String, ?> ignoreList = prefs.getAll();
       if (!ignoreList.keySet().isEmpty()) {
         Set<String> ignores = ignoreList.keySet();
-        for (MountPoint mountPoint : MountPoint.getRootedMountPoints().values()) {
+        for (MountPoint mountPoint : MountPoint.getRootedMountPoints(this).values()) {
           if (ignores.contains(mountPoint.root)) continue;
           options.add(mountPoint.root);
           actionList.add(new DiskUsageAction(mountPoint.root, mountPoint));
@@ -165,7 +165,7 @@ public class SelectActivity extends Activity {
         options.add("[Show/hide]");
         actionList.add(new ShowHideAction());
       } else if (expandRootMountPoints) {
-        for (MountPoint mountPoint : MountPoint.getRootedMountPoints().values()) {
+        for (MountPoint mountPoint : MountPoint.getRootedMountPoints(this).values()) {
           options.add(mountPoint.root);
           actionList.add(new DiskUsageAction(mountPoint.root, mountPoint));
         }

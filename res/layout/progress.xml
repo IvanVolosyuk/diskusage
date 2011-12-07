@@ -33,6 +33,7 @@
             android:layout_marginLeft="10dip"
             android:layout_marginRight="10dip"
             android:layout_alignParentLeft="true"
+            android:inputType="textNoSuggestions"
             android:layout_below="@id/progress"
         />
         <TextView
@@ -46,7 +47,7 @@
             android:layout_below="@id/progress"
             android:maxLines="1"
             android:gravity="left"
-            android:inputType="text"
+            android:inputType="textNoSuggestions"
             android:ellipsize="none"
         />
 </RelativeLayout>

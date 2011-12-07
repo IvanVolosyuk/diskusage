@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+ * DiskUsage - displays sdcard usage on android.
+ * Copyright (C) 2008 Ivan Volosyuk
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ -->
+<resources>
+    <string name="app_name">DiskUsage</string>
+<string name="app_description">SD kartını inceleyip temizlemenize olanak sağlar.</string>
+<string name="scaning_directories">Dizinler taranıyor...</string>
+<string name="button_show">Göster</string>
+<string name="button_delete">Sil</string>
+<string name="button_rescan">Yeniden tara</string>
+<string name="button_cancel">İptal</string>
+<string name="button_background">Arka plan</string>
+<string name="install_oi_file_manager">Dizinleri görmek için &quot;OI File manager&quot;\'ı kurunuz</string>
+<string name="title_for_path">%s - DiskUsage</string>
+<string name="title_in_oi_file_manager">OI File Manager</string>
+<string name="button_text_in_oi_file_manager">DiskUsage\'a dön</string>
+<string name="no_viewer_found">Hiçbir görüntüleyici bulunamadı</string>
+<string name="ask_to_delete_directory">%s dizinini silmek istediğinizden emin misiniz?</string>
+<string name="ask_to_delete_file">%s dosyasını silmek istediğinizden emin misiniz?</string>
+<string name="out_of_memory">Bellek miktarı yetersiz!</string>
+<string name="empty_or_missing_sdcard">SD kartı boş ya da mevcut değil</string>
+<string name="path_doesnt_exist">%s\nmevcut değil</string>
+<string name="file_deleted">Dosya silindi</string>
+<string name="error_file_wasnt_deleted">Hata: dosya silinmedi</string>
+<string name="deleting_path">%s siliniyor</string>
+<string name="deleted_n_directories_and_n_files">%1$d dizin ve %2$d dosya silindi</string>
+<string name="deleted_n_directories_and_files_and_canceled">Silme iptal edildi: iptalden önce %1$d dizin ve %2$d dosya silindi</string>
+<string name="deleted_n_directories_and_n_files_and_failed">Silme başarısız oldu!: %1$d dizin ve %2$d dosya silindi</string>
+<string name="n_bytes">%d bayt</string>
+<string name="n_kilobytes">%d KiB</string>
+<string name="n_megabytes">%5.2f MiB</string>
+<string name="n_megabytes10">%5.1f MiB</string>
+<string name="n_megabytes100">%d MiB</string>
+<string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d dizin)</string>
+<string name="dir_empty">%s (boş)</string>
+<string name="dir_name_size">%1$s (%2$s)</string>
+<string name="apps_bulk_uninstall_not_supported">Uygulamaları çoklu kaldırmak desteklenmemektedir</string>
+<string name="app_storage">Uygulama Yedeklemesi</string>
+<string name="storage_card">Yedekleme kartı</string>
+<string name="delete_summary">%1$d dosya, toplam boyut: %2$s</string>
+<string name="change_filter">Süzgeç...</string>
+<string name="apps_filter">Uygulama Süzgeci</string>
+<string name="internal_only">Yalnızca Dahili</string>
+<string name="internal_only_desc">SD kartında saklanan verileri sayma</string>
+<string name="show_apk">Apk Dosyaları Göster</string>
+<string name="show_apk_desc">Uygulama dosyalarını göster.</string>
+<string name="show_data">Veri Göster</string>
+<string name="show_data_desc">Uygulamaların kullandığı depolama alanını göster.</string>
+<string name="show_dalvikcache">Dalvik Önbelleğini Göster</string>
+<string name="show_dalvikcache_desc">Dalvik ön belleği tarafından veri disk bölümünde uygulamalarınıza tahsis edilen alanı göster.</string>
+<string name="show_cache">Ön belleği Göster</string>
+<string name="show_cache_desc">Uygulama ön belleği başka bir disk bölümü kullanır ve apk ile normal veriler tarafından kullanılamaz.</string>
+</resources>

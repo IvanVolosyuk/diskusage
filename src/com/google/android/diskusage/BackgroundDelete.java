@@ -55,7 +55,7 @@ public class BackgroundDelete extends Thread {
     path = entry.path2();
     String deleteRoot = entry.absolutePath();
     file = new File(deleteRoot);
-    for (MountPoint mountPoint : MountPoint.getMountPoints().values()) {
+    for (MountPoint mountPoint : MountPoint.getMountPoints(diskUsage).values()) {
       if ((mountPoint.root + "/").startsWith(deleteRoot + "/")) {
         Toast.makeText(diskUsage, "This delete operation will erase entire storage - canceled.",
             Toast.LENGTH_LONG).show();
