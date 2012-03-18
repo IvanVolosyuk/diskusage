@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -->
 <resources>
-    <string name="app_name">DiskUsage</string>
+<string name="app_name">DiskUsage</string>
 <string name="app_description">Utilidad para examinar el contenido de la tarjeta SD y liberar espacio.</string>
 <string name="scaning_directories">Escaneando directorios...</string>
 <string name="button_show">Mostrar</string>

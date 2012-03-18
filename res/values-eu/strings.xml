@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -->
 <resources>
-    <string name="app_name">DiskUsage</string>
+<string name="app_name">DiskUsage</string>
 <string name="app_description">SD txartelaren edukia aztertu eta leku librea lortzeko tresna.</string>
 <string name="scaning_directories">Direktorioak eskaneatzen...</string>
 <string name="button_show">Erakutsi</string>

@@ -50,6 +50,7 @@
 <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d папок)</string>
 <string name="dir_empty">%s (пуста)</string>
 <string name="dir_name_size">%1$s (%2$s)</string>
+<string name="apps_bulk_uninstall_not_supported">Удаления нескольких программ не возможно.</string>
 <string name="app_storage">Программы</string>
 <string name="storage_card">Карта Памяти</string>
 <string name="delete_summary">%1$d файлов, общий размер: %2$s</string>
@@ -65,5 +66,16 @@
 <string name="show_dalvikcache_desc">DalvikCache это часть apk скопированная системой.</string>
 <string name="show_cache">Показывать Cache</string>
 <string name="show_cache_desc">Cache программы хранится на отдельном разделе и обычно не учитывается.</string>
-
+<string name="select_apps">Показать программы</string>
+<string name="select_storage">Показать только...</string>
+<string-array name="select_apps">
+  <item>на телефоне</item>
+  <item>на карте памяти</item>
+  <item>на телефоне и карте памяти</item>
+</string-array>
+<string-array name="select_storage">
+  <item>Память телефона.</item>
+  <item>Карту памяти.</item>
+  <item>Показать всё.</item>
+</string-array>
 </resources>
