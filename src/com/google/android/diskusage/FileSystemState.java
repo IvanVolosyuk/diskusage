@@ -170,8 +170,8 @@ public class FileSystemState {
   private long displayTop;
   private long displayBottom;
 
-  private int screenWidth;
-  private int screenHeight;
+  private int screenWidth = 400;   // Safe values to not crash when touch events
+  private int screenHeight = 400;  // come before screen initialized.
 
   private float yscale;
 

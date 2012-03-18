@@ -27,8 +27,9 @@ public final class FileSystemViewGPU extends SurfaceView
 
 //    setBackgroundColor(Color.GRAY);
     SurfaceHolder holder = getHolder();
-    holder.addCallback(this);
     holder.setType(SurfaceHolder.SURFACE_TYPE_GPU);
+    holder.setSizeFromLayout();
+    holder.addCallback(this);
     eventHandler.setView(this);
     thread = new RenderingThread(context, eventHandler);
     thread.start();

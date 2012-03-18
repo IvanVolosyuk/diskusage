@@ -536,7 +536,7 @@ public class DiskUsage extends LoadableActivity {
       }
     };
   }
-
+  
   @Override
   FileSystemSuperRoot scan() throws IOException, InterruptedException {
     MountPoint mountPoint0 = null;
