@@ -83,6 +83,7 @@ public class MountPoint {
   }
   
   public static MountPoint getRooted(Context context, String rootPath) {
+    initMountPoints(context);
     return rootedMountPoints.get(rootPath);
   }
 

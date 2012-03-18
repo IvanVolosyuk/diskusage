@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+ * DiskUsage - displays sdcard usage on android.
+ * Copyright (C) 2008 Ivan Volosyuk
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ -->
+<resources>
+    <string name="app_name">DiskUsage</string>
+<string name="app_description">SD txartelaren edukia aztertu eta leku librea lortzeko tresna.</string>
+<string name="scaning_directories">Direktorioak eskaneatzen...</string>
+<string name="button_show">Erakutsi</string>
+<string name="button_delete">Ezabatu</string>
+<string name="button_rescan">Berreskaneatu</string>
+<string name="button_cancel">Utzi</string>
+<string name="button_background">Atzeko planoa</string>
+<string name="install_oi_file_manager">Instalatu &quot;OI File manager&quot; direktorioak ikusteko</string>
+<string name="title_for_path">%s</string>
+<string name="title_in_oi_file_manager">OI File Manager</string>
+<string name="button_text_in_oi_file_manager">Itzuli DiskUsage-era</string>
+<string name="no_viewer_found">Ez da ikustailerik aurkitu</string>
+<string name="ask_to_delete_directory">Ezabatu %s direktorioa?</string>
+<string name="ask_to_delete_file">Ezabatu %s fitxategia?</string>
+<string name="out_of_memory">Ez dago memoria nahikorik!</string>
+<string name="empty_or_missing_sdcard">SD txartela falta da edo hutsik dago</string>
+<string name="path_doesnt_exist">%s\nez da existitzen</string>
+<string name="file_deleted">Fitxategia ezabatuta</string>
+<string name="error_file_wasnt_deleted">Errorea: fitxategia ez da ezabatu</string>
+<string name="deleting_path">%s ezabatzen</string>
+<string name="deleted_n_directories_and_n_files">%1$d direktorio eta %2$d fitxategi ezabatuta</string>
+<string name="deleted_n_directories_and_files_and_canceled">Ezabaketa bertan behera gelditu da: %1$d direktorio eta %2$d fitxategi ezabatuta</string>
+<string name="deleted_n_directories_and_n_files_and_failed">Ezabaketak huts egin du!: %1$d direktorio eta %2$d fitxategi ezabatuta</string>
+<string name="n_bytes">%d byte</string>
+<string name="n_kilobytes">%d KiB</string>
+<string name="n_megabytes">%5.2f MiB</string>
+<string name="n_megabytes10">%5.1f MiB</string>
+<string name="n_megabytes100">%d MiB</string>
+<string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d dir)</string>
+<string name="dir_empty">%s (hutsik)</string>
+<string name="dir_name_size">%1$s (%2$s)</string>
+<string name="apps_bulk_uninstall_not_supported">Ez da onartzen hainbat aplikazio desinstalatzea</string>
+<string name="app_storage">Aplikazio memoria</string>
+<string name="storage_card">SD txarteleko memoria</string>
+<string name="delete_summary">%1$d fitxategi, guztizko tamaina: %2$s</string>
+<string name="change_filter">Iragazkia...</string>
+<string name="apps_filter">Aplikazio iragazkia</string>
+<string name="internal_only">Barnekoa soilik</string>
+<string name="internal_only_desc">Baztertu SD txartelean gordetako datuak</string>
+<string name="show_apk">Erakutsi Apk</string>
+<string name="show_apk_desc">Bistaratu aplikazio-fitxategiak.</string>
+<string name="show_data">Erakutsi Datuak</string>
+<string name="show_data_desc">Bistaratu aplikazioen datuei esleitutako memoria.</string>
+<string name="show_dalvikcache">Erakutsi DalvikCache</string>
+<string name="show_dalvikcache_desc">Bistaratu zure aplikazioei datu partizioan esleitutako dalvikCache-a.</string>
+<string name="show_cache">Erakutsi Cache-a</string>
+<string name="show_cache_desc">Aplikazio cache-ak, apk eta datuek erabili ezin duten, partizio desberdin bat erabiltzen du.</string>
+<string name="select_apps">Hautatu aplikazioak</string>
+<string name="select_storage">Hautatu memoria</string>
+<string-array name="select_apps">
+  <item>Telefonoan.</item>
+  <item>SD txartelean.</item>
+  <item>Bietan.</item>
+</string-array>
+<string-array name="select_storage">
+  <item>Erakutsi telefonoaren memoria.</item>
+  <item>Erakutsi SD txartelaren memoria.</item>
+  <item>Erakutsi biak.</item>
+</string-array>
+</resources>
+
