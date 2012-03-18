@@ -29,6 +29,7 @@ import android.os.Bundle;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.StyleSpan;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -55,6 +56,8 @@ public class MyProgressDialog extends AlertDialog {
   public void setMax(long max) {
     this.max = max;
   }
+  private int depth = 0;
+  private boolean warned = false;
 
   private final String path(FileSystemEntry entry) {
     ArrayList<String> pathElements = new ArrayList<String>();
@@ -63,6 +66,8 @@ public class MyProgressDialog extends AlertDialog {
       pathElements.add(current.name);
       current = current.parent;
     }
+    
+    depth = pathElements.size();
     if (pathElements.size() < 2) return "";
     pathElements.remove(pathElements.size() - 1);
     StringBuilder path = new StringBuilder();
@@ -179,6 +184,11 @@ public class MyProgressDialog extends AlertDialog {
         0, tmp.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
     percentView.setText(tmp);
 //    Log.d("diskusage", "details: " + details);
+//    Log.d("diskusage", "depth = " + depth);
+    if (depth > 40 && !warned) {
+      warned = true;
+      setMessage("Cyclic dirs? Broken filesystem?");
+    }
   }
 
   public void setProgress(long progress, FileSystemEntry entry) {

@@ -50,7 +50,7 @@
 <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d папок)</string>
 <string name="dir_empty">%s (пуста)</string>
 <string name="dir_name_size">%1$s (%2$s)</string>
-<string name="apps_bulk_uninstall_not_supported">Удаления нескольких программ не возможно.</string>
+<string name="apps_bulk_uninstall_not_supported">Удаления нескольких программ невозможно.</string>
 <string name="app_storage">Программы</string>
 <string name="storage_card">Карта Памяти</string>
 <string name="delete_summary">%1$d файлов, общий размер: %2$s</string>

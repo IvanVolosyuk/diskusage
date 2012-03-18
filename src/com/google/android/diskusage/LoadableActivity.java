@@ -186,7 +186,7 @@ public abstract class LoadableActivity extends Activity {
         final String finalError = error;
         state.root = null;
         state.afterLoad = null;
-        Log.d("DiskUsage", "out of memory!");
+        Log.d("DiskUsage", "exception in scan!");
         handler.post(new Runnable() {
           public void run() {
             if (state.loading == null) return;

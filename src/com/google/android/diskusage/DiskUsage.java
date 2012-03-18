@@ -526,6 +526,7 @@ public class DiskUsage extends LoadableActivity {
         if (dialog != null) {
           dialog.setMax(stats.busyBlocks);
           FileSystemEntry lastFile = scanner.lastCreatedFile();
+
           if (lastFile != file) {
             dialog.setProgress(scanner.pos(), lastFile);
           }
