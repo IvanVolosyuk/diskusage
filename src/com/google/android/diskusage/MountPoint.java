@@ -131,8 +131,11 @@ public class MountPoint {
         if (parts.length < 3) continue;
         String mountPoint = parts[1];
         String fsType = parts[2];
-        if (!fsType.equals("vfat") || mountPoint.startsWith("/mnt/asec")
-            || mountPoint.startsWith("/mnt/secure") || mountPoint.startsWith("/data/mac")) {
+        if (!(fsType.equals("vfat") || fsType.equals("tntfs") || fsType.equals("exfat"))
+            || mountPoint.startsWith("/mnt/asec")
+            || mountPoint.startsWith("/firmware")
+            || mountPoint.startsWith("/mnt/secure")
+            || mountPoint.startsWith("/data/mac")) {
           excludePoints.add(mountPoint);
           
           // Default storage is not vfat, removing it (real honeycomb)
