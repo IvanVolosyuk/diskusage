@@ -22,4 +22,18 @@ public class FileSystemRoot extends FileSystemEntry {
     // don't match name
     return filterChildren(pattern, blockSize);
   }
+  
+  public final FileSystemEntry getByAbsolutePath(String path) {
+    if (path.startsWith(rootPath)) {
+      return getEntryByName(path.substring(rootPath.length() + 1, path.length()), true);
+    }
+    for (FileSystemEntry s : children) {
+      if (s instanceof FileSystemRoot) {
+        FileSystemRoot subroot = (FileSystemRoot) s;
+        FileSystemEntry e = subroot.getByAbsolutePath(path);
+        if (e != null) return e;
+      }
+    }
+    return null;
+  }
 }

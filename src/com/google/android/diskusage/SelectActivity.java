@@ -90,7 +90,7 @@ public class SelectActivity extends Activity {
     return "app";
   }
   
-  public String getKeyForStorage(MountPoint mountPoint) {
+  public static String getKeyForStorage(MountPoint mountPoint) {
     return (mountPoint.rootRequired ? "rooted" : "storage:") + mountPoint.root;
   }
   
@@ -134,7 +134,6 @@ public class SelectActivity extends Activity {
     ArrayList<String> options = new ArrayList<String>();
     actionList.clear();
     
-    final String storageCard = getString(R.string.storage_card);
     final String programStorage = getString(R.string.app_storage);
     
     if(MountPoint.getHoneycombSdcard(this) == null){
@@ -142,14 +141,9 @@ public class SelectActivity extends Activity {
       actionList.add(new AppUsageAction(programStorage));
     }
     
-    if (MountPoint.hasMultiple(this)) {
-      for (MountPoint mountPoint : MountPoint.getMountPoints(this).values()) {
-        options.add(mountPoint.root);
-        actionList.add(new DiskUsageAction(mountPoint.root, mountPoint));
-      }
-    } else {
-      options.add(storageCard);
-      actionList.add(new DiskUsageAction(storageCard, MountPoint.getDefaultStorage(this)));
+    for (MountPoint mountPoint : MountPoint.getMountPoints(this).values()) {
+      options.add(mountPoint.title);
+      actionList.add(new DiskUsageAction(mountPoint.title, mountPoint));
     }
     
     if (!MountPoint.getRootedMountPoints(this).isEmpty()) {

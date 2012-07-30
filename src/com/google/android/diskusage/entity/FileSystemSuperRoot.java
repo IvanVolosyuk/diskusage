@@ -45,4 +45,23 @@ public class FileSystemSuperRoot extends FileSystemSpecial {
     // don't match name
     return filterChildren(pattern, blockSize);
   }
+  
+  public final FileSystemEntry getByAbsolutePath(String path) {
+    for (FileSystemEntry r : children) {
+      if (!(r instanceof FileSystemRoot)) {
+        continue;
+      }
+      FileSystemRoot root = (FileSystemRoot) r;
+      FileSystemEntry e = root.getByAbsolutePath(path);
+      if (e != null) {
+        return e;
+      }
+    }
+    return null;
+  }
+  
+  public FileSystemEntry getEntryByName(String path, boolean exactMatch) {
+    return children[0].getEntryByName(path, exactMatch);
+  }
+
 }

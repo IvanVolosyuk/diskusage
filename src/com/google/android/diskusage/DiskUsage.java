@@ -81,15 +81,44 @@ public class DiskUsage extends LoadableActivity {
   DiskUsageMenu menu = DiskUsageMenu.getInstance(this);
   RendererManager rendererManager = new RendererManager(this);
   
+  private void initFromUri(String inpath) throws IOException {
+    final String path = new File(inpath).getCanonicalPath();
+    Log.d("diskusage", "Specified file: " + inpath + " absolute: " + path);
+    MountPoint mountPoint = MountPoint.forPath(this, path);
+    rootPath = mountPoint.root;
+    Log.d("diskusage", "rootPath = " + rootPath);
+    rootTitle = mountPoint.title;
+    key = SelectActivity.getKeyForStorage(mountPoint);
+    afterLoadAction.add(new Runnable() {
+      @Override
+      public void run() {
+        fileSystemState.selectFileInRendererThread(path);
+      }
+    });
+
+  }
+  
   protected void onCreate(Bundle icicle) {
     super.onCreate(icicle);
     Log.d("diskusage", "onCreate()");
     setContentView(new TextView(this));
     menu.onCreate();
     Intent i = getIntent();
-    rootPath = i.getStringExtra(ROOT_KEY);
-    rootTitle = i.getStringExtra(TITLE_KEY);
-    key = i.getStringExtra(KEY_KEY);
+    
+    
+    if ("com.google.android.diskusage.VIEW".equals(i.getAction())) {
+      try {
+        initFromUri(i.getData().getPath());
+      } catch (Exception e) {
+        Log.e("diskusage", "Failed to find specified file", e);
+        finish();
+        return;
+      }
+    } else {
+      rootPath = i.getStringExtra(ROOT_KEY);
+      rootTitle = i.getStringExtra(TITLE_KEY);
+      key = i.getStringExtra(KEY_KEY);
+    }
     Bundle receivedState = i.getBundleExtra(STATE_KEY);
     Log.d("diskusage", "onCreate, rootPath = " + rootPath + " receivedState = " + receivedState);
     if (receivedState != null) onRestoreInstanceState(receivedState);

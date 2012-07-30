@@ -39,11 +39,14 @@ import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
 
 public class MountPoint {
   FileSystemEntry.ExcludeFilter excludeFilter;
+  String title;
   String root;
   boolean hasApps2SD;
   boolean rootRequired;
   
-  MountPoint(String root, ExcludeFilter excludeFilter, boolean hasApps2SD, boolean rootRequired) {
+  MountPoint(String title, String root, ExcludeFilter excludeFilter,
+      boolean hasApps2SD, boolean rootRequired) {
+    this.title = title;
     this.root = root;
     this.excludeFilter = excludeFilter;
     this.hasApps2SD = hasApps2SD;
@@ -82,6 +85,23 @@ public class MountPoint {
     return mountPoints.get(rootPath);
   }
   
+  public static MountPoint forPath(Context context, String path) {
+    initMountPoints(context);
+    MountPoint match = null;
+    for (MountPoint m : mountPoints.values()) {
+      if (path.contains(m.root)) {
+        if (match == null || match.root.length() < m.root.length()) {
+          match = m;
+        }
+      }
+    }
+    // FIXME: quick hack
+    if (match == null) {
+      match = mountPoints.get("/data");
+    }
+    return match;
+  }
+  
   public static MountPoint getRooted(Context context, String rootPath) {
     initMountPoints(context);
     return rootedMountPoints.get(rootPath);
@@ -101,7 +121,11 @@ public class MountPoint {
   }
   
   public static String storageCardPath() {
-    return Environment.getExternalStorageDirectory().getAbsolutePath();
+    try {
+      return Environment.getExternalStorageDirectory().getCanonicalPath();
+    } catch (Exception e) {
+      return Environment.getExternalStorageDirectory().getAbsolutePath();
+    }
   }
   
   private static void initMountPoints(Context context) {
@@ -111,7 +135,8 @@ public class MountPoint {
     ArrayList<MountPoint> mountPointsList = new ArrayList<MountPoint>();
     HashSet<String> excludePoints = new HashSet<String>();
     if (storagePath != null) {
-      defaultStorage = new MountPoint(storagePath, null, false, false); 
+      defaultStorage = new MountPoint(
+              titleStorageCard(context), storagePath, null, false, false); 
       mountPointsList.add(defaultStorage);
       mountPoints.put(storagePath, defaultStorage);
     }
@@ -144,10 +169,10 @@ public class MountPoint {
             mountPoints.remove(mountPoint);
           }
           if (rooted && !mountPoint.startsWith("/mnt/asec/")) {
-            mountPointsList.add(new MountPoint(mountPoint, null, false, true));
+            mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, true));
           }
         } else {
-          mountPointsList.add(new MountPoint(mountPoint, null, false, false));
+          mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, false));
         }
       }
       
@@ -171,7 +196,7 @@ public class MountPoint {
           }
         }
         MountPoint newMountPoint = new MountPoint(
-            mountPoint.root, new ExcludeFilter(excludes),
+            mountPoint.root, mountPoint.root, new ExcludeFilter(excludes),
             has_apps2sd, mountPoint.rootRequired);
         if (mountPoint.rootRequired) {
           rootedMountPoints.put(mountPoint.root, newMountPoint);
@@ -188,12 +213,18 @@ public class MountPoint {
         && mountPoints.get(storageCardPath()) == null) {
       // No real /sdcard in honeycomb
       honeycombSdcard = defaultStorage;
-      mountPoints.put("/data", new MountPoint("/data", null, false, false));
+      mountPoints.put("/data", new MountPoint(
+              titleStorageCard(context), "/data", null, false, false));
     }
 
     if (!mountPoints.isEmpty()) {
       defaultStorage = mountPoints.values().iterator().next();
+      defaultStorage.title = titleStorageCard(context);
     }
+  }
+  
+  private static String titleStorageCard(Context context) {
+    return context.getString(R.string.storage_card);
   }
   
 //  private static final String file = 

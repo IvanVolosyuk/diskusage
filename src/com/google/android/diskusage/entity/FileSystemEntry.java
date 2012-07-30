@@ -1102,10 +1102,10 @@ public class FileSystemEntry {
    * Walks through the path and finds the specified entry, null otherwise.
    * @param exactMatch TODO
    */
-  public final FileSystemEntry getEntryByName(String path, boolean exactMatch) {
+  public FileSystemEntry getEntryByName(String path, boolean exactMatch) {
     Log.d("diskusage", "getEntryForName = " + path);
     String[] pathElements = path.split("/");
-    FileSystemEntry entry = this.children[0];
+    FileSystemEntry entry = this;
     
     outer:
       for (int i = 0; i < pathElements.length; i++) {

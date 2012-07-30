@@ -1348,6 +1348,19 @@ public class FileSystemState {
       }
     });
   }
+  
+  public void selectFileInRendererThread(final String path) {
+    view.runInRenderThread(new Runnable() {
+      @Override
+      public void run() {
+        FileSystemEntry e = masterRoot.getByAbsolutePath(path);
+        if (e != null) {
+          touchSelect(e, 50);
+          touchSelect(e, 5000);
+        }
+      }
+    });
+  }
 
   public void saveState(Bundle outState) {
     outState.putString("cursor", cursor.position.path2());
