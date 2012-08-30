@@ -88,7 +88,7 @@ public abstract class AbstractRenderingThread extends Thread {
             repaintEvent = false;
             return;
           }
-          
+
           events.wait();
           continue;
         }
@@ -186,18 +186,29 @@ public abstract class AbstractRenderingThread extends Thread {
     
     public void initSurface(SurfaceHolder holder) {
       Log.d("diskusage", "*** init surface ****");
-      surface = egl.eglCreateWindowSurface(eglDisplay, eglConfig, holder, null);
-      egl.eglMakeCurrent(eglDisplay, surface, surface, eglContext);
+      
+      // Note: I haven't found how to avoid race condition with surfaceCreated
+      // and surfaceDestroyed in SurfaceHolder.Callback and the renderer thread.
+      try {
+        surface = egl.eglCreateWindowSurface(eglDisplay, eglConfig, holder, null);
+        egl.eglMakeCurrent(eglDisplay, surface, surface, eglContext);
+      } catch (Exception e) {
+        Log.e("diskusage", "initSurface", e);
+      }
     }
     
     public void destroySurface(SurfaceHolder holder) {
       Log.d("diskusage", "*** destroy surface ***");
-      egl.eglMakeCurrent(eglDisplay, EGL10.EGL_NO_SURFACE,
-          EGL10.EGL_NO_SURFACE,
-          EGL10.EGL_NO_CONTEXT);
-      egl.eglDestroySurface(eglDisplay, surface);
-      egl.eglDestroyContext(eglDisplay, eglContext);
-      egl.eglTerminate(eglDisplay);
+      try {
+        egl.eglMakeCurrent(eglDisplay, EGL10.EGL_NO_SURFACE,
+            EGL10.EGL_NO_SURFACE,
+            EGL10.EGL_NO_CONTEXT);
+        egl.eglDestroySurface(eglDisplay, surface);
+        egl.eglDestroyContext(eglDisplay, eglContext);
+        egl.eglTerminate(eglDisplay);
+      } catch (Exception e) {
+        Log.e("diskusage", "destroySurface", e);
+      }
     }
     
     public void swapBuffers() {
