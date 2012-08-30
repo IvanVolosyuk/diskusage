@@ -339,17 +339,6 @@ public class DiskUsage extends LoadableActivity {
     Uri uri = Uri.fromFile(file);
     
     if (file.isDirectory()) {
-      intent = new Intent(Intent.ACTION_VIEW);
-      intent.addCategory(Intent.CATEGORY_DEFAULT);
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setDataAndType(uri, "vnd.android.cursor.item/com.metago.filemanager.dir");
-      
-      try {
-        startActivity(intent);
-        return;
-      } catch(ActivityNotFoundException e) {
-      }
-
       intent = new Intent("org.openintents.action.VIEW_DIRECTORY");
       intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
       intent.setData(uri);
@@ -367,11 +356,23 @@ public class DiskUsage extends LoadableActivity {
           str(R.string.title_in_oi_file_manager));
       intent.putExtra("org.openintents.extra.BUTTON_TEXT",
           str(R.string.button_text_in_oi_file_manager));
+
       try {
         startActivity(intent);
         return;
       } catch(ActivityNotFoundException e) {
       }
+      intent = new Intent(Intent.ACTION_VIEW);
+      intent.addCategory(Intent.CATEGORY_DEFAULT);
+      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      intent.setDataAndType(uri, "vnd.android.cursor.item/com.metago.filemanager.dir");
+      
+      try {
+        startActivity(intent);
+        return;
+      } catch(ActivityNotFoundException e) {
+      }
+
       Toast.makeText(this, str(R.string.install_oi_file_manager),
           Toast.LENGTH_SHORT).show();
       return;
