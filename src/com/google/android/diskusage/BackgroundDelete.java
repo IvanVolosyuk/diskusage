@@ -26,6 +26,7 @@ import com.google.android.diskusage.entity.FileSystemPackage;
 
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.content.DialogInterface.OnDismissListener;
 import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
@@ -98,6 +99,18 @@ public class BackgroundDelete extends Thread {
         dialog = null;
       }
     });
+    dialog.setOnDismissListener(new OnDismissListener() {
+      @Override
+      public void onDismiss(DialogInterface _) {
+        dialog = null;        
+      }
+    });
+    dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+      @Override
+      public void onCancel(DialogInterface _) {
+        dialog = null;
+      }
+    });
     dialog.show();
     start();
   }
@@ -119,7 +132,13 @@ public class BackgroundDelete extends Thread {
     // FIXME: use notification object when backgrounded
     diskUsage.handler.post(new Runnable() {
       public void run() {
-        if (dialog != null) dialog.dismiss();
+        if (dialog != null) {
+          try {
+            dialog.dismiss();
+          } catch (Exception e) {
+            // ignore exception
+          }
+        }
         diskUsage.fileSystemState.removeInRenderThread(entry);
         if (deletionStatus != DELETION_SUCCESS) {
           restore();
