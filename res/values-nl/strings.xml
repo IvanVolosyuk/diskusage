@@ -26,9 +26,9 @@
     <string name="button_rescan">Herscannen</string>
     <string name="button_cancel">Annuleren</string>
     <string name="button_background">Achtergrond</string>
-    <string name="install_oi_file_manager">Installeer &quot;OI File manager&quot; om mappen te bekijken</string>
+    <string name="install_oi_file_manager">Installeer &quot;Solid Explorer&quot; om mappen te bekijken</string>
     <string name="title_for_path">%s</string>
-    <string name="title_in_oi_file_manager">OI File Manager</string>
+    <string name="title_in_oi_file_manager">Solid Explorer</string>
     <string name="button_text_in_oi_file_manager">Terug naar DiskUsage</string>
     <string name="no_viewer_found">Geen viewer gevonden</string>
     <string name="ask_to_delete_directory">Map %s verwijderen?</string>

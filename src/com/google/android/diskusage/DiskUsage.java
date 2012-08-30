@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import android.app.ActivityManager;
 import android.app.AlertDialog;
@@ -34,6 +35,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -319,6 +321,13 @@ public class DiskUsage extends LoadableActivity {
     return getString(id);
   }
   
+  public boolean isIntentAvailable(Intent intent) {
+    final PackageManager packageManager = getPackageManager();
+    List<ResolveInfo> res = packageManager.queryIntentActivities(
+        intent, PackageManager.MATCH_DEFAULT_ONLY);
+    return res.size() > 0;
+  }
+  
   public void view(FileSystemEntry entry) {
     Intent intent = new Intent(Intent.ACTION_VIEW);
     intent.addCategory(Intent.CATEGORY_DEFAULT);
@@ -373,8 +382,34 @@ public class DiskUsage extends LoadableActivity {
       } catch(ActivityNotFoundException e) {
       }
 
+      final Intent installSolidExplorer = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=pl.solidexplorer"));
+      
+      if (isIntentAvailable(installSolidExplorer)) {
+        new AlertDialog.Builder(this)
+        .setCancelable(true)
+        .setTitle("Missing compatible file manager")
+        .setMessage("No compatible filemanager found.\n\nAsk you favorite file manager developer " +
+            "for integration with DiskUsage or install:" +
+            "\n * Solid Explorer" +
+            "\n * Astro" +
+            "\n * OI File Manager")
+            .setPositiveButton("Install Solid Explorer", new DialogInterface.OnClickListener() {
+              @Override
+              public void onClick(DialogInterface arg0, int arg1) {
+                startActivity(installSolidExplorer);
+              }
+            })
+            .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+              @Override
+              public void onClick(DialogInterface arg0, int arg1) {
+                // pass
+              }
+            })
+            .create().show();
+      } else {
       Toast.makeText(this, str(R.string.install_oi_file_manager),
           Toast.LENGTH_SHORT).show();
+      }
       return;
     }
 

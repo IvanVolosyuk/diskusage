@@ -26,9 +26,9 @@
 <string name="button_rescan">Berreskaneatu</string>
 <string name="button_cancel">Utzi</string>
 <string name="button_background">Atzeko planoa</string>
-<string name="install_oi_file_manager">Instalatu &quot;OI File manager&quot; direktorioak ikusteko</string>
+<string name="install_oi_file_manager">Instalatu &quot;Solid Explorer&quot; direktorioak ikusteko</string>
 <string name="title_for_path">%s</string>
-<string name="title_in_oi_file_manager">OI File Manager</string>
+<string name="title_in_oi_file_manager">Solid Explorer</string>
 <string name="button_text_in_oi_file_manager">Itzuli DiskUsage-era</string>
 <string name="no_viewer_found">Ez da ikustailerik aurkitu</string>
 <string name="ask_to_delete_directory">Ezabatu %s direktorioa?</string>

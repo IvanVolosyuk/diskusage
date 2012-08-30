@@ -26,9 +26,9 @@
 <string name="button_rescan">Yeniden tara</string>
 <string name="button_cancel">İptal</string>
 <string name="button_background">Arka plan</string>
-<string name="install_oi_file_manager">Dizinleri görmek için &quot;OI File manager&quot;\'ı kurunuz</string>
+<string name="install_oi_file_manager">Dizinleri görmek için &quot;Solid Explorer&quot;\'ı kurunuz</string>
 <string name="title_for_path">%s - DiskUsage</string>
-<string name="title_in_oi_file_manager">OI File Manager</string>
+<string name="title_in_oi_file_manager">Solid Explorer</string>
 <string name="button_text_in_oi_file_manager">DiskUsage\'a dön</string>
 <string name="no_viewer_found">Hiçbir görüntüleyici bulunamadı</string>
 <string name="ask_to_delete_directory">%s dizinini silmek istediğinizden emin misiniz?</string>

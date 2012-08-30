@@ -26,9 +26,9 @@
 <string name="button_cancel">Отмена</string>
 <string name="button_rescan">Обновить</string>
 <string name="button_background">Скрыть прогресс</string>
-<string name="install_oi_file_manager">Установите &quot;OI File manager&quot; для просмотра папок</string>
+<string name="install_oi_file_manager">Установите &quot;Solid Explorer&quot; для просмотра папок</string>
 <string name="title_for_path">%s</string>
-<string name="title_in_oi_file_manager">OI File Manager</string>
+<string name="title_in_oi_file_manager">Solid Explorer</string>
 <string name="button_text_in_oi_file_manager">Назад в DiskUsage</string>
 <string name="no_viewer_found">Неизвестный формат</string>
 <string name="ask_to_delete_directory">Удалить %s папку?</string>

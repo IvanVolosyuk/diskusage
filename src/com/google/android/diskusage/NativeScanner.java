@@ -126,10 +126,18 @@ public class NativeScanner implements ProgressGenerator {
   private InputStream is;
   private Context context;
   
+  public static final boolean isDeviceRooted() {
+    return new File("/system/bin/su").isFile()
+        || new File("/system/xbin/su").isFile();
+  }
+  
   public void runScanner(Context context, String root,
       boolean rootRequired) throws IOException, InterruptedException {
     setupBinary(context);
-    if (!rootRequired) {
+    boolean deviceIsRooted = isDeviceRooted();
+
+
+    if (!(rootRequired && deviceIsRooted)) {
       process = Runtime.getRuntime().exec(new String[] { scanBinary, root});
     } else {
       IOException e = null;

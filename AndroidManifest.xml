@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.google.android.diskusage"
     android:installLocation="auto"
-    android:versionCode="3030"
-    android:versionName="3.3">
+    android:versionCode="3031"
+    android:versionName="3.3.1">
     <uses-sdk android:minSdkVersion="1" android:targetSdkVersion="11"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.GET_PACKAGE_SIZE"/>

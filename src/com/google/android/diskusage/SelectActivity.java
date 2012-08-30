@@ -146,7 +146,7 @@ public class SelectActivity extends Activity {
       actionList.add(new DiskUsageAction(mountPoint.title, mountPoint));
     }
     
-    if (!MountPoint.getRootedMountPoints(this).isEmpty()) {
+    if (NativeScanner.isDeviceRooted()) {
       SharedPreferences prefs =  getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
       Map<String, ?> ignoreList = prefs.getAll();
       if (!ignoreList.keySet().isEmpty()) {

@@ -36,6 +36,7 @@ import android.util.Log;
 
 import com.google.android.diskusage.entity.FileSystemEntry;
 import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
+import com.google.android.diskusage.entity.FileSystemRoot;
 
 public class MountPoint {
   FileSystemEntry.ExcludeFilter excludeFilter;
@@ -86,17 +87,30 @@ public class MountPoint {
   }
   
   public static MountPoint forPath(Context context, String path) {
+	Log.d("diskusage", "Looking for mount point for path: " + path);
     initMountPoints(context);
     MountPoint match = null;
+    path = FileSystemRoot.withSlash(path);
     for (MountPoint m : mountPoints.values()) {
-      if (path.contains(m.root)) {
+      if (path.contains(FileSystemRoot.withSlash(m.root))) {
         if (match == null || match.root.length() < m.root.length()) {
+          Log.d("diskusage", "MATCH:" + m.root);
           match = m;
         }
       }
     }
+    for (MountPoint m : rootedMountPoints.values()) {
+      if (path.contains(FileSystemRoot.withSlash(m.root))) {
+        if (match == null || match.root.length() < m.root.length()) {
+          match = m;
+          Log.d("diskusage", "MATCH:" + m.root);
+        }
+      }
+    }
+
     // FIXME: quick hack
     if (match == null) {
+      Log.d("diskusage", "Use honeycomb hack for /data");
       match = mountPoints.get("/data");
     }
     return match;
@@ -141,9 +155,6 @@ public class MountPoint {
       mountPoints.put(storagePath, defaultStorage);
     }
     
-    boolean rooted = new File("/system/bin/su").isFile()
-                 || new File("/system/xbin/su").isFile();
-    
     try {
       // FIXME: debug
       checksum = 0;
@@ -168,7 +179,7 @@ public class MountPoint {
             mountPointsList.remove(defaultStorage);
             mountPoints.remove(mountPoint);
           }
-          if (rooted && !mountPoint.startsWith("/mnt/asec/")) {
+          if (/*rooted &&*/ !mountPoint.startsWith("/mnt/asec/")) {
             mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, true));
           }
         } else {

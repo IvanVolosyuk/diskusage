@@ -27,9 +27,9 @@
 <string name="button_delete">删除</string>
 <string name="button_cancel">取消</string>
 <string name="button_background">后台</string>
-<string name="install_oi_file_manager">安装 &quot;OI File manager&quot; 来查看目录</string>
+<string name="install_oi_file_manager">安装 &quot;Solid Explorer&quot; 来查看目录</string>
 <string name="title_for_path">%s</string>
-<string name="title_in_oi_file_manager">OI File Manager</string>
+<string name="title_in_oi_file_manager">Solid Explorer</string>
 <string name="button_text_in_oi_file_manager">返回到 DiskUsage</string>
 <string name="no_viewer_found">没有找到查看器</string>
 <string name="ask_to_delete_directory">删除 %s 目录?</string>

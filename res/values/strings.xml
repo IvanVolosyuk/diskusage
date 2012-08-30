@@ -26,9 +26,9 @@
 <string name="button_rescan">Rescan</string>
 <string name="button_cancel">Cancel</string>
 <string name="button_background">Background</string>
-<string name="install_oi_file_manager">Install &quot;OI File manager&quot; to view directories</string>
+<string name="install_oi_file_manager">Install &quot;Solid Explorer&quot; to view directories</string>
 <string name="title_for_path">%s</string>
-<string name="title_in_oi_file_manager">OI File Manager</string>
+<string name="title_in_oi_file_manager">Solid Explorer</string>
 <string name="button_text_in_oi_file_manager">Return to DiskUsage</string>
 <string name="no_viewer_found">No viewer found</string>
 <string name="ask_to_delete_directory">Delete %s directory?</string>

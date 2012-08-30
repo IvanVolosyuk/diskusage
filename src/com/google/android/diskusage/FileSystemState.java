@@ -775,11 +775,11 @@ public class FileSystemState {
   }
   
   public boolean onDrawGPU(RenderingThread rt) {
-    Log.d("diskusage", "drawFrame (pre) viewTop = " + viewTop + " viewBottom = " + viewBottom);
+    // Log.d("diskusage", "drawFrame (pre) viewTop = " + viewTop + " viewBottom = " + viewBottom);
 
     try {
       boolean animation = preDraw();
-      Log.d("diskusage", "drawFrame viewTop = " + viewTop + " viewBottom = " + viewBottom);
+      // Log.d("diskusage", "drawFrame viewTop = " + viewTop + " viewBottom = " + viewBottom);
       paintSlowGPU(rt, displayTop, displayBottom, viewDepth, screenWidth, screenHeight);
       return postDraw(animation);
     } catch (Throwable t) {

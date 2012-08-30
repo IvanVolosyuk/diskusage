@@ -28,9 +28,9 @@
  <string name="button_rescan">Rafraîchir</string>
  <string name="button_cancel">Annuler</string>
  <string name="button_background">En tâche de fond</string>
- <string name="install_oi_file_manager">Installez «OI File Manager» pour afficher le contenu des répertoires</string>
+ <string name="install_oi_file_manager">Installez «Solid Explorer» pour afficher le contenu des répertoires</string>
  <string name="title_for_path">%s - DiskUsage</string>
- <string name="title_in_oi_file_manager">OI File Manager</string>
+ <string name="title_in_oi_file_manager">Solid Explorer</string>
  <string name="button_text_in_oi_file_manager">Retourner à DiskUsage</string>
  <string name="no_viewer_found">Aucun lecteur pour ce type de document</string>
  <string name="ask_to_delete_directory">Supprimer le répertoire \'%s\'?</string>
