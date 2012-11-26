@@ -95,7 +95,7 @@ public class RenderingThread extends AbstractRenderingThread {
   public void updateFonts(Context context) {
     float scaledDensity = context.getResources().getDisplayMetrics().scaledDensity;
     float density = context.getResources().getDisplayMetrics().density;
-    float dpi = 160 * density;
+    float dpi = 160 * scaledDensity;
     int width = context.getResources().getDisplayMetrics().widthPixels;
     int height = context.getResources().getDisplayMetrics().heightPixels;
     int min = Math.min(width, height);
@@ -105,9 +105,29 @@ public class RenderingThread extends AbstractRenderingThread {
     
     float defaultSize = textPaint.getTextSize();
     textPaint.setTextSize(20);
+    
+    // Atleast 4 times "Storage Card" should fit into the screen
     float textSize = 20 * min / (textPaint.measureText("Storage card") * 4);
-    if (textSize > 20) textSize = 20;
+    
+    // 20 px font, seems confortable enough, if we end up with the font larger
+    // than that, we may want to fit 2x more data.
+    if (textSize > 20) {
+      textSize /= 2;
+      
+      // In case we cannot fit 2x more data, we at least fit [1.0, 2.0]x more.
+      if (textSize < 20) {
+        textSize = 20;
+      }
+    }
+    
+    // For low DPI devices, font size should never go below 12 px (which seems to be default value).
     if (textSize < defaultSize) textSize = defaultSize;
+    
+    // For very high DPI devices, we might want to check if the physical size of letters is sufficient
+    // Let's say, 20 px font on 300 dpi devices seems readable enough: 
+    if (textSize / dpi < 20 / 300.f) {
+      textSize = 20.f / 300.f * dpi;
+    }
     
     textPaint.setTextSize(textSize);
     textBaseline = - textPaint.ascent() + FileSystemEntry.padding;

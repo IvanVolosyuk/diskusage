@@ -1138,7 +1138,7 @@ public class FileSystemEntry {
   
   public static void updateFontsLegacy(Context context) {
     float textSize = context.getResources().getDisplayMetrics().scaledDensity
-    * 12 + 0.5f;
+        * 12 + 0.5f;
     if (textSize < 10) textSize = 10;
     updateFonts(textSize);
   }
