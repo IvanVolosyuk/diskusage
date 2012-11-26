@@ -124,6 +124,10 @@ public class DiskUsage extends LoadableActivity {
     Bundle receivedState = i.getBundleExtra(STATE_KEY);
     Log.d("diskusage", "onCreate, rootPath = " + rootPath + " receivedState = " + receivedState);
     if (receivedState != null) onRestoreInstanceState(receivedState);
+    if (key == null) {
+      // Just close instead of crashing later
+      finish();
+    }
   }
   
   public boolean isMergedStorage() {
