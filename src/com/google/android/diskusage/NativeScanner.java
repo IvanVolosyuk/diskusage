@@ -78,16 +78,19 @@ public class NativeScanner implements ProgressGenerator {
     }
   };
   
-  private static final String scanBinary = "/data/data/com.google.android.diskusage/scan";
+  private String getScanBinaryPath() {
+    return context.getDir("binary", Context.MODE_PRIVATE).getAbsolutePath() + "/scan";
+  }
+  
   public void runChmod() throws IOException, InterruptedException {
     Process process;
     try {
       process = Runtime.getRuntime().exec(
-          "chmod 0555 " + scanBinary);
+          "chmod 0555 " + getScanBinaryPath());
     } catch (IOException e) {
       try {
       process = Runtime.getRuntime().exec(
-          "/system/bin/chmod 0555 " + scanBinary);
+          "/system/bin/chmod 0555 " + getScanBinaryPath());
       } catch (IOException ee ) {
         throw new RuntimeException("Failed to chmod", ee);
       }
@@ -95,10 +98,10 @@ public class NativeScanner implements ProgressGenerator {
     process.waitFor();
   }
   
-  public void unpackScanBinary(Context context) throws IOException {
+  public void unpackScanBinary() throws IOException {
     byte[] buffer = new byte[32768];
     InputStream is = context.getAssets().open("scan");
-    FileOutputStream os = new FileOutputStream(scanBinary);
+    FileOutputStream os = new FileOutputStream(getScanBinaryPath());
     int len;
     while ((len = is.read(buffer)) != -1) {
       os.write(buffer, 0, len);
@@ -109,16 +112,16 @@ public class NativeScanner implements ProgressGenerator {
   
   private static boolean remove = true;
   
-  public void setupBinary(Context context) throws IOException, InterruptedException {
+  public void setupBinary() throws IOException, InterruptedException {
     // Remove 'scan' binary every run. TODO: do clean update on package update
     if (remove) {
-      new File(scanBinary).delete();
+      new File(getScanBinaryPath()).delete();
       remove = false;
     }
     
-    File binary = new File(scanBinary);
+    File binary = new File(getScanBinaryPath());
     if (binary.isFile()) return;
-    unpackScanBinary(context);
+    unpackScanBinary();
     runChmod();
   }
   
@@ -131,14 +134,14 @@ public class NativeScanner implements ProgressGenerator {
         || new File("/system/xbin/su").isFile();
   }
   
-  public void runScanner(Context context, String root,
+  public void runScanner(String root,
       boolean rootRequired) throws IOException, InterruptedException {
-    setupBinary(context);
+    setupBinary();
     boolean deviceIsRooted = isDeviceRooted();
 
 
     if (!(rootRequired && deviceIsRooted)) {
-      process = Runtime.getRuntime().exec(new String[] { scanBinary, root});
+      process = Runtime.getRuntime().exec(new String[] { getScanBinaryPath(), root});
     } else {
       IOException e = null;
       for (String su : new String[] { "su", "/system/bin/su", "/system/xbin/su" }) {
@@ -155,7 +158,7 @@ public class NativeScanner implements ProgressGenerator {
       }
      
       OutputStream os = process.getOutputStream();
-      os.write((scanBinary + " " + root).getBytes("UTF-8"));
+      os.write((getScanBinaryPath() + " " + root).getBytes("UTF-8"));
       os.flush();
       os.close();
     }
@@ -268,7 +271,7 @@ public class NativeScanner implements ProgressGenerator {
   }
   
   FileSystemEntry scan(MountPoint mountPoint) throws IOException, InterruptedException {
-    runScanner(context, mountPoint.getRoot(), mountPoint.rootRequired);
+    runScanner(mountPoint.getRoot(), mountPoint.rootRequired);
     Type type = getType();
     if (type != Type.DIR) throw new RuntimeException("Error: no mount point");
     scanDirectory(null, getString(), 0);
