@@ -813,7 +813,7 @@ public class FileSystemState {
   }
   
   public final void prepareMotion(long time) {
-    Log.d("diskusage", "prepare motion");
+//    Log.d("diskusage", "prepare motion");
     animationDuration = 900;
     prevViewDepth = viewDepth;
     prevViewTop = viewTop;
@@ -847,7 +847,7 @@ public class FileSystemState {
     prepareMotion(eventTime);
     
     if ((entry == masterRoot.children[0]) || (entry instanceof FileSystemFreeSpace)) {
-      Log.d("diskusage", "special case for " + entry.name);
+//      Log.d("diskusage", "special case for " + entry.name);
       toggleZoomState();
       return;
     }
@@ -858,7 +858,7 @@ public class FileSystemState {
     zoomFitToScreen(eventTime);
     boolean has_children = entry.children != null && entry.children.length != 0; 
     if (!has_children) {
-      Log.d("diskusage", "zoom file");
+//      Log.d("diskusage", "zoom file");
       fullZoom = false;
       if (targetViewTop == prevViewTop
           && targetViewBottom == prevViewBottom) {
@@ -873,10 +873,10 @@ public class FileSystemState {
       }
       return;
     } else if (prevCursor == entry) {
-      Log.d("diskusage", "zoom toggle same element");
+//      Log.d("diskusage", "zoom toggle same element");
       fullZoom = !fullZoom;
     } else if (currDepth < prevDepth) {
-      Log.d("diskusage", "zoom false");
+//      Log.d("diskusage", "zoom false");
       fullZoom = false;
     } else {
       if (entry.encodedSize * yscale > FileSystemEntry.fontSize * 2) {
@@ -890,7 +890,7 @@ public class FileSystemState {
     float maxRequiredDepth = cursor.depth - (cursor.depth > 0 ? 1 : 0);
     float minRequiredDepth = cursor.depth + 1 + (has_children ? 1 : 0) - maxLevels;
     if (minRequiredDepth > maxRequiredDepth) {
-      Log.d("diskusage", "zoom levels overlap, fullZoom = " + fullZoom);
+//      Log.d("diskusage", "zoom levels overlap, fullZoom = " + fullZoom);
       if (fullZoom) {
         maxRequiredDepth = minRequiredDepth;
       } else {
