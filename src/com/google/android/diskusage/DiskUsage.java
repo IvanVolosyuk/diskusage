@@ -348,6 +348,16 @@ public class DiskUsage extends LoadableActivity {
     Uri uri = Uri.fromFile(file);
     
     if (file.isDirectory()) {
+//      intent = new Intent(Intent.ACTION_GET_CONTENT);
+//      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//      intent.setDataAndType(uri, "file/*");
+//      
+//      try {
+//        startActivity(intent);
+//        return;
+//      } catch(ActivityNotFoundException e) {
+//      }
+
       intent = new Intent("org.openintents.action.VIEW_DIRECTORY");
       intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
       intent.setData(uri);
@@ -371,6 +381,8 @@ public class DiskUsage extends LoadableActivity {
         return;
       } catch(ActivityNotFoundException e) {
       }
+      
+      // old Astro
       intent = new Intent(Intent.ACTION_VIEW);
       intent.addCategory(Intent.CATEGORY_DEFAULT);
       intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -381,7 +393,7 @@ public class DiskUsage extends LoadableActivity {
         return;
       } catch(ActivityNotFoundException e) {
       }
-
+      
       final Intent installSolidExplorer = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=pl.solidexplorer"));
       
       if (isIntentAvailable(installSolidExplorer)) {
@@ -391,7 +403,6 @@ public class DiskUsage extends LoadableActivity {
         .setMessage("No compatible filemanager found.\n\nAsk you favorite file manager developer " +
             "for integration with DiskUsage or install:" +
             "\n * Solid Explorer" +
-            "\n * Astro" +
             "\n * OI File Manager")
             .setPositiveButton("Install Solid Explorer", new DialogInterface.OnClickListener() {
               @Override
