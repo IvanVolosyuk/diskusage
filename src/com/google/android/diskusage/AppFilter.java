@@ -28,6 +28,7 @@ public class AppFilter implements Parcelable {
   public boolean enableChildren;
   public boolean showApk;
   public boolean showData;
+  public boolean showCache;
   public boolean showDalvikCache;
   public App2SD apps;
   public App2SD memory;
@@ -64,6 +65,7 @@ public class AppFilter implements Parcelable {
     filter.enableChildren = false;
     filter.showApk = true;
     filter.showData = false;
+    filter.showCache = false;
     filter.showDalvikCache = false;
     filter.apps = App2SD.APPS2SD;
     filter.memory = App2SD.APPS2SD;
@@ -75,6 +77,7 @@ public class AppFilter implements Parcelable {
     filter.enableChildren = true;
     filter.showApk = true;
     filter.showData = true;
+    filter.showCache = true;
     filter.showDalvikCache = true;
     filter.apps = App2SD.BOTH;
     filter.memory = App2SD.INTERNAL;
@@ -87,6 +90,7 @@ public class AppFilter implements Parcelable {
     if (filter.enableChildren != enableChildren) return false;
     if (filter.showApk != showApk) return false;
     if (filter.showData != showData) return false;
+    if (filter.showCache != showCache) return false;
     if (filter.showDalvikCache != showDalvikCache) return false;
     if (filter.apps != apps) return false;
     if (filter.memory != memory) return false;
@@ -100,6 +104,7 @@ public class AppFilter implements Parcelable {
     filter.enableChildren = true;
     filter.showApk = prefs.getBoolean("show_apk", true);
     filter.showData = prefs.getBoolean("show_data", true);
+    filter.showCache = prefs.getBoolean("show_cache", true);
     filter.showDalvikCache = prefs.getBoolean("show_dalvikCache", true);
     filter.apps = App2SD.forId(prefs.getString("apps", "both"));
     filter.memory = App2SD.forId(prefs.getString("memory", "internal"));
@@ -114,6 +119,7 @@ public class AppFilter implements Parcelable {
     enableChildren = arr[0];
     showApk = arr[1];
     showData = arr[2];
+    showCache = arr[3];
     showDalvikCache = arr[5];
     apps = App2SD.forId(in.readString());
     memory = App2SD.forId(in.readString());
@@ -127,7 +133,7 @@ public class AppFilter implements Parcelable {
   @Override
   public void writeToParcel(Parcel dest, int flags) {
     dest.writeBooleanArray(new boolean[] {
-        enableChildren, showApk, showData, false, false, showDalvikCache
+        enableChildren, showApk, showData, showCache, false, showDalvikCache
     });
     dest.writeString(apps.toString());
     dest.writeString(memory.toString());

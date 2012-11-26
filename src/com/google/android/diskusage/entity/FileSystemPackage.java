@@ -139,6 +139,10 @@ public class FileSystemPackage extends FileSystemEntry {
         entries.add(FileSystemEntry.makeNode(null, "dalvikCache")
             .initSizeInBytes(dalvikCacheSize, blockSize));
       }
+      if (filter.showCache && select(filter.memory, false)) {
+      entries.add(FileSystemEntry.makeNode(null, "Cache")
+          .initSizeInBytes(cacheSize, blockSize));
+      }
     }
 
     for (FileSystemEntry e : entries) {

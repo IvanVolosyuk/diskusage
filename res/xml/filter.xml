@@ -30,4 +30,9 @@
     android:defaultValue="true"
     android:summary="@string/show_dalvikcache_desc"
     android:key="show_dalvikCache"/>
+  <CheckBoxPreference
+    android:title="@string/show_cache"
+    android:defaultValue="false"
+    android:summary="@string/show_cache_desc"
+    android:key="show_cache"/>
 </PreferenceScreen>
