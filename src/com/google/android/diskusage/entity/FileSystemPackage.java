@@ -30,26 +30,26 @@ import java.util.Arrays;
 
 public class FileSystemPackage extends FileSystemEntry {
   public final String pkg;
-  final int codeSize;
-  final int dataSize;
-  final int cacheSize;
-  final int dalvikCacheSize;
+  final long codeSize;
+  final long dataSize;
+  final long cacheSize;
+  final long dalvikCacheSize;
   final int flags;
-  
+
   // ApplicationInfo.FLAG_EXTERNAL_STORAGE
   private static final int SDCARD_FLAG = 0x40000;
-  
-  
+
+
   private File cacheFile(String pattern, Object... args) {
     return new File("/data/dalvik-cache/" + String.format(pattern, args));
   }
-  
+
   private File getDalvikCacheForSystemApp() {
     File cache = cacheFile("system@app@%s.apk@classes.dex", name);
     if (cache.exists()) return cache;
     return null;
   }
-  
+
   private File getDalvikCacheForNumberedPackage(String pattern) {
     for (int i = 0; i < 10; i++) {
       File cache = cacheFile(pattern, pkg, i);
@@ -57,13 +57,13 @@ public class FileSystemPackage extends FileSystemEntry {
     }
     return null;
   }
-  
+
   private File getDalvikCacheForPkg(String pattern) {
     File cache = cacheFile(pattern, pkg);
     if (cache.exists()) return cache;
     return null;
   }
-  
+
   private long guessDalvikCacheSize() {
     File cache = null;
     if (onSD()) {
@@ -82,7 +82,7 @@ public class FileSystemPackage extends FileSystemEntry {
 //        cache = getDalvikCacheForNumberedPackage(
 //        "data@app-private@%s-%d.apk@classes.dex");
     }
-    
+
     if (cache != null) {
       Log.d("diskusage", cache.getAbsolutePath() + ": " + cache.length());
       return cache.length();
@@ -91,41 +91,41 @@ public class FileSystemPackage extends FileSystemEntry {
       return 0;
     }
   }
-  
+
   public FileSystemPackage(
       String name, String pkg, PackageStats stats,
       int flags, Long hackApkSize, int blockSize) {
     super(null, name);
     this.pkg = pkg;
-    this.cacheSize = (int) stats.cacheSize;
-    this.dataSize = (int) stats.dataSize;
+    this.cacheSize = stats.cacheSize;
+    this.dataSize = stats.dataSize;
     this.flags = flags | (hackApkSize != null ? SDCARD_FLAG : 0);
-    this.dalvikCacheSize = (int) guessDalvikCacheSize();
+    this.dalvikCacheSize = guessDalvikCacheSize();
     if (onSD()) {
       if (hackApkSize != null) {
         this.codeSize = hackApkSize.intValue();
       } else {
-        this.codeSize = (int) stats.codeSize;
+        this.codeSize = stats.codeSize;
       }
     } else {
-      this.codeSize = (int) stats.codeSize - this.dalvikCacheSize;
+      this.codeSize = stats.codeSize - this.dalvikCacheSize;
     }
   }
-  
+
   public boolean onSD() {
     return (flags & SDCARD_FLAG) != 0;
   }
-  
+
   private boolean select(App2SD selector, boolean isOnSD) {
     return selector == App2SD.BOTH
     || (isOnSD == (selector == App2SD.APPS2SD));
   }
-  
+
   public void applyFilter(AppFilter filter, int blockSize) {
     clearDrawingCache();
     long blocks = 0;
     ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
-    
+
     if (select(filter.apps, onSD())) {
       if (filter.showApk && select(filter.memory, onSD())) {
         entries.add(FileSystemEntry.makeNode(null, "apk")
@@ -161,8 +161,9 @@ public class FileSystemPackage extends FileSystemEntry {
     }
   }
 
-  private FileSystemPackage(String name, String pkg, int codeSize, int dataSize, int cacheSize,
-                            int dalvikCacheSize, int flags) {
+  private FileSystemPackage(
+      String name, String pkg, long codeSize, long dataSize, long cacheSize,
+      long dalvikCacheSize, int flags) {
     super(null, name);
     this.pkg = pkg;
     this.codeSize = codeSize;
