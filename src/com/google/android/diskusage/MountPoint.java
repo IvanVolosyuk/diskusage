@@ -167,7 +167,8 @@ public class MountPoint {
         if (parts.length < 3) continue;
         String mountPoint = parts[1];
         String fsType = parts[2];
-        if (!(fsType.equals("vfat") || fsType.equals("tntfs") || fsType.equals("exfat"))
+        if (!(fsType.equals("vfat") || fsType.equals("tntfs") || fsType.equals("exfat")
+            || fsType.equals("texfat"))
             || mountPoint.startsWith("/mnt/asec")
             || mountPoint.startsWith("/firmware")
             || mountPoint.startsWith("/mnt/secure")
