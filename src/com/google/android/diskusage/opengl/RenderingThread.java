@@ -84,7 +84,7 @@ public class RenderingThread extends AbstractRenderingThread {
 //  private static final Paint textBgPaint = new Paint();
   static {
     textPaint.setColor(Color.parseColor("#FFFFFF"));
-    textPaint.setStyle(Paint.Style.STROKE);
+    textPaint.setStyle(Paint.Style.FILL_AND_STROKE);
     textPaint.setFlags(textPaint.getFlags() | Paint.ANTI_ALIAS_FLAG);
     textPaint.setShadowLayer(padding, 1, 1, Color.BLACK);
 //    textBgPaint.setColor(Color.parseColor("#000000"));
