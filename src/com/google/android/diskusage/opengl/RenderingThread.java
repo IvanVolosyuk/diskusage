@@ -690,7 +690,7 @@ public class RenderingThread extends AbstractRenderingThread {
     Log.d("diskusage", "***** surface size changed       *****");
 //    FileSystemEntry.elementWidth = 100;// FIXME??;
 //    FileSystemEntry.fontSize = 20; // FIXME
-    eventHandler.onLayout(true, 0, 0, width, height, width, height);
+    eventHandler.layout(true, 0, 0, width, height, width, height);
     // Init projection
     
     gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT,

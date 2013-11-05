@@ -57,7 +57,7 @@ public final class FileSystemViewCPU extends View implements FileSystemView {
   protected final void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
     FileSystemEntry.updateFontsLegacy(getContext());
-    eventHandler.onLayout(changed, left, top, right, bottom, getWidth(), getHeight());
+    eventHandler.layout(changed, left, top, right, bottom, getWidth(), getHeight());
   }
   
   public void onPause() {}
