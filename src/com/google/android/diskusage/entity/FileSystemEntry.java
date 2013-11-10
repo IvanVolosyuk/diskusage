@@ -42,11 +42,12 @@ public class FileSystemEntry {
   private static final Paint bg = new Paint();
   private static final Paint bg_emptySpace = new Paint();
   private static final Paint cursor_fg = new Paint();
-  private static final Paint fg = new Paint();
-  private static final Paint fg_rect = fg;
+  private static final Paint fg_rect = new Paint();
 //  private static final Paint fg_rect = new Paint();
   public static final Paint fg2 = new Paint();
   private static final Paint fill_bg = new Paint();
+  private static final Paint textPaintFolder = new Paint();
+  private static final Paint textPaintFile = new Paint();
   public static float ascent;
   public static float descent;
   private static String n_bytes;
@@ -78,9 +79,9 @@ public class FileSystemEntry {
     bg_emptySpace.setColor(Color.parseColor("#063A43"));
     bg.setStyle(Paint.Style.FILL);
 //    bg.setAlpha(255);
-    fg.setColor(Color.WHITE);
-    fg.setStyle(Paint.Style.STROKE);
-    fg.setFlags(fg.getFlags() | Paint.ANTI_ALIAS_FLAG);
+    fg_rect.setColor(Color.WHITE);
+    fg_rect.setStyle(Paint.Style.STROKE);
+    fg_rect.setFlags(fg_rect.getFlags() | Paint.ANTI_ALIAS_FLAG);
 //    fg_rect.setColor(Color.WHITE);
 //    fg_rect.setStyle(Paint.Style.STROKE);
     fg2.setColor(Color.parseColor("#18C5E7"));
@@ -90,6 +91,14 @@ public class FileSystemEntry {
     fill_bg.setStyle(Paint.Style.FILL);
     cursor_fg.setColor(Color.YELLOW);
     cursor_fg.setStyle(Paint.Style.STROKE);
+
+    textPaintFolder.setColor(Color.WHITE);
+    textPaintFolder.setStyle(Paint.Style.FILL_AND_STROKE);
+    textPaintFolder.setFlags(textPaintFolder.getFlags() | Paint.ANTI_ALIAS_FLAG);
+
+    textPaintFile.setColor(Color.parseColor("#18C5E7"));
+    textPaintFile.setStyle(Paint.Style.FILL_AND_STROKE);
+    textPaintFile.setFlags(textPaintFile.getFlags() | Paint.ANTI_ALIAS_FLAG);
   }
 
   // Object Fields:
@@ -583,12 +592,14 @@ public class FileSystemEntry {
             String sizeString = cache.getSizeString();
             int cliplen = fg2.breakText(c.name, true, elementWidth - 4, null);
             String clippedName = c.name.substring(0, cliplen);
-            canvas.drawText(clippedName,  xoffset + 2, pos1, fg);
-            canvas.drawText(sizeString, xoffset + 2, pos2, fg);
+            canvas.drawText(clippedName,  xoffset + 2, pos1, textPaintFolder);
+            canvas.drawText(sizeString, xoffset + 2, pos2, textPaintFolder);
           } else if (bottom - top > fontSize0) {
             int cliplen = fg2.breakText(c.name, true, elementWidth - 4, null);
             String clippedName = c.name.substring(0, cliplen);
-            canvas.drawText(clippedName, xoffset + 2, (top + bottom - ascent - descent) / 2, c.children == null ? fg2 : fg);
+            canvas.drawText(clippedName, xoffset + 2,
+                (top + bottom - ascent - descent) / 2,
+                c.children == null ? textPaintFile : textPaintFolder);
           }
       }
 
@@ -781,12 +792,14 @@ public class FileSystemEntry {
             String sizeString = cache.getSizeString();
             int cliplen = fg2.breakText(c.name, true, elementWidth - 4, null);
             String clippedName = c.name.substring(0, cliplen);
-            canvas.drawText(clippedName,  xoffset + 2, pos1, c.children == null ? fg2 : fg);
-            canvas.drawText(sizeString, xoffset + 2, pos2, c.children == null ? fg2 : fg);
+            Paint paint = c.children == null ? textPaintFile : textPaintFolder;
+            canvas.drawText(clippedName,  xoffset + 2, pos1, paint);
+            canvas.drawText(sizeString, xoffset + 2, pos2, paint);
           } else if (bottom - top > fontSize0) {
             int cliplen = fg2.breakText(c.name, true, elementWidth - 4, null);
             String clippedName = c.name.substring(0, cliplen);
-            canvas.drawText(clippedName, xoffset + 2, (top + bottom - ascent - descent) / 2, c.children == null ? fg2 : fg);
+            Paint paint = c.children == null ? textPaintFile : textPaintFolder;
+            canvas.drawText(clippedName, xoffset + 2, (top + bottom - ascent - descent) / 2, paint);
           }
       }
 
@@ -1144,10 +1157,10 @@ public class FileSystemEntry {
   }
   
   public static void updateFonts(float textSize) {
-    fg.setTextSize(textSize);
-    fg2.setTextSize(textSize);
-    ascent = fg.ascent();
-    descent = fg.descent();
+    textPaintFile.setTextSize(textSize);
+    textPaintFolder.setTextSize(textSize);
+    ascent = textPaintFolder.ascent();
+    descent = textPaintFolder.descent();
     fontSize = descent - ascent;
   }
   

@@ -1311,7 +1311,7 @@ public class FileSystemState {
   }
   
   // FIXME: can be called from different thread
-  public final void onLayout(
+  public final void layout(
       boolean changed, int left, int top, int right,
       int bottom, int width, int height) {
     screenWidth = width;
