@@ -32,6 +32,7 @@ import android.app.Application;
 import android.content.Context;
 import android.os.Build;
 import android.os.Environment;
+import android.os.StatFs;
 import android.util.Log;
 
 import com.google.android.diskusage.entity.FileSystemEntry;
@@ -39,19 +40,21 @@ import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
 import com.google.android.diskusage.entity.FileSystemRoot;
 
 public class MountPoint {
-  FileSystemEntry.ExcludeFilter excludeFilter;
+  final FileSystemEntry.ExcludeFilter excludeFilter;
   String title;
-  String root;
-  boolean hasApps2SD;
-  boolean rootRequired;
+  final String root;
+  final boolean hasApps2SD;
+  final boolean rootRequired;
+  final String fsType;
   
   MountPoint(String title, String root, ExcludeFilter excludeFilter,
-      boolean hasApps2SD, boolean rootRequired) {
+      boolean hasApps2SD, boolean rootRequired, String fsType) {
     this.title = title;
     this.root = root;
     this.excludeFilter = excludeFilter;
     this.hasApps2SD = hasApps2SD;
     this.rootRequired = rootRequired;
+    this.fsType = fsType;
   }
   
   private static MountPoint defaultStorage;
@@ -146,11 +149,13 @@ public class MountPoint {
     if (init) return;
     init = true;
     String storagePath = storageCardPath();
+    Log.d("diskusage", "StoragePath: " + storagePath);
+    
     ArrayList<MountPoint> mountPointsList = new ArrayList<MountPoint>();
     HashSet<String> excludePoints = new HashSet<String>();
     if (storagePath != null) {
       defaultStorage = new MountPoint(
-              titleStorageCard(context), storagePath, null, false, false); 
+              titleStorageCard(context), storagePath, null, false, false, ""); 
       mountPointsList.add(defaultStorage);
       mountPoints.put(storagePath, defaultStorage);
     }
@@ -163,16 +168,28 @@ public class MountPoint {
       String line;
       while ((line = reader.readLine()) != null) {
         checksum += line.length();
+        Log.d("diskusage", "line: " + line);
         String[] parts = line.split(" +");
         if (parts.length < 3) continue;
         String mountPoint = parts[1];
+        Log.d("diskusage", "Mount point: " + mountPoint);
         String fsType = parts[2];
+        
+        StatFs stat = null;
+        try {
+          stat = new StatFs(mountPoint);
+        } catch (Exception e) {
+        }
+        
         if (!(fsType.equals("vfat") || fsType.equals("tntfs") || fsType.equals("exfat")
-            || fsType.equals("texfat"))
+            || fsType.equals("texfat") || fsType.equals("fuse"))
             || mountPoint.startsWith("/mnt/asec")
             || mountPoint.startsWith("/firmware")
             || mountPoint.startsWith("/mnt/secure")
-            || mountPoint.startsWith("/data/mac")) {
+            || mountPoint.startsWith("/data/mac")
+            || stat == null
+            || (mountPoint.endsWith("/legacy") && fsType.equals("fuse"))) {
+          Log.d("diskusage", String.format("Excluded based on fsType=%s or black list", fsType));
           excludePoints.add(mountPoint);
           
           // Default storage is not vfat, removing it (real honeycomb)
@@ -181,10 +198,11 @@ public class MountPoint {
             mountPoints.remove(mountPoint);
           }
           if (/*rooted &&*/ !mountPoint.startsWith("/mnt/asec/")) {
-            mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, true));
+            mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, true, fsType));
           }
         } else {
-          mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, false));
+          Log.d("diskusage", "Mount point is good");
+          mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, false, fsType));
         }
       }
       
@@ -209,7 +227,7 @@ public class MountPoint {
         }
         MountPoint newMountPoint = new MountPoint(
             mountPoint.root, mountPoint.root, new ExcludeFilter(excludes),
-            has_apps2sd, mountPoint.rootRequired);
+            has_apps2sd, mountPoint.rootRequired, mountPoint.fsType);
         if (mountPoint.rootRequired) {
           rootedMountPoints.put(mountPoint.root, newMountPoint);
         } else {
@@ -221,12 +239,14 @@ public class MountPoint {
     }
     final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
     
+    MountPoint storageCard = mountPoints.get(storageCardPath());
     if(sdkVersion >= Build.VERSION_CODES.HONEYCOMB
-        && mountPoints.get(storageCardPath()) == null) {
+        && (storageCard == null || storageCard.fsType.equals("fuse"))) {
+      mountPoints.remove(storageCardPath());
       // No real /sdcard in honeycomb
       honeycombSdcard = defaultStorage;
       mountPoints.put("/data", new MountPoint(
-              titleStorageCard(context), "/data", null, false, false));
+              titleStorageCard(context), "/data", null, false, false, ""));
     }
 
     if (!mountPoints.isEmpty()) {
