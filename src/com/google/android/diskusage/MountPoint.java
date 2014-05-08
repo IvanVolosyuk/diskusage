@@ -145,6 +145,10 @@ public class MountPoint {
     }
   }
   
+  private static boolean isEmulated(String fsType) {
+    return fsType.equals("sdcardfs") || fsType.equals("fuse");
+  }
+  
   private static void initMountPoints(Context context) {
     if (init) return;
     init = true;
@@ -182,13 +186,13 @@ public class MountPoint {
         }
         
         if (!(fsType.equals("vfat") || fsType.equals("tntfs") || fsType.equals("exfat")
-            || fsType.equals("texfat") || fsType.equals("fuse"))
+            || fsType.equals("texfat") || isEmulated(fsType))
             || mountPoint.startsWith("/mnt/asec")
             || mountPoint.startsWith("/firmware")
             || mountPoint.startsWith("/mnt/secure")
             || mountPoint.startsWith("/data/mac")
             || stat == null
-            || (mountPoint.endsWith("/legacy") && fsType.equals("fuse"))) {
+            || (mountPoint.endsWith("/legacy") && isEmulated(fsType))) {
           Log.d("diskusage", String.format("Excluded based on fsType=%s or black list", fsType));
           excludePoints.add(mountPoint);
           
@@ -241,7 +245,7 @@ public class MountPoint {
     
     MountPoint storageCard = mountPoints.get(storageCardPath());
     if(sdkVersion >= Build.VERSION_CODES.HONEYCOMB
-        && (storageCard == null || storageCard.fsType.equals("fuse"))) {
+        && (storageCard == null || isEmulated(storageCard.fsType))) {
       mountPoints.remove(storageCardPath());
       // No real /sdcard in honeycomb
       honeycombSdcard = defaultStorage;
