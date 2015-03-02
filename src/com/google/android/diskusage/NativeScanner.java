@@ -28,6 +28,9 @@ import java.util.ArrayList;
 import java.util.PriorityQueue;
 
 import android.content.Context;
+import android.os.Build;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 import android.util.Log;
 
 import com.google.android.diskusage.DiskUsage.ProgressGenerator;
@@ -39,69 +42,71 @@ public class NativeScanner implements ProgressGenerator {
   private final int blockSize;
   private final int blockSizeIn512Bytes;
   private final long sizeThreshold;
-  
+
   private FileSystemEntry createdNode;
   private int createdNodeSize;
   private int createdNodeNumFiles;
   private int createdNodeNumDirs;
-  
+
   private int heapSize;
-  private int maxHeapSize;
-  private PriorityQueue<SmallList> smallLists = new PriorityQueue<SmallList>();
+  private final int maxHeapSize;
+  private final PriorityQueue<SmallList> smallLists = new PriorityQueue<SmallList>();
   long pos;
   FileSystemEntry lastCreatedFile;
   private volatile int deepDepth = 0;
-  
+
   public FileSystemEntry lastCreatedFile() {
     return lastCreatedFile;
   }
   public long pos() {
     return pos;
   }
-  
+
   private class SmallList implements Comparable<SmallList> {
     FileSystemEntry parent;
     FileSystemEntry[] children;
     int heapSize;
     float spaceEfficiency;
-    
+
     SmallList(FileSystemEntry parent, FileSystemEntry[] children, int heapSize, long blocks) {
       this.parent = parent;
       this.children = children;
       this.heapSize = heapSize;
       this.spaceEfficiency = blocks / (float) heapSize;
     }
-    
+
     @Override
     public int compareTo(SmallList that) {
       return spaceEfficiency < that.spaceEfficiency ? -1 : (spaceEfficiency == that.spaceEfficiency ? 0 : 1);
     }
   };
-  
-  private String getScanBinaryPath() {
-    return context.getDir("binary", Context.MODE_PRIVATE).getAbsolutePath() + "/scan";
+
+  private String getScanBinaryPath(String binaryName) {
+    return context.getDir("binary", Context.MODE_PRIVATE).getAbsolutePath()
+        + "/" + binaryName;
   }
-  
-  public void runChmod() throws IOException, InterruptedException {
+
+  public void runChmod(String binaryName)
+      throws IOException, InterruptedException {
     Process process;
     try {
       process = Runtime.getRuntime().exec(
-          "chmod 0555 " + getScanBinaryPath());
+          "chmod 0555 " + getScanBinaryPath(binaryName));
     } catch (IOException e) {
       try {
       process = Runtime.getRuntime().exec(
-          "/system/bin/chmod 0555 " + getScanBinaryPath());
+          "/system/bin/chmod 0555 " + getScanBinaryPath(binaryName));
       } catch (IOException ee ) {
         throw new RuntimeException("Failed to chmod", ee);
       }
     }
     process.waitFor();
   }
-  
-  public void unpackScanBinary() throws IOException {
+
+  public void unpackScanBinary(String binaryName) throws IOException {
     byte[] buffer = new byte[32768];
-    InputStream is = context.getAssets().open("scan");
-    FileOutputStream os = new FileOutputStream(getScanBinaryPath());
+    InputStream is = context.getAssets().open(binaryName);
+    FileOutputStream os = new FileOutputStream(getScanBinaryPath(binaryName));
     int len;
     while ((len = is.read(buffer)) != -1) {
       os.write(buffer, 0, len);
@@ -109,39 +114,46 @@ public class NativeScanner implements ProgressGenerator {
     os.close();
     is.close();
   }
-  
+
   private static boolean remove = true;
-  
-  public void setupBinary() throws IOException, InterruptedException {
+
+  public void setupBinary(String binaryName)
+      throws IOException, InterruptedException {
     // Remove 'scan' binary every run. TODO: do clean update on package update
     if (remove) {
-      new File(getScanBinaryPath()).delete();
+      new File(getScanBinaryPath(binaryName)).delete();
       remove = false;
     }
-    
-    File binary = new File(getScanBinaryPath());
+
+    File binary = new File(getScanBinaryPath(binaryName));
     if (binary.isFile()) return;
-    unpackScanBinary();
-    runChmod();
+    unpackScanBinary(binaryName);
+    runChmod(binaryName);
   }
-  
+
   private Process process;
   private InputStream is;
-  private Context context;
-  
+  private final Context context;
+
   public static final boolean isDeviceRooted() {
     return new File("/system/bin/su").isFile()
         || new File("/system/xbin/su").isFile();
   }
-  
+
   public void runScanner(String root,
       boolean rootRequired) throws IOException, InterruptedException {
-    setupBinary();
+    String binaryName = "scan";
+    final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+    if (sdkVersion >= 21 /* Lollipop */) {
+      binaryName = "scan5";
+    }
+    setupBinary(binaryName);
     boolean deviceIsRooted = isDeviceRooted();
 
 
     if (!(rootRequired && deviceIsRooted)) {
-      process = Runtime.getRuntime().exec(new String[] { getScanBinaryPath(), root});
+      process = Runtime.getRuntime().exec(new String[] {
+          getScanBinaryPath(binaryName), root});
     } else {
       IOException e = null;
       for (String su : new String[] { "su", "/system/bin/su", "/system/xbin/su" }) {
@@ -152,13 +164,13 @@ public class NativeScanner implements ProgressGenerator {
           e = newe;
         }
       }
-      
+
       if (process == null) {
         throw e;
       }
-     
+
       OutputStream os = process.getOutputStream();
-      os.write((getScanBinaryPath() + " " + root).getBytes("UTF-8"));
+      os.write((getScanBinaryPath(binaryName) + " " + root).getBytes("UTF-8"));
       os.flush();
       os.close();
     }
@@ -169,8 +181,8 @@ public class NativeScanner implements ProgressGenerator {
   private static final int bufsize = 65536;
   private int offset = 0;
   private int allocated = 0;
-  private byte[] buffer = new byte[bufsize];
-  
+  private final byte[] buffer = new byte[bufsize];
+
   private void move() {
 //    Log.d("diskusage", "MOVE!");
     if (offset == 0) throw new RuntimeException("Error: too large entity size");
@@ -178,7 +190,7 @@ public class NativeScanner implements ProgressGenerator {
     allocated -= offset;
     offset = 0;
   }
-  
+
   public void read() throws IOException {
 //    Log.d("diskusage", "READ!");
     if (allocated == bufsize) {
@@ -190,7 +202,7 @@ public class NativeScanner implements ProgressGenerator {
     }
     allocated += res;
   }
-  
+
   public byte getByte() throws IOException {
     while (true) {
       if (offset < allocated) {
@@ -199,7 +211,7 @@ public class NativeScanner implements ProgressGenerator {
       read();
     }
   }
-  
+
   public long getLong() throws IOException {
     long res = 0;
     byte b;
@@ -210,12 +222,12 @@ public class NativeScanner implements ProgressGenerator {
 //    Log.d("diskusage", "long = " + res);
     return res;
   }
-  
+
   public String getString() throws IOException {
     byte[] buffer = this.buffer;
     int startPos = offset;
-    
-    
+
+
     while (true) {
       for (int i = startPos; i < allocated; i++) {
         if (buffer[i] == 0) {
@@ -230,13 +242,13 @@ public class NativeScanner implements ProgressGenerator {
       startPos = offset + startOffset;
     }
   }
-  
+
   enum Type {
     NONE,
     DIR,
     FILE
   };
-  
+
   public Type getType() throws IOException {
     int c = getByte();
 //    Log.d("diskusage", "type = " + (char)c);
@@ -247,7 +259,7 @@ public class NativeScanner implements ProgressGenerator {
     default: throw new RuntimeException("Error: incorrect entity type");
     }
   }
-  
+
   NativeScanner(Context context, int blockSize, long allocatedBlocks, int maxHeap) {
     this.blockSize = blockSize;
     this.blockSizeIn512Bytes = blockSize / 512;
@@ -260,7 +272,7 @@ public class NativeScanner implements ProgressGenerator {
     Log.d("diskusage", "maxHeap " + maxHeap);
     Log.d("diskusage", "sizeThreshold = " + sizeThreshold / (float) (1 << FileSystemEntry.blockOffset));
   }
-  
+
   private void print(String msg, SmallList list) {
     String hidden_path = "";
     // FIXME: this is debug
@@ -269,20 +281,20 @@ public class NativeScanner implements ProgressGenerator {
     }
     Log.d("diskusage", msg + " " + hidden_path + " = " + list.heapSize + " " + list.spaceEfficiency);
   }
-  
+
   FileSystemEntry scan(MountPoint mountPoint) throws IOException, InterruptedException {
     runScanner(mountPoint.getRoot(), mountPoint.rootRequired);
     Type type = getType();
     if (type != Type.DIR) throw new RuntimeException("Error: no mount point");
     scanDirectory(null, getString(), 0);
     Log.d("diskusage", "allocated " + createdNodeSize + " B of heap");
-    
+
     int extraHeap = 0;
-    
+
     // Restoring blocks
     for (SmallList list : smallLists) {
       print("restored", list);
-      
+
       FileSystemEntry[] oldChildren = list.parent.children;
       FileSystemEntry[] addChildren = list.children;
       FileSystemEntry[] newChildren =
@@ -292,7 +304,7 @@ public class NativeScanner implements ProgressGenerator {
         FileSystemEntry c = oldChildren[i];
         if (! (c instanceof FileSystemEntrySmall)) {
           newChildren[pos++] = c;
-        }   
+        }
       }
       java.util.Arrays.sort(newChildren, FileSystemEntry.COMPARE);
       list.parent.children = newChildren;
@@ -305,8 +317,8 @@ public class NativeScanner implements ProgressGenerator {
     process.waitFor();
     return createdNode;
   }
-  
-  
+
+
   private static class SoftStack {
     private static enum State {
       PRE_LOOP,
@@ -314,7 +326,7 @@ public class NativeScanner implements ProgressGenerator {
       POST_LOOP;
     }
     State state;
-    
+
     FileSystemEntry parent;
     String name;
     int depth;
@@ -324,12 +336,12 @@ public class NativeScanner implements ProgressGenerator {
     int thisNodeSize;
     int thisNodeNumDirs;
     int thisNodeNumFiles;
-    
+
     int thisNodeSizeSmall;
     int thisNodeNumFilesSmall;
     int thisNodeNumDirsSmall;
     long smallBlocks;
-    
+
     ArrayList<FileSystemEntry> children;
     ArrayList<FileSystemEntry> smallChildren;
     long blocks;
@@ -338,7 +350,7 @@ public class NativeScanner implements ProgressGenerator {
     int files;
     SoftStack prev;
   }
-  
+
   // Very complicated version of scanDirectory() which uses soft stack instead
   // of real one.
   private void scanDirectorySoftStack(FileSystemEntry parent_, String name_,
@@ -349,7 +361,7 @@ public class NativeScanner implements ProgressGenerator {
     s.depth = depth_;
     s.state = SoftStack.State.PRE_LOOP;
 
-    restart: while(true) { 
+    restart: while(true) {
       switch (s.state) {
       case PRE_LOOP:
         deepDepth = s.depth;
@@ -408,7 +420,7 @@ public class NativeScanner implements ProgressGenerator {
             continue restart;
           }
 
-          long createdNodeBlocks = createdNode.getSizeInBlocks(); 
+          long createdNodeBlocks = createdNode.getSizeInBlocks();
           s.blocks += createdNodeBlocks;
 
           if (this.createdNodeSize * sizeThreshold > createdNode.encodedSize) {
@@ -487,7 +499,7 @@ public class NativeScanner implements ProgressGenerator {
       s.dirs = createdNodeNumDirs;
       s.files = createdNodeNumFiles;
       // Finish missed part of inner loop
-      long createdNodeBlocks = createdNode.getSizeInBlocks(); 
+      long createdNodeBlocks = createdNode.getSizeInBlocks();
       s.blocks += createdNodeBlocks;
 
       if (this.createdNodeSize * sizeThreshold > createdNode.encodedSize) {
@@ -505,7 +517,7 @@ public class NativeScanner implements ProgressGenerator {
     }
   }
 
-  
+
   /**
    * Scan directory object.
    * This constructor starts recursive scan to find all descendent files and directories.
@@ -515,7 +527,7 @@ public class NativeScanner implements ProgressGenerator {
    * @param file corresponding File object
    * @param depth current directory tree depth
    * @param maxdepth maximum directory tree depth
-   * @throws IOException 
+   * @throws IOException
    */
   private void scanDirectory(FileSystemEntry parent, String name,
                              int depth) throws IOException {
@@ -528,17 +540,17 @@ public class NativeScanner implements ProgressGenerator {
     makeNode(parent, name);
     createdNodeNumDirs = 1;
     createdNodeNumFiles = 0;
-    
+
     FileSystemEntry thisNode = createdNode;
     int thisNodeSize = createdNodeSize;
     int thisNodeNumDirs = 1;
     int thisNodeNumFiles = 0;
-    
+
     int thisNodeSizeSmall = 0;
     int thisNodeNumFilesSmall = 0;
     int thisNodeNumDirsSmall = 0;
     long smallBlocks = 0;
-    
+
     ArrayList<FileSystemEntry> children = new ArrayList<FileSystemEntry>();
     ArrayList<FileSystemEntry> smallChildren = new ArrayList<FileSystemEntry>();
 
@@ -569,9 +581,9 @@ public class NativeScanner implements ProgressGenerator {
         files = createdNodeNumFiles;
       }
 
-      long createdNodeBlocks = createdNode.getSizeInBlocks(); 
+      long createdNodeBlocks = createdNode.getSizeInBlocks();
       blocks += createdNodeBlocks;
-      
+
       if (this.createdNodeSize * sizeThreshold > createdNode.encodedSize) {
         smallChildren.add(createdNode);
         thisNodeSizeSmall += this.createdNodeSize;
@@ -589,7 +601,7 @@ public class NativeScanner implements ProgressGenerator {
 
     thisNodeNumDirs += thisNodeNumDirsSmall;
     thisNodeNumFiles += thisNodeNumFilesSmall;
-    
+
     FileSystemEntry smallFilesEntry = null;
 
     if ((thisNodeSizeSmall + thisNodeSize) * sizeThreshold <= thisNode.encodedSize
@@ -613,7 +625,7 @@ public class NativeScanner implements ProgressGenerator {
 //          hidden_path = p.name + "/" + hidden_path;
 //        }
 //        Log.d("diskusage", hidden_path + " = " + thisNodeSizeSmall);
-      
+
       makeNode(thisNode, msg);
       // create another one with right type
       createdNode = FileSystemEntrySmall.makeNode(thisNode, msg,
@@ -629,7 +641,7 @@ public class NativeScanner implements ProgressGenerator {
           smallBlocks);
       smallLists.add(list);
     }
-    
+
     // Magic to sort children and keep small files last in the array.
     if (children.size() != 0) {
       long smallFilesEntrySize = 0;
@@ -648,12 +660,12 @@ public class NativeScanner implements ProgressGenerator {
     createdNodeNumDirs = thisNodeNumDirs;
     createdNodeNumFiles = thisNodeNumFiles;
   }
-  
+
   private void makeNode(FileSystemEntry parent, String name) {
 //    try {
 //      Thread.sleep(10);
 //    } catch (Throwable t) {}
-  
+
     createdNode = FileSystemFile.makeNode(parent, name);
     createdNodeSize =
       4 /* ref in FileSystemEntry[] */
