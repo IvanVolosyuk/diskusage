@@ -1124,6 +1124,9 @@ public class FileSystemEntry {
       for (int i = 0; i < pathElements.length; i++) {
         String name = pathElements[i];
         FileSystemEntry[] children = entry.children;
+        if (children == null) {
+          return null;
+        }
         for (int j = 0; j < children.length; j++) {
           entry = children[j];
           if (name.equals(entry.name)) {
