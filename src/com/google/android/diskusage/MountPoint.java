@@ -19,25 +19,24 @@
 
 package com.google.android.diskusage;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.TreeMap;
+import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
+import com.google.android.diskusage.entity.FileSystemRoot;
 
-import android.app.Application;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
 import android.util.Log;
 
-import com.google.android.diskusage.entity.FileSystemEntry;
-import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
-import com.google.android.diskusage.entity.FileSystemRoot;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class MountPoint {
   final FileSystemEntry.ExcludeFilter excludeFilter;
@@ -46,7 +45,7 @@ public class MountPoint {
   final boolean hasApps2SD;
   final boolean rootRequired;
   final String fsType;
-  
+
   MountPoint(String title, String root, ExcludeFilter excludeFilter,
       boolean hasApps2SD, boolean rootRequired, String fsType) {
     this.title = title;
@@ -56,39 +55,39 @@ public class MountPoint {
     this.rootRequired = rootRequired;
     this.fsType = fsType;
   }
-  
+
   private static MountPoint defaultStorage;
   private static Map<String, MountPoint> mountPoints = new TreeMap<String, MountPoint>();
   private static Map<String, MountPoint> rootedMountPoints = new TreeMap<String, MountPoint>();
   private static boolean init = false;
   private static MountPoint honeycombSdcard;
-  static int checksum = 0; 
-  
+  static int checksum = 0;
+
   public static MountPoint getHoneycombSdcard(Context context) {
     initMountPoints(context);
     return honeycombSdcard;
   }
-  
+
   public static MountPoint getDefaultStorage(Context context) {
     initMountPoints(context);
     return defaultStorage;
   }
-  
+
   public static Map<String,MountPoint> getMountPoints(Context context) {
     initMountPoints(context);
     return mountPoints;
   }
-  
+
   public static Map<String,MountPoint> getRootedMountPoints(Context context) {
     initMountPoints(context);
     return rootedMountPoints;
   }
-  
+
   public static MountPoint getNormal(Context context, String rootPath) {
     initMountPoints(context);
     return mountPoints.get(rootPath);
   }
-  
+
   public static MountPoint forPath(Context context, String path) {
 	Log.d("diskusage", "Looking for mount point for path: " + path);
     initMountPoints(context);
@@ -118,7 +117,7 @@ public class MountPoint {
     }
     return match;
   }
-  
+
   public static MountPoint getRooted(Context context, String rootPath) {
     initMountPoints(context);
     return rootedMountPoints.get(rootPath);
@@ -132,11 +131,11 @@ public class MountPoint {
   public FileSystemEntry.ExcludeFilter getExcludeFilter() {
     return excludeFilter;
   }
-  
+
   public String getRoot() {
     return root;
   }
-  
+
   public static String storageCardPath() {
     try {
       return Environment.getExternalStorageDirectory().getCanonicalPath();
@@ -144,26 +143,26 @@ public class MountPoint {
       return Environment.getExternalStorageDirectory().getAbsolutePath();
     }
   }
-  
+
   private static boolean isEmulated(String fsType) {
     return fsType.equals("sdcardfs") || fsType.equals("fuse");
   }
-  
+
   private static void initMountPoints(Context context) {
     if (init) return;
     init = true;
     String storagePath = storageCardPath();
     Log.d("diskusage", "StoragePath: " + storagePath);
-    
+
     ArrayList<MountPoint> mountPointsList = new ArrayList<MountPoint>();
     HashSet<String> excludePoints = new HashSet<String>();
     if (storagePath != null) {
       defaultStorage = new MountPoint(
-              titleStorageCard(context), storagePath, null, false, false, ""); 
+              titleStorageCard(context), storagePath, null, false, false, "");
       mountPointsList.add(defaultStorage);
       mountPoints.put(storagePath, defaultStorage);
     }
-    
+
     try {
       // FIXME: debug
       checksum = 0;
@@ -178,13 +177,13 @@ public class MountPoint {
         String mountPoint = parts[1];
         Log.d("diskusage", "Mount point: " + mountPoint);
         String fsType = parts[2];
-        
+
         StatFs stat = null;
         try {
           stat = new StatFs(mountPoint);
         } catch (Exception e) {
         }
-        
+
         if (!(fsType.equals("vfat") || fsType.equals("tntfs") || fsType.equals("exfat")
             || fsType.equals("texfat") || isEmulated(fsType))
             || mountPoint.startsWith("/mnt/asec")
@@ -195,7 +194,7 @@ public class MountPoint {
             || (mountPoint.endsWith("/legacy") && isEmulated(fsType))) {
           Log.d("diskusage", String.format("Excluded based on fsType=%s or black list", fsType));
           excludePoints.add(mountPoint);
-          
+
           // Default storage is not vfat, removing it (real honeycomb)
           if (mountPoint.equals(storagePath)) {
             mountPointsList.remove(defaultStorage);
@@ -209,13 +208,13 @@ public class MountPoint {
           mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, false, fsType));
         }
       }
-      
+
       for (MountPoint mountPoint: mountPointsList) {
         String prefix = mountPoint.root + "/";
         boolean has_apps2sd = false;
         ArrayList<String> excludes = new ArrayList<String>();
         String mountPointName = new File(mountPoint.root).getName();
-        
+
         for (MountPoint otherMountPoint : mountPointsList) {
           if (otherMountPoint.root.startsWith(prefix)) {
             excludes.add(mountPointName + "/" + otherMountPoint.root.substring(prefix.length()));
@@ -242,7 +241,13 @@ public class MountPoint {
       Log.e("diskusage", "Failed to get mount points", e);
     }
     final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
-    
+
+    try {
+      addMediaPaths(context);
+    } catch (Throwable t) {
+      Log.e("diskusage", "Adding media paths", t);
+    }
+
     MountPoint storageCard = mountPoints.get(storageCardPath());
     if(sdkVersion >= Build.VERSION_CODES.HONEYCOMB
         && (storageCard == null || isEmulated(storageCard.fsType))) {
@@ -258,12 +263,58 @@ public class MountPoint {
       defaultStorage.title = titleStorageCard(context);
     }
   }
-  
+
+  @TargetApi(Build.VERSION_CODES.KITKAT)
+  public static File[] getMediaStoragePaths(Context context) {
+    try {
+      return context.getExternalFilesDirs(Environment.DIRECTORY_DCIM);
+    } catch (Throwable t) {
+      return new File[0];
+    }
+  }
+
+  public static String canonicalPath(File file) {
+    try {
+      return file.getCanonicalPath();
+    } catch (Exception e) {
+      return file.getAbsolutePath();
+    }
+  }
+
+  private static void addMediaPaths(Context context) {
+    File[] mediaStoragePaths = getMediaStoragePaths(context);
+    for (File file : mediaStoragePaths) {
+      while (file != null) {
+        String canonical = canonicalPath(file);
+
+        if (mountPoints.containsKey(canonical)) {
+          break;
+        }
+
+        MountPoint rootedMountPoint = rootedMountPoints.get(canonical);
+        if (rootedMountPoint != null) {
+          mountPoints.put(canonical, new MountPoint(
+              canonical,
+              canonical,
+              null,
+              false,
+              false,
+              rootedMountPoint.fsType));
+          break;
+        }
+        if (canonical.equals("/")) break;
+        file = file.getParentFile();
+      }
+    }
+  }
+
+
+
   private static String titleStorageCard(Context context) {
     return context.getString(R.string.storage_card);
   }
-  
-//  private static final String file = 
+
+//  private static final String file =
 //    "rootfs / rootfs ro,relatime 0 0\n" +
 //    "tmpfs /dev tmpfs rw,relatime,mode=755 0 0\n" +
 //    "devpts /dev/pts devpts rw,relatime,mode=600 0 0\n" +
@@ -284,7 +335,7 @@ public class MountPoint {
 //    "/dev/block/dm-2 /mnt/asec/zok.android.shapes-2 vfat ro,dirsync,nosuid,nodev,noexec,relatime,uid=1000,fmask=0222,dmask=0222,codepage=cp437,iocharset=iso8859-1,shortname=mixed,utf8,errors=remount-ro 0 0\n" +
 //    "/dev/block/dm-3 /mnt/asec/net.hexage.everlands-1 vfat ro,dirsync,nosuid,nodev,noexec,relatime,uid=1000,fmask=0222,dmask=0222,codepage=cp437,iocharset=iso8859-1,shortname=mixed,utf8,errors=remount-ro 0 0\n" +
 //    "/dev/block/dm-3 /mnt/sdcard/maps ext2 ro,relatime,size=0k,mode=000 0 0\n";
-  
+
   public static void reset() {
     defaultStorage = null;
     mountPoints = new TreeMap<String, MountPoint>();
