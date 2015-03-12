@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.google.android.diskusage"
     android:installLocation="auto"
-    android:versionCode="3052"
-    android:versionName="3.5.2">
+    android:versionCode="3053"
+    android:versionName="3.5.3">
     <uses-sdk android:minSdkVersion="1" android:targetSdkVersion="19"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
