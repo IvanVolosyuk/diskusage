@@ -19,6 +19,17 @@
 
 package com.google.android.diskusage;
 
+import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
+import com.google.android.diskusage.entity.FileSystemRoot;
+
+import android.annotation.TargetApi;
+import android.content.Context;
+import android.os.Build;
+import android.os.Environment;
+import android.os.StatFs;
+import android.util.Log;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -28,17 +39,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
-import android.annotation.TargetApi;
-import android.content.Context;
-import android.os.Build;
-import android.os.Environment;
-import android.os.StatFs;
-import android.util.Log;
-
-import com.google.android.diskusage.entity.FileSystemEntry;
-import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
-import com.google.android.diskusage.entity.FileSystemRoot;
 
 public class MountPoint {
   final FileSystemEntry.ExcludeFilter excludeFilter;
@@ -158,6 +158,10 @@ public class MountPoint {
   }
 
   public static String canonicalPath(File file) {
+    // Fix for Galaxy Note Pro 12.2
+    if (file == null) {
+      return null;
+    }
     try {
       return file.getCanonicalPath();
     } catch (Exception e) {
@@ -317,20 +321,25 @@ public class MountPoint {
     for (File file : mediaStoragePaths) {
       while (true) {
         String canonical = canonicalPath(file);
-          MountPoint rootedMountPoint = new MountPoint(
-              canonical,
-              canonical,
-              null,
-              false,
-              true,
-              "fuse");
-          MountPoint mountPoint = new MountPoint(
-              canonical,
-              canonical,
-              null,
-              false,
-              false,
-              "fuse");
+
+        // Fix for Galaxy Note Pro 12.2
+        if (canonical == null) {
+          continue;
+        }
+        MountPoint rootedMountPoint = new MountPoint(
+            canonical,
+            canonical,
+            null,
+            false,
+            true,
+            "fuse");
+        MountPoint mountPoint = new MountPoint(
+            canonical,
+            canonical,
+            null,
+            false,
+            false,
+            "fuse");
         if (mountPointList.contains(mountPoint)) {
           break;
         } else if (mountPointList.contains(rootedMountPoint)) {
