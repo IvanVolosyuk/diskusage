@@ -272,6 +272,10 @@ public class MountPoint {
 
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   private static File getBaseDir(File dir) {
+    if (dir == null) {
+      return null;
+    }
+
     long totalSpace = dir.getTotalSpace();
     while (true) {
       File base = dir.getParentFile();
@@ -280,7 +284,7 @@ public class MountPoint {
       } catch (Exception e) {
         return dir;
       }
-      if (base.equals(dir) || base.getTotalSpace() != totalSpace) {
+      if (base == null || dir.equals(base) || base.getTotalSpace() != totalSpace) {
         return dir;
       }
       dir = base;
@@ -291,16 +295,19 @@ public class MountPoint {
   // legacy stuff.
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   private static void initMountPointsLollipop(Context context) {
-    mountPoints.clear();
+    Map<String, MountPoint> mountPoints = new TreeMap<String, MountPoint>();
     File defaultDir = getBaseDir(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES));
     File[] dirs = context.getExternalMediaDirs();
     for (File path : dirs) {
+      if (path == null) {
+        continue;
+      }
       File dir = getBaseDir(path);
       boolean isEmulated = Environment.isExternalStorageEmulated(dir);
       boolean isRemovable = Environment.isExternalStorageRemovable(dir);
       boolean hasApps = isEmulated && !isRemovable;
       MountPoint mountPoint = new MountPoint(
-          defaultDir.equals(dir) ? titleStorageCard(context) : dir.getAbsolutePath(),
+          dir.equals(defaultDir) ? titleStorageCard(context) : dir.getAbsolutePath(),
           dir.getAbsolutePath(),
           new ExcludeFilter(new ArrayList<String>()),
           false /* hasApps2SD */,
@@ -314,6 +321,7 @@ public class MountPoint {
         honeycombSdcard = mountPoint;
       }
     }
+    MountPoint.mountPoints = mountPoints;
   }
 
   @TargetApi(Build.VERSION_CODES.KITKAT)

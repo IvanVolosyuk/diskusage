@@ -42,7 +42,7 @@ public final class FileSystemViewCPU extends View implements FileSystemView {
 
   @Override
   protected final void onDraw(final Canvas canvas) {
-    eventHandler.onDraw(canvas);
+    eventHandler.onDraw2(canvas);
   }
   
   @Override

@@ -798,7 +798,7 @@ public class FileSystemState {
     }
   }
   
-  public final void onDraw(final Canvas canvas) {
+  public final void onDraw2(final Canvas canvas) {
     try {
       boolean animation = preDraw();
       Rect bounds = canvas.getClipBounds();
