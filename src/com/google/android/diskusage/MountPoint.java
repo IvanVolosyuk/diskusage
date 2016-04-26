@@ -44,16 +44,18 @@ public class MountPoint {
   final String root;
   final boolean hasApps2SD;
   final boolean rootRequired;
+  final boolean forceHasApps;
   final String fsType;
 
   MountPoint(String title, String root, ExcludeFilter excludeFilter,
-      boolean hasApps2SD, boolean rootRequired, String fsType) {
+      boolean hasApps2SD, boolean rootRequired, String fsType, boolean forceHasApps) {
     this.title = title;
     this.root = root;
     this.excludeFilter = excludeFilter;
     this.hasApps2SD = hasApps2SD;
     this.rootRequired = rootRequired;
     this.fsType = fsType;
+    this.forceHasApps = forceHasApps;
   }
 
   private static MountPoint defaultStorage;
@@ -158,7 +160,7 @@ public class MountPoint {
     HashSet<String> excludePoints = new HashSet<String>();
     if (storagePath != null) {
       defaultStorage = new MountPoint(
-              titleStorageCard(context), storagePath, null, false, false, "");
+              titleStorageCard(context), storagePath, null, false, false, "", false);
       mountPointsList.add(defaultStorage);
       mountPoints.put(storagePath, defaultStorage);
     }
@@ -201,11 +203,11 @@ public class MountPoint {
             mountPoints.remove(mountPoint);
           }
           if (/*rooted &&*/ !mountPoint.startsWith("/mnt/asec/")) {
-            mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, true, fsType));
+            mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, true, fsType, false));
           }
         } else {
           Log.d("diskusage", "Mount point is good");
-          mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, false, fsType));
+          mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, false, fsType, false));
         }
       }
 
@@ -230,7 +232,7 @@ public class MountPoint {
         }
         MountPoint newMountPoint = new MountPoint(
             mountPoint.root, mountPoint.root, new ExcludeFilter(excludes),
-            has_apps2sd, mountPoint.rootRequired, mountPoint.fsType);
+            has_apps2sd, mountPoint.rootRequired, mountPoint.fsType, false);
         if (mountPoint.rootRequired) {
           rootedMountPoints.put(mountPoint.root, newMountPoint);
         } else {
@@ -255,12 +257,62 @@ public class MountPoint {
       // No real /sdcard in honeycomb
       honeycombSdcard = defaultStorage;
       mountPoints.put("/data", new MountPoint(
-              titleStorageCard(context), "/data", null, false, false, ""));
+              titleStorageCard(context), "/data", null, false, false, "", true));
     }
 
     if (!mountPoints.isEmpty()) {
       defaultStorage = mountPoints.values().iterator().next();
       defaultStorage.title = titleStorageCard(context);
+    }
+
+    if (sdkVersion >= Build.VERSION_CODES.LOLLIPOP) {
+      initMountPointsLollipop(context);
+    }
+  }
+
+  @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+  private static File getBaseDir(File dir) {
+    long totalSpace = dir.getTotalSpace();
+    while (true) {
+      File base = dir.getParentFile();
+      try {
+        Environment.isExternalStorageEmulated(base);
+      } catch (Exception e) {
+        return dir;
+      }
+      if (base.equals(dir) || base.getTotalSpace() != totalSpace) {
+        return dir;
+      }
+      dir = base;
+    }
+  }
+
+  // Lollipop have new API to get storage states, which can try to use it instead complicated
+  // legacy stuff.
+  @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+  private static void initMountPointsLollipop(Context context) {
+    mountPoints.clear();
+    File defaultDir = getBaseDir(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES));
+    File[] dirs = context.getExternalMediaDirs();
+    for (File path : dirs) {
+      File dir = getBaseDir(path);
+      boolean isEmulated = Environment.isExternalStorageEmulated(dir);
+      boolean isRemovable = Environment.isExternalStorageRemovable(dir);
+      boolean hasApps = isEmulated && !isRemovable;
+      MountPoint mountPoint = new MountPoint(
+          defaultDir.equals(dir) ? titleStorageCard(context) : dir.getAbsolutePath(),
+          dir.getAbsolutePath(),
+          new ExcludeFilter(new ArrayList<String>()),
+          false /* hasApps2SD */,
+          false /* rootRequired */,
+          "whoCares",
+          hasApps /* forceHasApps */);
+      mountPoints.put(mountPoint.root, mountPoint);
+
+      if (!isRemovable) {
+        defaultStorage = mountPoint;
+        honeycombSdcard = mountPoint;
+      }
     }
   }
 
@@ -299,7 +351,7 @@ public class MountPoint {
               null,
               false,
               false,
-              rootedMountPoint.fsType));
+              rootedMountPoint.fsType, false));
           break;
         }
         if (canonical.equals("/")) break;
