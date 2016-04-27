@@ -296,8 +296,8 @@ public class MountPoint {
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   private static void initMountPointsLollipop(Context context) {
     Map<String, MountPoint> mountPoints = new TreeMap<String, MountPoint>();
-    File defaultDir = getBaseDir(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES));
-    File[] dirs = context.getExternalMediaDirs();
+    File defaultDir = getBaseDir(context.getExternalFilesDir(null));
+    File[] dirs = context.getExternalFilesDirs(null);
     for (File path : dirs) {
       if (path == null) {
         continue;
