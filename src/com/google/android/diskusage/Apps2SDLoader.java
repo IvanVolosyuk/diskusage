@@ -20,7 +20,6 @@
 package com.google.android.diskusage;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,37 +28,38 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import android.content.pm.IPackageStatsObserver;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.PackageStats;
 import android.os.Handler;
-import android.os.RemoteException;
-import android.os.StatFs;
 import android.util.Log;
 
+import com.google.android.diskusage.datasource.AppInfo;
+import com.google.android.diskusage.datasource.AppStats;
+import com.google.android.diskusage.datasource.AppStatsCallback;
+import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.datasource.PkgInfo;
+import com.google.android.diskusage.datasource.StatFsSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
 import com.google.android.diskusage.entity.FileSystemPackage;
 
 public class Apps2SDLoader {
 
-  private DiskUsage diskUsage;
+  private final DiskUsage diskUsage;
   private int numLookups;
   private int numLoadedPackages;
 
   public Apps2SDLoader(DiskUsage activity) {
     this.diskUsage = activity;
   }
-  
+
   private synchronized void changeNumLookups(int change) {
     numLookups += change;
   }
-  
+
   private Map<String, Long> getDfSizes() {
     TreeMap<String, Long> map = new TreeMap<String, Long>();
     try {
       // FIXME: debug
-      BufferedReader reader = new BufferedReader(new FileReader("/proc/mounts"));
-//      BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(file.getBytes())));
+      BufferedReader reader = new BufferedReader(DataSource.get().getProc());
       String line;
       while ((line = reader.readLine()) != null) {
         String[] parts = line.split(" +");
@@ -74,30 +74,33 @@ public class Apps2SDLoader {
         }
         String packageNameNum = mountPoint.substring(mountPoint.lastIndexOf('/') + 1);
         String packageName = packageNameNum.substring(0, packageNameNum.indexOf('-'));
-        StatFs stat = new StatFs(mountPoint);
+        StatFsSource stat = DataSource.get().statFs(mountPoint);
         long size = (stat.getBlockCount() - stat.getAvailableBlocks()) * stat.getBlockSize();
         map.put(packageName, size);
         Log.d("diskusage", "external size (" + packageName + ") = " + size / 1024 + " kb");
       }
+      reader.close();
     } catch (Throwable t) {
       Log.e("disksusage", "failed to parse /proc/mounts", t);
     }
     return map;
   }
-  
-  String currentAppName = "";
+
+  CharSequence currentAppName = "";
   boolean switchToSecondary = true;
-  
-  public FileSystemEntry[] load(boolean sdOnly, final AppFilter appFilter, final int blockSize) throws Throwable {
+
+  public FileSystemEntry[] load(
+      boolean sdOnly,
+      final AppFilter appFilter,
+      final int blockSize) throws Throwable {
     final Map<String, Long> dfSizes = getDfSizes();
     final ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
-    
+
     PackageManager pm = diskUsage.getPackageManager();
     Method getPackageSizeInfo = pm.getClass().getMethod(
         "getPackageSizeInfo", String.class, IPackageStatsObserver.class);
-    final List<PackageInfo> installedPackages = pm.getInstalledPackages(
-        PackageManager.GET_META_DATA | PackageManager.GET_UNINSTALLED_PACKAGES);
-    
+    final List<PkgInfo> installedPackages = DataSource.get().getInstalledPackages(pm);
+
     final Handler handler = diskUsage.handler;
     Runnable progressUpdater = new Runnable() {
       @Override
@@ -115,44 +118,49 @@ public class Apps2SDLoader {
       }
     };
     handler.post(progressUpdater);
-    
-    
-    for (final PackageInfo info : installedPackages) {
+
+
+    for (final PkgInfo info : installedPackages) {
 //      Log.d("diskusage", "Got package: " + info.packageName);
-      if (info.applicationInfo == null) {
+      if (info.getApplicationInfo() == null) {
         Log.d("diskusage", "No applicationInfo");
         continue;
       }
-      
+
       int flag = 0x40000; // ApplicationInfo.FLAG_EXTERNAL_STORAGE
-      boolean on_sdcard = (info.applicationInfo.flags & flag) != 0;
+      final AppInfo appInfo = info.getApplicationInfo();
+      boolean on_sdcard = (appInfo.getFlags() & flag) != 0;
       if (on_sdcard || !sdOnly) {
         changeNumLookups(1);
-        final String pkg = info.packageName;
-        final String name = pm.getApplicationLabel(info.applicationInfo).toString();
+        final String pkg = info.getPackageName();
+        final String name = appInfo.getApplicationLabel();
         currentAppName = name;
-        getPackageSizeInfo.invoke(pm, pkg, new IPackageStatsObserver.Stub() {
-
+        DataSource.get().getPackageSizeInfo(getPackageSizeInfo, pm, pkg, new AppStatsCallback() {
           @Override
-          public void onGetStatsCompleted(PackageStats pStats, boolean succeeded)
-          throws RemoteException {
+          public void onGetStatsCompleted(AppStats stats, boolean succeeded) {
             synchronized (Apps2SDLoader.this) {
               numLoadedPackages++;
               changeNumLookups(-1);
               if (succeeded) {
                 FileSystemPackage p = new FileSystemPackage(
-                    name, pkg, pStats, info.applicationInfo.flags, dfSizes.get(pkg), blockSize);
+                    name,
+                    pkg,
+                    stats,
+                    appInfo.getFlags(),
+                    dfSizes.get(pkg),
+                    blockSize);
                 p.applyFilter(appFilter, blockSize);
                 entries.add(p);
 //                Log.i("diskusage", "codeSize: " + pStats.codeSize);
               }
               Apps2SDLoader.this.notify();
             }
+
           }
         });
       } else {
         synchronized (this) {
-          currentAppName = pm.getApplicationLabel(info.applicationInfo).toString();
+          currentAppName = appInfo.getApplicationLabel();
           numLoadedPackages++;
         }
       }

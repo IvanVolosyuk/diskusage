@@ -19,61 +19,61 @@
 
 package com.google.android.diskusage;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.PriorityQueue;
 
 import android.util.Log;
 
 import com.google.android.diskusage.DiskUsage.ProgressGenerator;
+import com.google.android.diskusage.datasource.LegacyFile;
 import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
 import com.google.android.diskusage.entity.FileSystemEntrySmall;
 import com.google.android.diskusage.entity.FileSystemFile;
-import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
 
 public class Scanner implements ProgressGenerator {
   private final int maxdepth;
   private final int blockSize;
   private final ExcludeFilter excludeFilter;
   private final long sizeThreshold;
-  
+
   private FileSystemEntry createdNode;
   private int createdNodeSize;
   private int createdNodeNumFiles;
   private int createdNodeNumDirs;
-  
+
   private int heapSize;
-  private int maxHeapSize;
-  private PriorityQueue<SmallList> smallLists = new PriorityQueue<SmallList>();
+  private final int maxHeapSize;
+  private final PriorityQueue<SmallList> smallLists = new PriorityQueue<SmallList>();
   long pos;
   FileSystemEntry lastCreatedFile;
-  
+
   public FileSystemEntry lastCreatedFile() {
     return lastCreatedFile;
   }
   public long pos() {
     return pos;
   }
-  
+
   private class SmallList implements Comparable<SmallList> {
     FileSystemEntry parent;
     FileSystemEntry[] children;
     int heapSize;
     float spaceEfficiency;
-    
+
     SmallList(FileSystemEntry parent, FileSystemEntry[] children, int heapSize, long blocks) {
       this.parent = parent;
       this.children = children;
       this.heapSize = heapSize;
       this.spaceEfficiency = blocks / (float) heapSize;
     }
-    
+
     @Override
     public int compareTo(SmallList that) {
       return spaceEfficiency < that.spaceEfficiency ? -1 : (spaceEfficiency == that.spaceEfficiency ? 0 : 1);
     }
   };
-  
+
   Scanner(int maxdepth, int blockSize, ExcludeFilter excludeFilter,
       long allocatedBlocks, int maxHeap) {
     this.maxdepth = maxdepth;
@@ -87,7 +87,7 @@ public class Scanner implements ProgressGenerator {
     Log.d("diskusage", "maxHeap " + maxHeap);
     Log.d("diskusage", "sizeThreshold = " + sizeThreshold / (float) (1 << FileSystemEntry.blockOffset));
   }
-  
+
   private void print(String msg, SmallList list) {
     String hidden_path = "";
     // FIXME: this is debug
@@ -96,19 +96,19 @@ public class Scanner implements ProgressGenerator {
     }
     Log.d("diskusage", msg + " " + hidden_path + " = " + list.heapSize + " " + list.spaceEfficiency);
   }
-  
-  FileSystemEntry scan(File file) {
+
+  FileSystemEntry scan(LegacyFile file) {
 //    file = new NativeFile(file);
-    
+
     scanDirectory(null, file, 0, excludeFilter);
     Log.d("diskusage", "allocated " + createdNodeSize + " B of heap");
-    
+
     int extraHeap = 0;
-    
+
     // Restoring blocks
     for (SmallList list : smallLists) {
       print("restored", list);
-      
+
       FileSystemEntry[] oldChildren = list.parent.children;
       FileSystemEntry[] addChildren = list.children;
       FileSystemEntry[] newChildren =
@@ -118,7 +118,7 @@ public class Scanner implements ProgressGenerator {
         FileSystemEntry c = oldChildren[i];
         if (! (c instanceof FileSystemEntrySmall)) {
           newChildren[pos++] = c;
-        }   
+        }
       }
       java.util.Arrays.sort(newChildren, FileSystemEntry.COMPARE);
       list.parent.children = newChildren;
@@ -127,9 +127,9 @@ public class Scanner implements ProgressGenerator {
     Log.d("diskusage", "allocated " + extraHeap + " B of extra heap");
     Log.d("diskusage", "allocated " + (extraHeap + createdNodeSize) + " B total");
     return createdNode;
-    
+
   }
-  
+
   /**
    * Scan directory object.
    * This constructor starts recursive scan to find all descendent files and directories.
@@ -140,13 +140,13 @@ public class Scanner implements ProgressGenerator {
    * @param depth current directory tree depth
    * @param maxdepth maximum directory tree depth
    */
-  private void scanDirectory(FileSystemEntry parent, File file,
+  private void scanDirectory(FileSystemEntry parent, LegacyFile file,
                              int depth, ExcludeFilter excludeFilter) {
     String name = file.getName();
     makeNode(parent, name);
     createdNodeNumDirs = 1;
     createdNodeNumFiles = 0;
-    
+
     ExcludeFilter childFilter = null;
     if (excludeFilter != null) {
       // this path is requested for exclusion
@@ -166,24 +166,24 @@ public class Scanner implements ProgressGenerator {
     }
 
     String[] listNames = null;
-    
+
     try {
       listNames = file.list();
     } catch (SecurityException io) {
       Log.d("diskusage", "list files", io);
     }
-    
+
     if (listNames == null) return;
     FileSystemEntry thisNode = createdNode;
     int thisNodeSize = createdNodeSize;
     int  thisNodeNumDirs = 1;
     int  thisNodeNumFiles = 0;
-    
+
     int thisNodeSizeSmall = 0;
     int thisNodeNumFilesSmall = 0;
     int thisNodeNumDirsSmall = 0;
     long smallBlocks = 0;
-    
+
     ArrayList<FileSystemEntry> children = new ArrayList<FileSystemEntry>();
     ArrayList<FileSystemEntry> smallChildren = new ArrayList<FileSystemEntry>();
 
@@ -191,7 +191,7 @@ public class Scanner implements ProgressGenerator {
     long blocks = 0;
 
     for (int i = 0; i < listNames.length; i++) {
-      File childFile = new File(file, listNames[i]);
+      LegacyFile childFile = file.getChild(listNames[i]);
 
 //      if (isLink(child)) continue;
 //      if (isSpecial(child)) continue;
@@ -209,9 +209,9 @@ public class Scanner implements ProgressGenerator {
         files = createdNodeNumFiles;
       }
 
-      long createdNodeBlocks = createdNode.getSizeInBlocks(); 
+      long createdNodeBlocks = createdNode.getSizeInBlocks();
       blocks += createdNodeBlocks;
-      
+
       if (this.createdNodeSize * sizeThreshold > createdNode.encodedSize) {
         smallChildren.add(createdNode);
         thisNodeSizeSmall += this.createdNodeSize;
@@ -229,7 +229,7 @@ public class Scanner implements ProgressGenerator {
 
     thisNodeNumDirs += thisNodeNumDirsSmall;
     thisNodeNumFiles += thisNodeNumFilesSmall;
-    
+
     FileSystemEntry smallFilesEntry = null;
 
     if ((thisNodeSizeSmall + thisNodeSize) * sizeThreshold <= thisNode.encodedSize
@@ -253,7 +253,7 @@ public class Scanner implements ProgressGenerator {
 //          hidden_path = p.name + "/" + hidden_path;
 //        }
 //        Log.d("diskusage", hidden_path + " = " + thisNodeSizeSmall);
-      
+
       makeNode(thisNode, msg);
       // create another one with right type
       createdNode = FileSystemEntrySmall.makeNode(thisNode, msg,
@@ -269,7 +269,7 @@ public class Scanner implements ProgressGenerator {
           smallBlocks);
       smallLists.add(list);
     }
-    
+
     // Magic to sort children and keep small files last in the array.
     if (children.size() != 0) {
       long smallFilesEntrySize = 0;
@@ -288,12 +288,12 @@ public class Scanner implements ProgressGenerator {
     createdNodeNumDirs = thisNodeNumDirs;
     createdNodeNumFiles = thisNodeNumFiles;
   }
-  
+
   private void makeNode(FileSystemEntry parent, String name) {
 //    try {
 //      Thread.sleep(10);
 //    } catch (Throwable t) {}
-  
+
     createdNode = FileSystemFile.makeNode(parent, name);
     createdNodeSize =
       4 /* ref in FileSystemEntry[] */
@@ -316,8 +316,8 @@ public class Scanner implements ProgressGenerator {
    * @param file is file corresponding to this entry
    * @return size of entry in blocks
    */
-  private final long calculateSize(File file) {
-    if (isLink(file)) return 0;
+  private final long calculateSize(LegacyFile file) {
+    if (file.isLink()) return 0;
 
     if (file.isFile()) {
       long size = (file.length() + (blockSize - 1)) / blockSize;
@@ -325,7 +325,7 @@ public class Scanner implements ProgressGenerator {
       return size;
     }
 
-    File[] list = null;
+    LegacyFile[] list = null;
     try {
       list = file.listFiles();
     } catch (SecurityException io) {
@@ -337,12 +337,5 @@ public class Scanner implements ProgressGenerator {
     for (int i = 0; i < list.length; i++)
       size += calculateSize(list[i]);
     return size;
-  }
-
-  private static boolean isLink(File file) {
-    try {
-      if (file.getCanonicalPath().equals(file.getPath())) return false;
-    } catch(Throwable t) {}
-    return true;
   }
 }

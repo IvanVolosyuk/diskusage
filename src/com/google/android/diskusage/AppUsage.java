@@ -23,10 +23,11 @@ import java.util.ArrayList;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.StatFs;
 import android.util.Log;
 
 import com.google.android.diskusage.AppFilter.App2SD;
+import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.datasource.StatFsSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
 import com.google.android.diskusage.entity.FileSystemFreeSpace;
 import com.google.android.diskusage.entity.FileSystemPackage;
@@ -45,22 +46,22 @@ public class AppUsage extends DiskUsage {
     long systemSize = 0;
     Log.d("diskusage", "memory = " + filter.memory);
     if (filter.memory == App2SD.INTERNAL) {
-      StatFs data = new StatFs("/data");
+      StatFsSource data = DataSource.get().statFs("/data");
       int dataBlockSize = data.getBlockSize();
       freeSize = data.getAvailableBlocks() * dataBlockSize;
       allocatedSpace = data.getBlockCount() * dataBlockSize - freeSize;
     }
-    
+
     if (allocatedSpace > 0) {
       systemSize = allocatedSpace - appsElement.getSizeInBlocks() * displayBlockSize;
     }
-    
+
 //    if (filter.useSD) {
 //      FileSystemRoot newRoot = new FileSystemRoot(displayBlockSize);
 //      newRoot.setChildren(new FileSystemEntry[] { appsElement }, displayBlockSize);
 //      return newRoot;
 //    }
-    
+
     ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
     entries.add(appsElement);
     if (systemSize > 0) {
@@ -80,7 +81,7 @@ public class AppUsage extends DiskUsage {
     FileSystemEntry internalElement =
       FileSystemRoot.makeNode(name, "/Apps").setChildren(
         internalArray, displayBlockSize);
-    
+
     FileSystemSuperRoot newRoot = new FileSystemSuperRoot(displayBlockSize);
     newRoot.setChildren(new FileSystemEntry[] { internalElement }, displayBlockSize);
     return newRoot;
@@ -102,7 +103,7 @@ public class AppUsage extends DiskUsage {
     super.onCreate(icicle);
     Log.d("diskusage", "onCreate");
   }
-  
+
   private FileSystemSpecial getAppsElement(FileSystemState view) {
     FileSystemEntry root = view.masterRoot;
     FileSystemEntry apps = root.children[0].children[0];
@@ -111,7 +112,7 @@ public class AppUsage extends DiskUsage {
     }
     return (FileSystemSpecial) apps;
   }
-  
+
   private void updateFilter(AppFilter newFilter) {
     // FIXME: hack
     if (fileSystemState == null) {
@@ -129,17 +130,17 @@ public class AppUsage extends DiskUsage {
       pkg.applyFilter(newFilter, displayBlockSize);
     }
     java.util.Arrays.sort(appsElement.children, FileSystemEntry.COMPARE);
-    
+
     appsElement = new FileSystemSpecial(appsElement.name, appsElement.children,
         displayBlockSize);
     appsElement.filter = newFilter;
-    
+
     FileSystemSuperRoot newRoot = wrapApps(appsElement, newFilter, displayBlockSize);
     getPersistantState().root = newRoot;
     afterLoadAction.clear();
     fileSystemState.startZoomAnimationInRenderThread(newRoot, true, false);
   }
-  
+
   @Override
   protected void onSaveInstanceState(Bundle outState) {
     super.onSaveInstanceState(outState);
@@ -150,7 +151,7 @@ public class AppUsage extends DiskUsage {
     FileSystemSpecial appsElement = getAppsElement(fileSystemState);
     outState.putParcelable("filter", appsElement.filter);
   }
-  
+
   @Override
   protected void onRestoreInstanceState(Bundle inState) {
     super.onRestoreInstanceState(inState);
@@ -158,14 +159,14 @@ public class AppUsage extends DiskUsage {
     AppFilter newFilter = (AppFilter) inState.getParcelable("filter");
     if (newFilter != null) updateFilter(newFilter);
   }
-  
+
   @Override
   public void onActivityResult(int a, int result, Intent i) {
     super.onActivityResult(a, result, i);
     AppFilter newFilter = AppFilter.loadSavedAppFilter(this);
     updateFilter(newFilter);
   }
-  
+
   @Override
   protected void onResume() {
     // TODO Auto-generated method stub
@@ -173,7 +174,7 @@ public class AppUsage extends DiskUsage {
     Log.d("diskusage", "onResume");
 
   }
-  
+
   @Override
   protected void onPause() {
     // TODO Auto-generated method stub

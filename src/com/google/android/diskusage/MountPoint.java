@@ -19,24 +19,23 @@
 
 package com.google.android.diskusage;
 
-import com.google.android.diskusage.entity.FileSystemEntry;
-import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
-import com.google.android.diskusage.entity.FileSystemRoot;
-
-import android.annotation.TargetApi;
-import android.content.Context;
-import android.os.Build;
-import android.os.Environment;
-import android.os.StatFs;
-import android.util.Log;
-
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.TreeMap;
+
+import android.annotation.TargetApi;
+import android.content.Context;
+import android.os.Build;
+import android.util.Log;
+
+import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.datasource.StatFsSource;
+import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
+import com.google.android.diskusage.entity.FileSystemRoot;
 
 public class MountPoint {
   final FileSystemEntry.ExcludeFilter excludeFilter;
@@ -139,10 +138,11 @@ public class MountPoint {
   }
 
   public static String storageCardPath() {
+    File externalStorageDirectory = DataSource.get().getEnvironment().getExternalStorageDirectory();
     try {
-      return Environment.getExternalStorageDirectory().getCanonicalPath();
+      return externalStorageDirectory.getCanonicalPath();
     } catch (Exception e) {
-      return Environment.getExternalStorageDirectory().getAbsolutePath();
+      return externalStorageDirectory.getAbsolutePath();
     }
   }
 
@@ -168,8 +168,7 @@ public class MountPoint {
     try {
       // FIXME: debug
       checksum = 0;
-      BufferedReader reader = new BufferedReader(new FileReader("/proc/mounts"));
-//      BufferedReader reader = new BufferedReader(new InputStreamReader(context.getResources().openRawResource(R.raw.mounts_honeycomb), "UTF-8"));
+      BufferedReader reader = new BufferedReader(DataSource.get().getProc());
       String line;
       while ((line = reader.readLine()) != null) {
         checksum += line.length();
@@ -180,9 +179,9 @@ public class MountPoint {
         Log.d("diskusage", "Mount point: " + mountPoint);
         String fsType = parts[2];
 
-        StatFs stat = null;
+        StatFsSource stat = null;
         try {
-          stat = new StatFs(mountPoint);
+          stat = DataSource.get().statFs(mountPoint);
         } catch (Exception e) {
         }
 
@@ -210,6 +209,7 @@ public class MountPoint {
           mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, false, fsType, false));
         }
       }
+      reader.close();
 
       for (MountPoint mountPoint: mountPointsList) {
         String prefix = mountPoint.root + "/";
@@ -242,7 +242,7 @@ public class MountPoint {
     } catch (Exception e) {
       Log.e("diskusage", "Failed to get mount points", e);
     }
-    final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+    final int sdkVersion = DataSource.get().getAndroidVersion();
 
     try {
       addMediaPaths(context);
@@ -280,7 +280,7 @@ public class MountPoint {
     while (true) {
       File base = dir.getParentFile();
       try {
-        Environment.isExternalStorageEmulated(base);
+        DataSource.get().getEnvironment().isExternalStorageEmulated(base);
       } catch (Exception e) {
         return dir;
       }
@@ -296,15 +296,15 @@ public class MountPoint {
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   private static void initMountPointsLollipop(Context context) {
     Map<String, MountPoint> mountPoints = new TreeMap<String, MountPoint>();
-    File defaultDir = getBaseDir(context.getExternalFilesDir(null));
-    File[] dirs = context.getExternalFilesDirs(null);
+    File defaultDir = getBaseDir(DataSource.get().getExternalFilesDir(context));
+    File[] dirs = DataSource.get().getExternalFilesDirs(context);
     for (File path : dirs) {
       if (path == null) {
         continue;
       }
       File dir = getBaseDir(path);
-      boolean isEmulated = Environment.isExternalStorageEmulated(dir);
-      boolean isRemovable = Environment.isExternalStorageRemovable(dir);
+      boolean isEmulated = DataSource.get().getEnvironment().isExternalStorageEmulated(dir);
+      boolean isRemovable = DataSource.get().getEnvironment().isExternalStorageRemovable(dir);
       boolean hasApps = isEmulated && !isRemovable;
       MountPoint mountPoint = new MountPoint(
           dir.equals(defaultDir) ? titleStorageCard(context) : dir.getAbsolutePath(),
@@ -327,7 +327,7 @@ public class MountPoint {
   @TargetApi(Build.VERSION_CODES.KITKAT)
   public static File[] getMediaStoragePaths(Context context) {
     try {
-      return context.getExternalFilesDirs(Environment.DIRECTORY_DCIM);
+      return DataSource.get().getExternalFilesDirs(context);
     } catch (Throwable t) {
       return new File[0];
     }

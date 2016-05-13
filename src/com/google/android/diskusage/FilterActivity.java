@@ -23,6 +23,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 
+import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class FilterActivity extends PreferenceActivity {
@@ -33,13 +34,13 @@ public class FilterActivity extends PreferenceActivity {
     getPreferenceManager().setSharedPreferencesName("settings");
     addPreferencesFromResource(R.xml.filter);
     getPreferenceScreen().setOrderingAsAdded(true);
-    final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+    final int sdkVersion = DataSource.get().getAndroidVersion();
     if (sdkVersion < Build.VERSION_CODES.FROYO) {
       getPreferenceScreen().removePreference(
           getPreferenceScreen().findPreference("apps"));
       getPreferenceScreen().removePreference(
           getPreferenceScreen().findPreference("memory"));
     }
-    
+
   }
 }

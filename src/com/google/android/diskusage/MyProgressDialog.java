@@ -38,12 +38,12 @@ import android.widget.TextView;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class MyProgressDialog extends AlertDialog {
-  private Context context;
+  private final Context context;
   private TextView percentView;
   private TextView detailsView;
   private ProgressBar progressBar;
-  private String details;
-  
+  private CharSequence details;
+
   private long progress;
   private long max;
   private NumberFormat progressPercentFormat;
@@ -66,7 +66,7 @@ public class MyProgressDialog extends AlertDialog {
       pathElements.add(current.name);
       current = current.parent;
     }
-    
+
     depth = pathElements.size();
     if (pathElements.size() < 2) return "";
     pathElements.remove(pathElements.size() - 1);
@@ -79,7 +79,7 @@ public class MyProgressDialog extends AlertDialog {
     }
     return path.toString();
   }
-  
+
   char[] prevPathChars = new char[0];
 
   private String makePathString(String path) {
@@ -90,20 +90,20 @@ public class MyProgressDialog extends AlertDialog {
     int diff;
     TextView detailsView = this.detailsView;
     Paint textPaint = detailsView.getPaint();
-    
+
     for (diff = 0; diff < len; diff++) {
       if (pathChars[diff] == prevPathChars[diff]) continue;
       break;
     }
-    
+
     float winWidth = detailsView.getWidth();
     float extraTextWidth = textPaint.measureText("/.../G");
     float width = winWidth - extraTextWidth;
     if (width < extraTextWidth) return path;
-    
+
     int firstSep = -2;
     int lastSep = -2;
-    
+
     try {
       if (textPaint.measureText(path, 0, diff) < width) {
         this.prevPathChars = pathChars;
@@ -197,14 +197,14 @@ public class MyProgressDialog extends AlertDialog {
 //    Log.d("diskusage", "makePath = " + this.details);
     onProgressChanged();
   }
-  
+
   double basePercent = 1;
-  
+
   public void switchToSecondary() {
     basePercent = 1 - (double) progress / (double) max;
   }
 
-  public void setProgress(long progress, String details) {
+  public void setProgress(long progress, CharSequence details) {
     this.progress = progress;
     this.details = details;
     onProgressChanged();

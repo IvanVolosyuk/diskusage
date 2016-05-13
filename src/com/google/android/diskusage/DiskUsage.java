@@ -19,14 +19,11 @@
 
 package com.google.android.diskusage;
 
-import com.google.android.diskusage.entity.FileSystemEntry;
-import com.google.android.diskusage.entity.FileSystemEntrySmall;
-import com.google.android.diskusage.entity.FileSystemFreeSpace;
-import com.google.android.diskusage.entity.FileSystemPackage;
-import com.google.android.diskusage.entity.FileSystemRoot;
-import com.google.android.diskusage.entity.FileSystemSuperRoot;
-import com.google.android.diskusage.entity.FileSystemSystemSpace;
-import com.google.android.diskusage.utils.MimeTypes;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import android.app.ActivityManager;
 import android.app.AlertDialog;
@@ -42,7 +39,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.StatFs;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
@@ -50,11 +46,16 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.datasource.StatFsSource;
+import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemEntrySmall;
+import com.google.android.diskusage.entity.FileSystemFreeSpace;
+import com.google.android.diskusage.entity.FileSystemPackage;
+import com.google.android.diskusage.entity.FileSystemRoot;
+import com.google.android.diskusage.entity.FileSystemSuperRoot;
+import com.google.android.diskusage.entity.FileSystemSystemSpace;
+import com.google.android.diskusage.utils.MimeTypes;
 
 public class DiskUsage extends LoadableActivity {
   // FIXME: wrap to direct requests to rendering thread
@@ -128,7 +129,7 @@ public class DiskUsage extends LoadableActivity {
   }
 
   public boolean isMergedStorage() {
-    final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+    final int sdkVersion = DataSource.get().getAndroidVersion();
     return sdkVersion >= Build.VERSION_CODES.HONEYCOMB;
   }
 
@@ -206,7 +207,7 @@ public class DiskUsage extends LoadableActivity {
     abstract void viewPackage(String pkg);
 
     public static VersionedPackageViewer newInstance(DiskUsage context) {
-      final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+      final int sdkVersion = DataSource.get().getAndroidVersion();
       VersionedPackageViewer viewer = null;
       if (sdkVersion < Build.VERSION_CODES.GINGERBREAD) {
         viewer = context.new EclairPackageViewer();
@@ -537,7 +538,7 @@ public class DiskUsage extends LoadableActivity {
     };
 
     static MemoryClass getInstance(DiskUsage diskUsage) {
-      final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+      final int sdkVersion = DataSource.get().getAndroidVersion();
       if (sdkVersion < Build.VERSION_CODES.ECLAIR) {
         return new MemoryClassDefault();
       } else {
@@ -569,9 +570,9 @@ public class DiskUsage extends LoadableActivity {
     final long totalBlocks;
 
     public FileSystemStats(MountPoint mountPoint) {
-      StatFs stats = null;
+      StatFsSource stats = null;
       try {
-        stats = new StatFs(mountPoint.getRoot());
+        stats = DataSource.get().statFs(mountPoint.getRoot());
       } catch (IllegalArgumentException e) {
         Log.e("diskusage",
             "Failed to get filesystem stats for " + mountPoint.getRoot(), e);
@@ -654,7 +655,7 @@ public class DiskUsage extends LoadableActivity {
           20, stats.blockSize, realMountPoint.getExcludeFilter(), stats.busyBlocks, heap);
       progressUpdater = makeProgressUpdater(legacyScanner, stats);
       handler.post(progressUpdater);
-      rootElement = legacyScanner.scan(new File(realMountPoint.root));
+      rootElement = legacyScanner.scan(DataSource.get().createLegacyScanFile(realMountPoint.root));
     }
 
     handler.removeCallbacks(progressUpdater);
@@ -718,7 +719,7 @@ public class DiskUsage extends LoadableActivity {
   }
 
   protected FileSystemEntry[] loadApps2SD(boolean sdOnly, AppFilter appFilter, int blockSize) {
-    final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
+    final int sdkVersion = DataSource.get().getAndroidVersion();
     if (sdkVersion < Build.VERSION_CODES.FROYO && sdOnly) return null;
 
     try {

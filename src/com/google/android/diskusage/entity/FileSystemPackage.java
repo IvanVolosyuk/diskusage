@@ -21,8 +21,10 @@ package com.google.android.diskusage.entity;
 
 import android.content.pm.PackageStats;
 import android.util.Log;
+
 import com.google.android.diskusage.AppFilter;
 import com.google.android.diskusage.AppFilter.App2SD;
+import com.google.android.diskusage.datasource.AppStats;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -93,22 +95,22 @@ public class FileSystemPackage extends FileSystemEntry {
   }
 
   public FileSystemPackage(
-      String name, String pkg, PackageStats stats,
+      String name, String pkg, AppStats stats,
       int flags, Long hackApkSize, int blockSize) {
     super(null, name);
     this.pkg = pkg;
-    this.cacheSize = stats.cacheSize;
-    this.dataSize = stats.dataSize;
+    this.cacheSize = stats.getCacheSize();
+    this.dataSize = stats.getDataSize();
     this.flags = flags | (hackApkSize != null ? SDCARD_FLAG : 0);
     this.dalvikCacheSize = guessDalvikCacheSize();
     if (onSD()) {
       if (hackApkSize != null) {
         this.codeSize = hackApkSize.intValue();
       } else {
-        this.codeSize = stats.codeSize;
+        this.codeSize = stats.getCodeSize();
       }
     } else {
-      this.codeSize = stats.codeSize - this.dalvikCacheSize;
+      this.codeSize = stats.getCodeSize() - this.dalvikCacheSize;
     }
   }
 

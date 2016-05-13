@@ -21,6 +21,7 @@ package com.google.android.diskusage;
 
 import java.io.File;
 
+import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
 import com.google.android.diskusage.entity.FileSystemPackage;
 
@@ -38,7 +39,7 @@ public class BackgroundDelete extends Thread {
   String path;
   DiskUsage diskUsage;
   FileSystemEntry entry;
-  
+
   private static final int DELETION_SUCCESS = 0;
   private static final int DELETION_FAILED = 1;
   private static final int DELETION_CANCELED = 2;
@@ -48,11 +49,11 @@ public class BackgroundDelete extends Thread {
   private int deletionStatus = DELETION_IN_PROGRESS;
   private int numDeletedDirectories = 0;
   private int numDeletedFiles = 0;
-  
+
   private BackgroundDelete(final DiskUsage diskUsage, final FileSystemEntry entry) {
     this.diskUsage = diskUsage;
     this.entry = entry;
-    
+
     path = entry.path2();
     String deleteRoot = entry.absolutePath();
     file = new File(deleteRoot);
@@ -63,14 +64,14 @@ public class BackgroundDelete extends Thread {
         return;
       }
     }
-    
+
     if (!file.exists()) {
       Toast.makeText(diskUsage, format(R.string.path_doesnt_exist, path),
           Toast.LENGTH_LONG).show();
       diskUsage.fileSystemState.removeInRenderThread(entry);
       return;
     }
-    
+
     if (file.isFile()) {
       if (file.delete()) {
         Toast.makeText(diskUsage, str(R.string.file_deleted),
@@ -102,7 +103,7 @@ public class BackgroundDelete extends Thread {
     dialog.setOnDismissListener(new OnDismissListener() {
       @Override
       public void onDismiss(DialogInterface _) {
-        dialog = null;        
+        dialog = null;
       }
     });
     dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
@@ -114,7 +115,7 @@ public class BackgroundDelete extends Thread {
     dialog.show();
     start();
   }
-  
+
   private void uninstall(FileSystemPackage pkg) {
     String pkg_name = pkg.pkg;
     Uri packageURI = Uri.parse("package:" + pkg_name);
@@ -125,7 +126,7 @@ public class BackgroundDelete extends Thread {
   static void startDelete(DiskUsage diskUsage, FileSystemEntry entry) {
     new BackgroundDelete(diskUsage, entry);
   }
-  
+
   @Override
   public void run() {
     deletionStatus = deleteRecursively(file);
@@ -149,22 +150,22 @@ public class BackgroundDelete extends Thread {
       }
     });
   }
-  
+
   public void restore() {
     Log.d("DiskUsage", "restore started for " + path);
     int displayBlockSize = diskUsage.fileSystemState.masterRoot.getDisplayBlockSize();
     FileSystemEntry newEntry = new Scanner(
         // FIXME: hacked allocatedBlocks and heap size
         20, displayBlockSize, null, 0, 4).scan(
-            new File(diskUsage.getRootPath() + "/" + path));
+            DataSource.get().createLegacyScanFile(diskUsage.getRootPath() + "/" + path));
     // FIXME: may be problems in case of two deletions
     entry.parent.insert(newEntry, displayBlockSize);
     diskUsage.fileSystemState.restore(newEntry);
-    
+
     Log.d("DiskUsage", "restoring undeleted: "
         + newEntry.name + " " + newEntry.sizeString());
   }
-  
+
   public void notifyUser() {
     Log.d("DiskUsage", "Delete: status = " + deletionStatus
         + " directories " + numDeletedDirectories
@@ -186,13 +187,13 @@ public class BackgroundDelete extends Thread {
               numDeletedDirectories, numDeletedFiles),
               Toast.LENGTH_LONG).show();
     }
-    
+
   }
-  
+
   public void background() {
     backgroundDeletion = true;
   }
-  
+
   public void cancel() {
     cancelDeletion = true;
   }
@@ -204,11 +205,11 @@ public class BackgroundDelete extends Thread {
       final File[] files = directory.listFiles();
       if (files == null) return DELETION_FAILED;
       for (int i = 0; i < files.length; i++) {
-        int status = deleteRecursively(files[i]); 
+        int status = deleteRecursively(files[i]);
         if (status != DELETION_SUCCESS) return status;
       }
     }
-    
+
     boolean success = directory.delete();
     if (success) {
       if (isDirectory)

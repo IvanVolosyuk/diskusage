@@ -21,25 +21,24 @@ package com.google.android.diskusage;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.DialogInterface.OnCancelListener;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.widget.TextView;
 
+import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class SelectActivity extends Activity {
@@ -47,7 +46,7 @@ public class SelectActivity extends Activity {
   Map<String,Bundle> bundles = new TreeMap<String,Bundle>();
   ArrayList<Runnable> actionList = new ArrayList<Runnable>();
   private boolean expandRootMountPoints;
-  
+
   private abstract class AbstractUsageAction implements Runnable {
     public void runAction(String key, String title, String rootKey, Class<?> viewer) {
       Intent i = new Intent(SelectActivity.this, viewer);
@@ -61,11 +60,11 @@ public class SelectActivity extends Activity {
       startActivityForResult(i, 0);
     }
   };
-  
+
   private class DiskUsageAction extends AbstractUsageAction {
-    private String title;
-    private MountPoint mountPoint;
-    
+    private final String title;
+    private final MountPoint mountPoint;
+
     DiskUsageAction(String title, MountPoint mountPoint) {
       this.title = title;
       this.mountPoint = mountPoint;
@@ -75,13 +74,13 @@ public class SelectActivity extends Activity {
       runAction(getKeyForStorage(mountPoint), title, mountPoint.root, DiskUsage.class);
     }
   };
-  
+
   private class AppUsageAction extends AbstractUsageAction {
-    private String title;
+    private final String title;
     public AppUsageAction(String title) {
       this.title = title;
     }
-    
+
     public void run() {
       runAction(getKeyForApp(), title, "apps", AppUsage.class);
     }
@@ -89,18 +88,18 @@ public class SelectActivity extends Activity {
   public String getKeyForApp() {
     return "app";
   }
-  
+
   public static String getKeyForStorage(MountPoint mountPoint) {
     return (mountPoint.rootRequired ? "rooted" : "storage:") + mountPoint.root;
   }
-  
+
   private class ShowHideAction implements Runnable {
     public void run() {
       Intent i = new Intent(SelectActivity.this, ShowHideMountPointsActivity.class);
       startActivity(i);
     }
   }
-  
+
   public Handler handler = new Handler();
   public Runnable checkForMountsUpdates = new Runnable() {
     @Override
@@ -108,7 +107,7 @@ public class SelectActivity extends Activity {
       boolean reload = false;
       try {
 //        BufferedReader reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.mounts_honeycomb), "UTF-8"));
-        BufferedReader reader = new BufferedReader(new FileReader("/proc/mounts"));
+        BufferedReader reader = new BufferedReader(DataSource.get().getProc());
         String line;
         int checksum = 0;
         while ((line = reader.readLine()) != null) {
@@ -128,25 +127,25 @@ public class SelectActivity extends Activity {
       handler.postDelayed(this, 2000);
     }
   };
-  
-  
+
+
   public void makeDialog() {
     ArrayList<String> options = new ArrayList<String>();
     actionList.clear();
-    
+
     final String programStorage = getString(R.string.app_storage);
-    
+
     if(MountPoint.getHoneycombSdcard(this) == null){
       options.add(programStorage);
       actionList.add(new AppUsageAction(programStorage));
     }
-    
+
     for (MountPoint mountPoint : MountPoint.getMountPoints(this).values()) {
       options.add(mountPoint.title);
       actionList.add(new DiskUsageAction(mountPoint.title, mountPoint));
     }
-    
-    if (NativeScanner.isDeviceRooted()) {
+
+    if (DataSource.get().isDeviceRooted()) {
       SharedPreferences prefs =  getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
       Map<String, ?> ignoreList = prefs.getAll();
       if (!ignoreList.keySet().isEmpty()) {
@@ -174,12 +173,12 @@ public class SelectActivity extends Activity {
             makeDialog();
           }
         });
-        
+
       }
     }
-    
+
     final String[] optionsArray = options.toArray(new String[options.size()]);
-    
+
     dialog = new AlertDialog.Builder(this)
     .setItems(optionsArray,
         new DialogInterface.OnClickListener() {
@@ -197,7 +196,7 @@ public class SelectActivity extends Activity {
     }).create();
     dialog.show();
   }
-  
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -206,7 +205,7 @@ public class SelectActivity extends Activity {
 //    ActionBar bar = getActionBar();
 //    bar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_USE_LOGO);
   }
-  
+
   @Override
   protected void onResume() {
     super.onResume();
@@ -215,14 +214,14 @@ public class SelectActivity extends Activity {
     makeDialog();
     handler.post(checkForMountsUpdates);
   }
-  
+
   @Override
   protected void onPause() {
     if (dialog.isShowing()) dialog.dismiss();
     handler.removeCallbacks(checkForMountsUpdates);
     super.onPause();
   }
-  
+
   @Override
   protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     super.onActivityResult(requestCode, resultCode, data);
@@ -231,7 +230,7 @@ public class SelectActivity extends Activity {
     String key = data.getStringExtra(DiskUsage.KEY_KEY);
     bundles.put(key, state);
   }
-  
+
   @Override
   protected void onSaveInstanceState(Bundle outState) {
     super.onSaveInstanceState(outState);
@@ -241,7 +240,7 @@ public class SelectActivity extends Activity {
     String[] keys = bundles.keySet().toArray(new String[0]);
     outState.putStringArray(BUNDLE_KEYS, keys);
   }
-  
+
   @Override
   protected void onRestoreInstanceState(Bundle savedInstanceState) {
     super.onRestoreInstanceState(savedInstanceState);
@@ -249,6 +248,6 @@ public class SelectActivity extends Activity {
       bundles.put(key, savedInstanceState.getBundle(key));
     }
   }
-  
+
   private static final String BUNDLE_KEYS = "keys";
 }
