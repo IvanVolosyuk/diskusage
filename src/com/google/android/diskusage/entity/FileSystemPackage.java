@@ -23,6 +23,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import android.content.pm.ApplicationInfo;
 import android.util.Log;
 
 import com.google.android.diskusage.AppFilter;
@@ -98,19 +99,24 @@ public class FileSystemPackage extends FileSystemEntry {
       int flags, Long hackApkSize, int blockSize) {
     super(null, name);
     this.pkg = pkg;
+    long codeSize;
     this.cacheSize = stats.getCacheSize();
     this.dataSize = stats.getDataSize();
     this.flags = flags | (hackApkSize != null ? SDCARD_FLAG : 0);
     this.dalvikCacheSize = guessDalvikCacheSize();
     if (onSD()) {
       if (hackApkSize != null) {
-        this.codeSize = hackApkSize.intValue();
+        codeSize = hackApkSize.intValue();
       } else {
-        this.codeSize = stats.getCodeSize();
+        codeSize = stats.getCodeSize();
       }
     } else {
-      this.codeSize = stats.getCodeSize() - this.dalvikCacheSize;
+      codeSize = stats.getCodeSize() - this.dalvikCacheSize;
     }
+    if ((flags & ApplicationInfo.FLAG_SYSTEM) != 0) {
+      codeSize = 0;
+    }
+    this.codeSize = codeSize;
   }
 
   public boolean onSD() {
