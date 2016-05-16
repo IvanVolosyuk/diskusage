@@ -57,9 +57,4 @@ class AppStatsImpl implements AppStats {
   public long getExternalObbSize() {
     return packageStats.externalObbSize;
   };
-
-  @Override
-  public String getPackageName() {
-    return packageStats.packageName;
-  };
 }

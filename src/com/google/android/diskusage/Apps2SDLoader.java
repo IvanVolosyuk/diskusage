@@ -20,6 +20,7 @@
 package com.google.android.diskusage;
 
 import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,7 +60,7 @@ public class Apps2SDLoader {
     TreeMap<String, Long> map = new TreeMap<String, Long>();
     try {
       // FIXME: debug
-      BufferedReader reader = new BufferedReader(DataSource.get().getProc());
+      BufferedReader reader = DataSource.get().getProcReader();
       String line;
       while ((line = reader.readLine()) != null) {
         String[] parts = line.split(" +");
@@ -135,7 +136,8 @@ public class Apps2SDLoader {
         final String pkg = info.getPackageName();
         final String name = appInfo.getApplicationLabel();
         currentAppName = name;
-        DataSource.get().getPackageSizeInfo(getPackageSizeInfo, pm, pkg, new AppStatsCallback() {
+        DataSource.get().getPackageSizeInfo(
+            info, getPackageSizeInfo, pm, new AppStatsCallback() {
           @Override
           public void onGetStatsCompleted(AppStats stats, boolean succeeded) {
             synchronized (Apps2SDLoader.this) {

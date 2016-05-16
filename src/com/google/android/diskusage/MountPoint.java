@@ -32,6 +32,7 @@ import android.os.Build;
 import android.util.Log;
 
 import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.datasource.PortableFile;
 import com.google.android.diskusage.datasource.StatFsSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
 import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
@@ -138,12 +139,8 @@ public class MountPoint {
   }
 
   public static String storageCardPath() {
-    File externalStorageDirectory = DataSource.get().getEnvironment().getExternalStorageDirectory();
-    try {
-      return externalStorageDirectory.getCanonicalPath();
-    } catch (Exception e) {
-      return externalStorageDirectory.getAbsolutePath();
-    }
+    PortableFile externalStorageDirectory = DataSource.get().getExternalStorageDirectory();
+    return externalStorageDirectory.getCanonicalPath();
   }
 
   private static boolean isEmulated(String fsType) {
@@ -168,7 +165,7 @@ public class MountPoint {
     try {
       // FIXME: debug
       checksum = 0;
-      BufferedReader reader = new BufferedReader(DataSource.get().getProc());
+      BufferedReader reader = DataSource.get().getProcReader();
       String line;
       while ((line = reader.readLine()) != null) {
         checksum += line.length();
@@ -271,16 +268,16 @@ public class MountPoint {
   }
 
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-  private static File getBaseDir(File dir) {
+  private static PortableFile getBaseDir(PortableFile dir) {
     if (dir == null) {
       return null;
     }
 
     long totalSpace = dir.getTotalSpace();
     while (true) {
-      File base = dir.getParentFile();
+      PortableFile base = DataSource.get().getParentFile(dir);
       try {
-        DataSource.get().getEnvironment().isExternalStorageEmulated(base);
+        base.isExternalStorageEmulated();
       } catch (Exception e) {
         return dir;
       }
@@ -296,15 +293,15 @@ public class MountPoint {
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   private static void initMountPointsLollipop(Context context) {
     Map<String, MountPoint> mountPoints = new TreeMap<String, MountPoint>();
-    File defaultDir = getBaseDir(DataSource.get().getExternalFilesDir(context));
-    File[] dirs = DataSource.get().getExternalFilesDirs(context);
-    for (File path : dirs) {
+    PortableFile defaultDir = getBaseDir(DataSource.get().getExternalFilesDir(context));
+    PortableFile[] dirs = DataSource.get().getExternalFilesDirs(context);
+    for (PortableFile path : dirs) {
       if (path == null) {
         continue;
       }
-      File dir = getBaseDir(path);
-      boolean isEmulated = DataSource.get().getEnvironment().isExternalStorageEmulated(dir);
-      boolean isRemovable = DataSource.get().getEnvironment().isExternalStorageRemovable(dir);
+      PortableFile dir = getBaseDir(path);
+      boolean isEmulated = path.isExternalStorageEmulated();
+      boolean isRemovable = path.isExternalStorageRemovable();
       boolean hasApps = isEmulated && !isRemovable;
       MountPoint mountPoint = new MountPoint(
           dir.equals(defaultDir) ? titleStorageCard(context) : dir.getAbsolutePath(),
@@ -325,27 +322,19 @@ public class MountPoint {
   }
 
   @TargetApi(Build.VERSION_CODES.KITKAT)
-  public static File[] getMediaStoragePaths(Context context) {
+  public static PortableFile[] getMediaStoragePaths(Context context) {
     try {
       return DataSource.get().getExternalFilesDirs(context);
     } catch (Throwable t) {
-      return new File[0];
-    }
-  }
-
-  public static String canonicalPath(File file) {
-    try {
-      return file.getCanonicalPath();
-    } catch (Exception e) {
-      return file.getAbsolutePath();
+      return new PortableFile[0];
     }
   }
 
   private static void addMediaPaths(Context context) {
-    File[] mediaStoragePaths = getMediaStoragePaths(context);
-    for (File file : mediaStoragePaths) {
+    PortableFile[] mediaStoragePaths = getMediaStoragePaths(context);
+    for (PortableFile file : mediaStoragePaths) {
       while (file != null) {
-        String canonical = canonicalPath(file);
+        String canonical = file.getCanonicalPath();
 
         if (mountPoints.containsKey(canonical)) {
           break;
@@ -363,7 +352,7 @@ public class MountPoint {
           break;
         }
         if (canonical.equals("/")) break;
-        file = file.getParentFile();
+        file = DataSource.get().getParentFile(file);
       }
     }
   }
@@ -398,6 +387,7 @@ public class MountPoint {
 
   public static void reset() {
     defaultStorage = null;
+    honeycombSdcard = null;
     mountPoints = new TreeMap<String, MountPoint>();
     init = false;
   }

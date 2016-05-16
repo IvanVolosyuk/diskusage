@@ -135,15 +135,9 @@ public class NativeScannerStream extends InputStream {
     }
 
     private void unpackScanBinary(String binaryName) throws IOException {
-      byte[] buffer = new byte[32768];
       InputStream is = context.getAssets().open(binaryName);
       FileOutputStream os = new FileOutputStream(getScanBinaryPath(binaryName));
-      int len;
-      while ((len = is.read(buffer)) != -1) {
-        os.write(buffer, 0, len);
-      }
-      os.close();
-      is.close();
+      StreamCopy.copyStream(is, os);
     }
   }
 }

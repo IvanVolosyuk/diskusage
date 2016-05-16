@@ -1,10 +1,9 @@
 package com.google.android.diskusage.datasource;
 
-import java.io.File;
-import java.io.FileReader;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.util.List;
 
@@ -13,6 +12,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 
+import com.google.android.diskusage.LoadableActivity;
 import com.google.android.diskusage.datasource.fast.DefaultDataSource;
 
 public abstract class DataSource {
@@ -22,24 +22,23 @@ public abstract class DataSource {
     return currentDataSource;
   }
 
-  public abstract int getAndroidVersion();
+  public static void override(DataSource dataSource) {
+    LoadableActivity.resetStoredStates();
+    currentDataSource = dataSource;
+  }
 
-  public abstract void getPackageSizeInfo(
-      Method getPackageSizeInfo,
-      PackageManager pm,
-      String pkg,
-      AppStatsCallback callback) throws Exception;
+  public abstract int getAndroidVersion();
 
   public abstract List<PkgInfo> getInstalledPackages(PackageManager pm);
 
   public abstract StatFsSource statFs(String mountPoint);
 
-  public abstract Env getEnvironment();
-
   @TargetApi(Build.VERSION_CODES.FROYO)
-  public abstract File getExternalFilesDir(Context context);
+  public abstract PortableFile getExternalFilesDir(Context context);
   @TargetApi(Build.VERSION_CODES.KITKAT)
-  public abstract File[] getExternalFilesDirs(Context context);
+  public abstract PortableFile[] getExternalFilesDirs(Context context);
+
+  public abstract PortableFile getExternalStorageDirectory();
 
   public abstract InputStream createNativeScanner(
       Context context, String path,
@@ -49,5 +48,17 @@ public abstract class DataSource {
 
   public abstract LegacyFile createLegacyScanFile(String root);
 
-  public abstract FileReader getProc() throws IOException;
+  public final BufferedReader getProcReader() throws IOException {
+    return new BufferedReader(new InputStreamReader(getProc()));
+  }
+
+  public abstract InputStream getProc() throws IOException;
+
+  public abstract void getPackageSizeInfo(
+      PkgInfo pkgInfo,
+      Method getPackageSizeInfo,
+      PackageManager pm,
+      AppStatsCallback callback) throws Exception;
+
+  public abstract PortableFile getParentFile(PortableFile file);
 }

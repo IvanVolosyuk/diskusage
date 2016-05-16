@@ -40,29 +40,33 @@ import com.google.android.diskusage.entity.FileSystemSuperRoot;
 
 public abstract class LoadableActivity extends Activity {
   FileSystemPackage pkg_removed;
-  
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     FileSystemEntry.setupStrings(this);
   }
-  
+
   public abstract String getRootPath();
   public abstract String getRootTitle();
   public abstract String getKey();
-  
+
   abstract FileSystemSuperRoot scan() throws IOException, InterruptedException;
-  
+
   class PersistantActivityState {
     FileSystemSuperRoot root;
     AfterLoad afterLoad;
     MyProgressDialog loading;
   };
-  
+
   private static Map<String, PersistantActivityState> persistantActivityState =
     new TreeMap<String, PersistantActivityState>();
-  
- 
+
+  public static void resetStoredStates() {
+    persistantActivityState.clear();
+  }
+
+
   // FIXME: use it wisely
  static boolean forceCleanup() {
    boolean success = false;
@@ -74,10 +78,10 @@ public abstract class LoadableActivity extends Activity {
    }
    return success;
  }
-  
+
   protected PersistantActivityState getPersistantState() {
     String key = getKey();
-    
+
     PersistantActivityState state = persistantActivityState.get(key);
     if (state != null) return state;
     state = new PersistantActivityState();
@@ -90,7 +94,7 @@ public abstract class LoadableActivity extends Activity {
     boolean scanRunning = false;
     final PersistantActivityState state = getPersistantState();
     Log.d("diskusage", "LoadFiles, afterLoad = " + runAfterLoad);
-    
+
     if (force) {
       state.root = null;
     }
@@ -104,7 +108,7 @@ public abstract class LoadableActivity extends Activity {
     state.afterLoad = runAfterLoad;
     Log.d("diskusage", "created new progress dialog");
     state.loading = new MyProgressDialog(activity);
-    
+
     final MyProgressDialog thisLoading = state.loading;
     state.loading.setOnCancelListener(new OnCancelListener() {
       @Override
@@ -146,7 +150,7 @@ public abstract class LoadableActivity extends Activity {
               AfterLoad afterLoadCopy = state.afterLoad;
               state.afterLoad = null;
               Log.d("diskusage", "dismissed dialog");
-              
+
               if (newRoot.children[0].children == null) {
                 Log.d("diskusage", "empty card");
                 handleEmptySDCard(activity, runAfterLoad);
@@ -204,7 +208,7 @@ public abstract class LoadableActivity extends Activity {
       }
     }.start();
   }
-  
+
   @Override
   protected void onPause() {
     PersistantActivityState state = getPersistantState();
@@ -215,7 +219,7 @@ public abstract class LoadableActivity extends Activity {
     }
     super.onPause();
   }
-  
+
   private void handleEmptySDCard(final LoadableActivity activity,
       final AfterLoad afterLoad) {
     new AlertDialog.Builder(activity)
@@ -233,7 +237,7 @@ public abstract class LoadableActivity extends Activity {
       }
     }).create().show();
   }
-  
+
   private static void handleOutOfMemory(final Activity activity) {
     try {
       // Can fail if the main window is already closed.

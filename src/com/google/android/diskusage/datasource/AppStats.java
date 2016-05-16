@@ -17,5 +17,4 @@ public interface AppStats {
   long getExternalMediaSize();
   @TargetApi(Build.VERSION_CODES.HONEYCOMB)
   long getExternalObbSize();
-  String getPackageName();
 }

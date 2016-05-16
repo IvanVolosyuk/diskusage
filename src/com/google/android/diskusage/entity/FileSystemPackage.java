@@ -19,16 +19,15 @@
 
 package com.google.android.diskusage.entity;
 
-import android.content.pm.PackageStats;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import android.util.Log;
 
 import com.google.android.diskusage.AppFilter;
 import com.google.android.diskusage.AppFilter.App2SD;
 import com.google.android.diskusage.datasource.AppStats;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 public class FileSystemPackage extends FileSystemEntry {
   public final String pkg;

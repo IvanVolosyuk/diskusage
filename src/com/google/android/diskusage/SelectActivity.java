@@ -20,7 +20,7 @@
 package com.google.android.diskusage;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,9 +36,16 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.datasource.fast.DefaultDataSource;
+import com.google.android.diskusage.datasource.writedump.DebugDataSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class SelectActivity extends Activity {
@@ -46,6 +53,10 @@ public class SelectActivity extends Activity {
   Map<String,Bundle> bundles = new TreeMap<String,Bundle>();
   ArrayList<Runnable> actionList = new ArrayList<Runnable>();
   private boolean expandRootMountPoints;
+  private static boolean debugUnhidden = true;
+  private static boolean debugLoadedDump = false;
+  private DebugDataSource debugDataSource;
+
 
   private abstract class AbstractUsageAction implements Runnable {
     public void runAction(String key, String title, String rootKey, Class<?> viewer) {
@@ -100,6 +111,72 @@ public class SelectActivity extends Activity {
     }
   }
 
+  private class EnableDebugAction implements Runnable {
+    public void run() {
+      try {
+        debugLoadedDump = false;
+        debugDataSource = DebugDataSource.initNewDump(SelectActivity.this);
+        DataSource.override(debugDataSource);
+        dialog.hide();
+        MountPoint.reset();
+        makeDialog();
+      } catch (IOException e) {
+        Log.d("diskusage", "Failed to enable debug", e);
+        Toast.makeText(
+            SelectActivity.this,
+            "Failed to enable debug " + e.getMessage(),
+            Toast.LENGTH_LONG).show();
+      }
+    }
+  }
+
+  private class DisableDebug implements Runnable {
+    @Override
+    public void run() {
+        DataSource.override(new DefaultDataSource());
+        debugDataSource = null;
+        debugUnhidden = false;
+        dialog.hide();
+        MountPoint.reset();
+        makeDialog();
+    }
+
+  }
+
+  private class LoadDumpAction implements Runnable {
+    public void run() {
+      try {
+        debugDataSource = DebugDataSource.loadDefaultDump();
+        debugLoadedDump = true;
+        DataSource.override(debugDataSource);
+        dialog.hide();
+        MountPoint.reset();
+        makeDialog();
+      } catch (IOException e) {
+        Log.d("diskusage", "Failed to enable debug", e);
+        Toast.makeText(
+            SelectActivity.this,
+            "Failed to enable debug " + e.getMessage(),
+            Toast.LENGTH_LONG).show();
+      }
+    }
+  }
+
+  private class SendBugReportAction implements Runnable {
+    @Override
+    public void run() {
+      try {
+        debugDataSource.saveDumpAndSendReport(SelectActivity.this);
+      } catch (IOException e) {
+        Log.d("diskusage", "Failed to send bugreport", e);
+        Toast.makeText(
+            SelectActivity.this,
+            "Failed to send bugreport: " + e.getMessage(),
+            Toast.LENGTH_LONG).show();
+      }
+    }
+  }
+
   public Handler handler = new Handler();
   public Runnable checkForMountsUpdates = new Runnable() {
     @Override
@@ -107,7 +184,7 @@ public class SelectActivity extends Activity {
       boolean reload = false;
       try {
 //        BufferedReader reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.mounts_honeycomb), "UTF-8"));
-        BufferedReader reader = new BufferedReader(DataSource.get().getProc());
+        BufferedReader reader = DataSource.get().getProcReader();
         String line;
         int checksum = 0;
         while ((line = reader.readLine()) != null) {
@@ -143,6 +220,25 @@ public class SelectActivity extends Activity {
     for (MountPoint mountPoint : MountPoint.getMountPoints(this).values()) {
       options.add(mountPoint.title);
       actionList.add(new DiskUsageAction(mountPoint.title, mountPoint));
+    }
+
+    if (debugUnhidden) {
+      if (debugDataSource != null && !debugLoadedDump) {
+        options.add("* Send bug report");
+        actionList.add(new SendBugReportAction());
+      }
+
+      if (debugDataSource == null) {
+        options.add("* Enable debug dump");
+        actionList.add(new EnableDebugAction());
+
+        if (DebugDataSource.dumpExist()) {
+          options.add("* Load dump");
+          actionList.add(new LoadDumpAction());
+        }
+      }
+      options.add("* Disable debug");
+      actionList.add(new DisableDebug());
     }
 
     if (DataSource.get().isDeviceRooted()) {
@@ -194,6 +290,16 @@ public class SelectActivity extends Activity {
         finish();
       }
     }).create();
+    dialog.getListView().setOnItemLongClickListener(new OnItemLongClickListener() {
+      @Override
+      public boolean onItemLongClick(AdapterView<?> arg0, View arg1, int arg2,
+          long arg3) {
+        debugUnhidden = true;
+        dialog.hide();
+        makeDialog();
+        return true;
+      }
+    });
     dialog.show();
   }
 
