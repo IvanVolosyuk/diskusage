@@ -23,6 +23,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -61,6 +62,7 @@ public class MountPoint {
   private static MountPoint defaultStorage;
   private static Map<String, MountPoint> mountPoints = new TreeMap<String, MountPoint>();
   private static Map<String, MountPoint> rootedMountPoints = new TreeMap<String, MountPoint>();
+  private static List<MountPoint> storageMountPoints = new ArrayList<MountPoint>();
   private static boolean init = false;
   private static MountPoint honeycombSdcard;
   static int checksum = 0;
@@ -203,7 +205,11 @@ public class MountPoint {
           }
         } else {
           Log.d("diskusage", "Mount point is good");
-          mountPointsList.add(new MountPoint(mountPoint, mountPoint, null, false, false, fsType, false));
+          MountPoint mountPointObj = new MountPoint(mountPoint, mountPoint, null, false, false, fsType, false);
+          mountPointsList.add(mountPointObj);
+          if (mountPoint.startsWith("/storage/") && !mountPoint.startsWith("/storage/emulated")) {
+            storageMountPoints.add(mountPointObj);
+          }
         }
       }
       reader.close();
@@ -318,6 +324,12 @@ public class MountPoint {
         honeycombSdcard = mountPoint;
       }
     }
+    for (MountPoint m : storageMountPoints) {
+      if (!mountPoints.containsKey(m.root)) {
+        mountPoints.put(m.root, m);
+      }
+    }
+
     MountPoint.mountPoints = mountPoints;
   }
 
@@ -389,6 +401,8 @@ public class MountPoint {
     defaultStorage = null;
     honeycombSdcard = null;
     mountPoints = new TreeMap<String, MountPoint>();
+    rootedMountPoints = new TreeMap<String, MountPoint>();
+    storageMountPoints = new ArrayList<MountPoint>();
     init = false;
   }
 }
