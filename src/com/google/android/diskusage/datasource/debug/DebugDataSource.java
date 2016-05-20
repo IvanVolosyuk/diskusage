@@ -1,4 +1,4 @@
-package com.google.android.diskusage.datasource.writedump;
+package com.google.android.diskusage.datasource.debug;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -27,9 +27,9 @@ import com.google.android.diskusage.datasource.LegacyFile;
 import com.google.android.diskusage.datasource.PkgInfo;
 import com.google.android.diskusage.datasource.PortableFile;
 import com.google.android.diskusage.datasource.StatFsSource;
+import com.google.android.diskusage.datasource.debug.PortableStreamProtoWriterImpl.CloseCallback;
 import com.google.android.diskusage.datasource.fast.DefaultDataSource;
 import com.google.android.diskusage.datasource.fast.StreamCopy;
-import com.google.android.diskusage.datasource.writedump.PortableStreamProtoWriterImpl.CloseCallback;
 import com.google.android.diskusage.proto.AppInfoProto;
 import com.google.android.diskusage.proto.AppStatsProto;
 import com.google.android.diskusage.proto.Dump;

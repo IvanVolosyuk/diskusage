@@ -37,15 +37,12 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.datasource.DebugDataSourceBridge;
 import com.google.android.diskusage.datasource.fast.DefaultDataSource;
-import com.google.android.diskusage.datasource.writedump.DebugDataSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class SelectActivity extends Activity {
@@ -53,9 +50,20 @@ public class SelectActivity extends Activity {
   Map<String,Bundle> bundles = new TreeMap<String,Bundle>();
   ArrayList<Runnable> actionList = new ArrayList<Runnable>();
   private boolean expandRootMountPoints;
-  private static boolean debugUnhidden = false;
+//  private static boolean debugUnhidden = true;
   private static boolean debugLoadedDump = false;
-  private DebugDataSource debugDataSource;
+  private DataSource debugDataSource;
+  private static DebugDataSourceBridge debugDataSourceBridge;
+
+  static {
+    try {
+      Class<?> clazz = Class.forName(
+          "com.google.android.diskusage.datasource.debug.DebugDataSourceBridgeImpl");
+      debugDataSourceBridge = (DebugDataSourceBridge) clazz.newInstance();
+    } catch (Throwable t) {
+      Log.d("diskusage", "Debug is disabled");
+    }
+  }
 
 
   private abstract class AbstractUsageAction implements Runnable {
@@ -115,7 +123,7 @@ public class SelectActivity extends Activity {
     public void run() {
       try {
         debugLoadedDump = false;
-        debugDataSource = DebugDataSource.initNewDump(SelectActivity.this);
+        debugDataSource = debugDataSourceBridge.initNewDump(SelectActivity.this);
         DataSource.override(debugDataSource);
         dialog.hide();
         MountPoint.reset();
@@ -135,7 +143,7 @@ public class SelectActivity extends Activity {
     public void run() {
         DataSource.override(new DefaultDataSource());
         debugDataSource = null;
-        debugUnhidden = false;
+//        debugUnhidden = false;
         dialog.hide();
         MountPoint.reset();
         makeDialog();
@@ -146,7 +154,7 @@ public class SelectActivity extends Activity {
   private class LoadDumpAction implements Runnable {
     public void run() {
       try {
-        debugDataSource = DebugDataSource.loadDefaultDump();
+        debugDataSource = debugDataSourceBridge.loadDefaultDump();
         debugLoadedDump = true;
         DataSource.override(debugDataSource);
         dialog.hide();
@@ -166,7 +174,8 @@ public class SelectActivity extends Activity {
     @Override
     public void run() {
       try {
-        debugDataSource.saveDumpAndSendReport(SelectActivity.this);
+        debugDataSourceBridge.saveDumpAndSendReport(
+            debugDataSource, SelectActivity.this);
       } catch (IOException e) {
         Log.d("diskusage", "Failed to send bugreport", e);
         Toast.makeText(
@@ -222,7 +231,7 @@ public class SelectActivity extends Activity {
       actionList.add(new DiskUsageAction(mountPoint.title, mountPoint));
     }
 
-    if (debugUnhidden) {
+    if (/*debugUnhidden && */debugDataSourceBridge != null) {
       if (debugDataSource != null && !debugLoadedDump) {
         options.add("* Send bug report");
         actionList.add(new SendBugReportAction());
@@ -232,7 +241,7 @@ public class SelectActivity extends Activity {
         options.add("* Enable debug dump");
         actionList.add(new EnableDebugAction());
 
-        if (DebugDataSource.dumpExist()) {
+        if (debugDataSourceBridge.dumpExist()) {
           options.add("* Load dump");
           actionList.add(new LoadDumpAction());
         }
@@ -290,16 +299,23 @@ public class SelectActivity extends Activity {
         finish();
       }
     }).create();
-    dialog.getListView().setOnItemLongClickListener(new OnItemLongClickListener() {
-      @Override
-      public boolean onItemLongClick(AdapterView<?> arg0, View arg1, int arg2,
-          long arg3) {
-        debugUnhidden = true;
-        dialog.hide();
-        makeDialog();
-        return true;
+    /*try {
+      if (debugDataSourceBridge != null) {
+        dialog.getListView().setOnItemLongClickListener(
+            new OnItemLongClickListener() {
+          @Override
+          public boolean onItemLongClick(
+              AdapterView<?> arg0, View arg1, int arg2, long arg3) {
+            debugUnhidden = true;
+            dialog.hide();
+            makeDialog();
+            return true;
+          }
+        });
       }
-    });
+    } catch (Throwable t) {
+      // api 3
+    }*/
     dialog.show();
   }
 

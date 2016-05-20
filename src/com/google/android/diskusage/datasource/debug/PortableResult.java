@@ -1,4 +1,4 @@
-package com.google.android.diskusage.datasource.writedump;
+package com.google.android.diskusage.datasource.debug;
 
 import com.google.android.diskusage.proto.PortableResultProto;
 

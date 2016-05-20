@@ -1,4 +1,4 @@
-package com.google.android.diskusage.datasource.writedump;
+package com.google.android.diskusage.datasource.debug;
 
 
 public class Precondition {
