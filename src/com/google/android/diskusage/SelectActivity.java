@@ -53,7 +53,7 @@ public class SelectActivity extends Activity {
   Map<String,Bundle> bundles = new TreeMap<String,Bundle>();
   ArrayList<Runnable> actionList = new ArrayList<Runnable>();
   private boolean expandRootMountPoints;
-  private static boolean debugUnhidden = true;
+  private static boolean debugUnhidden = false;
   private static boolean debugLoadedDump = false;
   private DebugDataSource debugDataSource;
 
