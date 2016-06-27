@@ -1,12 +1,11 @@
 package com.google.android.diskusage.datasource.fast;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.android.diskusage.datasource.AppStatsCallback;
+import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.datasource.LegacyFile;
+import com.google.android.diskusage.datasource.PkgInfo;
+import com.google.android.diskusage.datasource.PortableFile;
+import com.google.android.diskusage.datasource.StatFsSource;
 
 import android.annotation.TargetApi;
 import android.content.Context;
@@ -17,12 +16,13 @@ import android.content.pm.PackageStats;
 import android.os.Build;
 import android.os.Environment;
 
-import com.google.android.diskusage.datasource.AppStatsCallback;
-import com.google.android.diskusage.datasource.DataSource;
-import com.google.android.diskusage.datasource.LegacyFile;
-import com.google.android.diskusage.datasource.PkgInfo;
-import com.google.android.diskusage.datasource.PortableFile;
-import com.google.android.diskusage.datasource.StatFsSource;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DefaultDataSource extends DataSource {
 
@@ -36,6 +36,7 @@ public class DefaultDataSource extends DataSource {
     return Integer.parseInt(Build.VERSION.SDK);
   }
 
+  @Override
   public List<PkgInfo> getInstalledPackages(PackageManager pm) {
     final List<PackageInfo> installedPackages = pm.getInstalledPackages(
         PackageManager.GET_META_DATA | PackageManager.GET_UNINSTALLED_PACKAGES);
@@ -77,8 +78,23 @@ public class DefaultDataSource extends DataSource {
 
   @Override
   public boolean isDeviceRooted() {
-      return new File("/system/bin/su").isFile()
-          || new File("/system/xbin/su").isFile();
+    String pathEnv = System.getenv("PATH");
+    if (pathEnv != null) {
+      String[] searchPaths = pathEnv.split(":");
+      for (String path : searchPaths) {
+        if (path.length() == 0) {
+          continue;
+        }
+        String suPath = path + "/su";
+        File suFile = new File(suPath);
+        if (suFile.exists() && !suFile.isDirectory()) {
+          return true;
+        }
+      }
+    }
+
+    return new File("/system/bin/su").isFile()
+        || new File("/system/xbin/su").isFile();
   }
 
   @Override
