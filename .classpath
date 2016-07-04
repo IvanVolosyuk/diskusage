@@ -2,7 +2,7 @@
 <classpath>
 	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
 	<classpathentry kind="lib" path="extra/system.jar"/>
-	<classpathentry excluding="com/google/android/diskusage/datasource/debug/|com/google/android/diskusage/proto/|com/google/protobuf/" kind="src" path="src"/>
+	<classpathentry excluding="com/google/android/diskusage/datasource/debug/|com/google/android/diskusage/proto/|com/google/protobuf/|dump.proto|proto.sh" kind="src" path="src"/>
 	<classpathentry kind="src" path="gen"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
