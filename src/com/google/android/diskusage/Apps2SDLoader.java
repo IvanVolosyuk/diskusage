@@ -19,20 +19,6 @@
 
 package com.google.android.diskusage;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
-import android.content.pm.IPackageStatsObserver;
-import android.content.pm.PackageManager;
-import android.os.Handler;
-import android.util.Log;
-
 import com.google.android.diskusage.datasource.AppInfo;
 import com.google.android.diskusage.datasource.AppStats;
 import com.google.android.diskusage.datasource.AppStatsCallback;
@@ -42,18 +28,52 @@ import com.google.android.diskusage.datasource.StatFsSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
 import com.google.android.diskusage.entity.FileSystemPackage;
 
+import android.content.pm.IPackageStatsObserver;
+import android.content.pm.PackageManager;
+import android.os.Handler;
+import android.util.Log;
+
+import java.io.BufferedReader;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
 public class Apps2SDLoader {
 
   private final DiskUsage diskUsage;
+  // Guarded by
   private int numLookups;
+
+  // Guarded by currentAppName
   private int numLoadedPackages;
+  // Guarded by currentAppName
+  List<CharSequence> currentAppName = new ArrayList<CharSequence>();
+  // Guarded by currentAppName
+  CharSequence lastAppName = "";
+  boolean switchToSecondary = true;
+
 
   public Apps2SDLoader(DiskUsage activity) {
     this.diskUsage = activity;
   }
 
-  private synchronized void changeNumLookups(int change) {
-    numLookups += change;
+  private synchronized void addLockup(String name) throws InterruptedException {
+    while (numLookups >= 2) {
+      wait();
+    }
+    numLookups++;
+    currentAppName.add(name);
+  }
+
+  private synchronized void delLookup(String name) {
+    numLookups--;
+    numLoadedPackages++;
+    currentAppName.remove(name);
+    lastAppName = name;
+    notifyAll();
   }
 
   private Map<String, Long> getDfSizes() {
@@ -87,9 +107,6 @@ public class Apps2SDLoader {
     return map;
   }
 
-  CharSequence currentAppName = "";
-  boolean switchToSecondary = true;
-
   public FileSystemEntry[] load(
       boolean sdOnly,
       final AppFilter appFilter,
@@ -113,7 +130,16 @@ public class Apps2SDLoader {
             switchToSecondary = false;
           }
           dialog.setMax(installedPackages.size());
-          dialog.setProgress(numLoadedPackages, currentAppName);
+          final CharSequence appName;
+          synchronized (Apps2SDLoader.this) {
+            if (currentAppName.size() > 0) {
+              appName = currentAppName.get(0);
+            } else {
+              appName = lastAppName;
+            }
+
+          }
+          dialog.setProgress(numLoadedPackages, appName);
         }
         diskUsage.handler.postDelayed(this, 50);
       }
@@ -132,17 +158,14 @@ public class Apps2SDLoader {
       final AppInfo appInfo = info.getApplicationInfo();
       boolean on_sdcard = (appInfo.getFlags() & flag) != 0;
       if (on_sdcard || !sdOnly) {
-        changeNumLookups(1);
         final String pkg = info.getPackageName();
         final String name = appInfo.getApplicationLabel();
-        currentAppName = name;
+        addLockup(name);
         DataSource.get().getPackageSizeInfo(
             info, getPackageSizeInfo, pm, new AppStatsCallback() {
           @Override
           public void onGetStatsCompleted(AppStats stats, boolean succeeded) {
             synchronized (Apps2SDLoader.this) {
-              numLoadedPackages++;
-              changeNumLookups(-1);
               if (succeeded) {
                 FileSystemPackage p = new FileSystemPackage(
                     name,
@@ -155,14 +178,13 @@ public class Apps2SDLoader {
                 entries.add(p);
 //                Log.i("diskusage", "codeSize: " + pStats.codeSize);
               }
-              Apps2SDLoader.this.notify();
+              delLookup(name);
             }
-
           }
         });
       } else {
-        synchronized (this) {
-          currentAppName = appInfo.getApplicationLabel();
+        synchronized (currentAppName) {
+          lastAppName = appInfo.getApplicationLabel();
           numLoadedPackages++;
         }
       }
