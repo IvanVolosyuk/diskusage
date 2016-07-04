@@ -113,7 +113,8 @@ public class FileSystemPackage extends FileSystemEntry {
     } else {
       codeSize = stats.getCodeSize() - this.dalvikCacheSize;
     }
-    if ((flags & ApplicationInfo.FLAG_SYSTEM) != 0) {
+    if ((flags & ApplicationInfo.FLAG_SYSTEM) != 0
+        && (flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0) {
       codeSize = 0;
     }
     this.codeSize = codeSize;
