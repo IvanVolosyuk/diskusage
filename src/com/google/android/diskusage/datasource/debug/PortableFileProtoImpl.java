@@ -11,9 +11,17 @@ public class PortableFileProtoImpl implements PortableFile {
   final PortableFileProto proto;
   private final int androidVersion;
 
-  public PortableFileProtoImpl(PortableFileProto proto, int androidVersion) {
+  private PortableFileProtoImpl(PortableFileProto proto, int androidVersion) {
     this.proto = proto;
     this.androidVersion = androidVersion;
+  }
+
+  public static PortableFileProtoImpl make(PortableFileProto proto, int androidVersion) {
+    if (proto.absolutePath != "" && proto.absolutePath != null) {
+      return new PortableFileProtoImpl(proto, androidVersion);
+    } else {
+      return null;
+    }
   }
 
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -56,6 +64,10 @@ public class PortableFileProtoImpl implements PortableFile {
   public static PortableFileProto makeProto(
       PortableFile file, int androidVersion) {
     PortableFileProto p = new PortableFileProto();
+
+    if (file == null) {
+      return p;
+    }
     p.absolutePath = file.getAbsolutePath();
     p.canonicalPath = file.getCanonicalPath();
     if (androidVersion >= Build.VERSION_CODES.GINGERBREAD) {

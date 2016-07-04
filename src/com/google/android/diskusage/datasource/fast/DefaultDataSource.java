@@ -55,7 +55,7 @@ public class DefaultDataSource extends DataSource {
   @TargetApi(Build.VERSION_CODES.FROYO)
   @Override
   public PortableFile getExternalFilesDir(Context context) {
-    return new PortableFileImpl(context.getExternalFilesDir(null));
+    return PortableFileImpl.make(context.getExternalFilesDir(null));
   }
 
   @TargetApi(Build.VERSION_CODES.KITKAT)
@@ -64,7 +64,7 @@ public class DefaultDataSource extends DataSource {
     File[] externalFilesDirs = context.getExternalFilesDirs(null);
     PortableFile[] result = new PortableFileImpl[externalFilesDirs.length];
     for (int i = 0; i < externalFilesDirs.length; i++) {
-      result[i] = new PortableFileImpl(externalFilesDirs[i]);
+      result[i] = PortableFileImpl.make(externalFilesDirs[i]);
     }
     return result;
   }
@@ -123,11 +123,11 @@ public class DefaultDataSource extends DataSource {
 
   @Override
   public PortableFile getExternalStorageDirectory() {
-    return new PortableFileImpl(Environment.getExternalStorageDirectory());
+    return PortableFileImpl.make(Environment.getExternalStorageDirectory());
   }
 
   @Override
   public PortableFile getParentFile(PortableFile file) {
-    return new PortableFileImpl(new File(file.getAbsolutePath()).getParentFile());
+    return PortableFileImpl.make(new File(file.getAbsolutePath()).getParentFile());
   }
 }

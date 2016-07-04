@@ -176,7 +176,7 @@ public class DebugDataSource extends DataSource {
           delegate.getExternalFilesDir(context), dump.androidVersion);
     }
 
-    return new PortableFileProtoImpl(dump.externalFilesDir, dump.androidVersion);
+    return PortableFileProtoImpl.make(dump.externalFilesDir, dump.androidVersion);
   }
 
   @TargetApi(Build.VERSION_CODES.KITKAT)
@@ -197,7 +197,7 @@ public class DebugDataSource extends DataSource {
 
     PortableFile[] result = new PortableFile[dump.externalFilesDirs.length];
     for (int i = 0; i < result.length; i++) {
-      result[i] = new PortableFileProtoImpl(dump.externalFilesDirs[i], dump.androidVersion);
+      result[i] = PortableFileProtoImpl.make(dump.externalFilesDirs[i], dump.androidVersion);
     }
     return result;
   }
@@ -209,7 +209,7 @@ public class DebugDataSource extends DataSource {
           delegate.getExternalStorageDirectory(), dump.androidVersion);
     }
 
-    return new PortableFileProtoImpl(dump.externalStorageDirectory, dump.androidVersion);
+    return PortableFileProtoImpl.make(dump.externalStorageDirectory, dump.androidVersion);
   }
 
   @Override
@@ -271,12 +271,12 @@ public class DebugDataSource extends DataSource {
   public PortableFile getParentFile(PortableFile in) {
     PortableFileProtoImpl file = (PortableFileProtoImpl) in;
     if (file.proto.parent != null) {
-      return new PortableFileProtoImpl(file.proto.parent, dump.androidVersion);
+      return PortableFileProtoImpl.make(file.proto.parent, dump.androidVersion);
     }
 
     file.proto.parent = PortableFileProtoImpl.makeProto(
         delegate.getParentFile(in), dump.androidVersion);
-    return new PortableFileProtoImpl(file.proto.parent, dump.androidVersion);
+    return PortableFileProtoImpl.make(file.proto.parent, dump.androidVersion);
   }
 
   public void saveDumpAndSendReport(Context context) throws IOException {

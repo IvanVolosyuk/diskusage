@@ -11,8 +11,15 @@ import com.google.android.diskusage.datasource.PortableFile;
 public class PortableFileImpl implements PortableFile {
   private final File file;
 
-  PortableFileImpl(File file) {
+  private PortableFileImpl(File file) {
     this.file = file;
+  }
+
+  public static PortableFileImpl make(File file) {
+    if (file == null) {
+      return null;
+    }
+    return new PortableFileImpl(file);
   }
 
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
