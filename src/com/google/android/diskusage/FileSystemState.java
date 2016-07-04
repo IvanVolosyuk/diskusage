@@ -19,12 +19,19 @@
 
 package com.google.android.diskusage;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.entity.FileSystemFreeSpace;
+import com.google.android.diskusage.entity.FileSystemSuperRoot;
+import com.google.android.diskusage.entity.FileSystemSystemSpace;
+import com.google.android.diskusage.opengl.FileSystemViewGPU;
+import com.google.android.diskusage.opengl.RenderingThread;
 
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.os.Build;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
@@ -34,13 +41,8 @@ import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.Toast;
 
-import com.google.android.diskusage.datasource.DataSource;
-import com.google.android.diskusage.entity.FileSystemEntry;
-import com.google.android.diskusage.entity.FileSystemFreeSpace;
-import com.google.android.diskusage.entity.FileSystemSuperRoot;
-import com.google.android.diskusage.entity.FileSystemSystemSpace;
-import com.google.android.diskusage.opengl.FileSystemViewGPU;
-import com.google.android.diskusage.opengl.RenderingThread;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class FileSystemState {
 
@@ -69,8 +71,10 @@ public class FileSystemState {
     }
 
     public void warnOnFileSelect() {
-      Toast.makeText(context,
-          "Press menu to preview or delete", Toast.LENGTH_SHORT).show();
+      if (VERSION.SDK_INT < VERSION_CODES.HONEYCOMB) {
+        Toast.makeText(context,
+            "Press menu to preview or delete", Toast.LENGTH_SHORT).show();
+      }
     }
 
     public void view(FileSystemEntry entry) {
@@ -96,6 +100,7 @@ public class FileSystemState {
       super(context);
     }
 
+    @Override
     public void updateTitle(final FileSystemEntry position) {
       context.handler.post(new Runnable() {
         @Override
@@ -105,6 +110,7 @@ public class FileSystemState {
       });
     }
 
+    @Override
     public void warnOnFileSelect() {
       context.handler.post(new Runnable() {
         @Override
@@ -115,6 +121,7 @@ public class FileSystemState {
       });
     }
 
+    @Override
     public void view(final FileSystemEntry entry) {
       context.handler.post(new Runnable() {
         @Override
@@ -123,6 +130,7 @@ public class FileSystemState {
         }
       });
     }
+    @Override
     public void finishOnBack() {
       context.handler.post(new Runnable() {
         @Override
@@ -132,6 +140,7 @@ public class FileSystemState {
       });
     }
 
+    @Override
     public void searchRequest() {
       context.handler.post(new Runnable() {
         @Override
