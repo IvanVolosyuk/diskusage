@@ -6,7 +6,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import android.annotation.TargetApi;
 import android.content.Context;
+import android.os.Build;
+import android.os.Build.VERSION_CODES;
 
 import com.google.android.diskusage.datasource.DataSource;
 
@@ -119,6 +122,10 @@ public class NativeScannerStream extends InputStream {
 
     private void runChmod(String binaryName)
         throws IOException, InterruptedException {
+      if (Integer.parseInt(Build.VERSION.SDK) >= VERSION_CODES.GINGERBREAD) {
+        setExecutable(binaryName);
+        return;
+      }
       Process process;
       try {
         process = Runtime.getRuntime().exec(
@@ -132,6 +139,13 @@ public class NativeScannerStream extends InputStream {
         }
       }
       process.waitFor();
+    }
+
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
+    private void setExecutable(String binaryName) {
+      if (new File(binaryName).setExecutable(true, true) == false) {
+        throw new RuntimeException("Failed to setExecutable");
+      }
     }
 
     private void unpackScanBinary(String binaryName) throws IOException {
