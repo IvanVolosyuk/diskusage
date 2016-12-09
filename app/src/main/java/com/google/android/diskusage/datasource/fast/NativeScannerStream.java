@@ -123,8 +123,12 @@ public class NativeScannerStream extends InputStream {
     private void runChmod(String binaryName)
         throws IOException, InterruptedException {
       if (Integer.parseInt(Build.VERSION.SDK) >= VERSION_CODES.GINGERBREAD) {
-        setExecutable(binaryName);
-        return;
+        try {
+          setExecutable(binaryName);
+          return;
+        } catch (Exception e) {
+          // fall back to legacy way
+        }
       }
       Process process;
       try {
