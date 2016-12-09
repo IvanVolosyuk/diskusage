@@ -49,7 +49,7 @@ public class Cursor {
     FileSystemEntry newCursor = position.getNext();
     if (newCursor == position) return;
     view.invalidate(this);
-    top += position.encodedSize;
+    top += position.getSizeForRendering();
     position = newCursor;
     view.invalidate(this);
     updateTitle(view);
@@ -59,7 +59,7 @@ public class Cursor {
     FileSystemEntry newCursor = position.getPrev();
     if (newCursor == position) return;
     view.invalidate(this);
-    top -= newCursor.encodedSize;
+    top -= newCursor.getSizeForRendering();
     position = newCursor;
     view.invalidate(this);
     updateTitle(view);

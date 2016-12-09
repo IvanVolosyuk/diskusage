@@ -17,8 +17,7 @@ public class DrawingCache {
     if (sizeString != null) {
       return sizeString;
     }
-    String sizeString = FileSystemEntry.calcSizeStringFromEncoded(
-        entry.encodedSize);
+    String sizeString = entry.sizeString();
     this.sizeString = sizeString;
     return sizeString;
   }

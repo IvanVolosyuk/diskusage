@@ -129,6 +129,7 @@ public class FileSystemEntry {
   // FIXME: remove outdate info:
   // reminder can be 0..blockSize (inclusive)
   // size in bytes = (size in blocks * blockSize) + reminder - blockSize;
+  // FIXME: make private and update code which uses it
   public long encodedSize;
   public FileSystemEntry parent;
   public FileSystemEntry[] children;
@@ -155,6 +156,10 @@ public class FileSystemEntry {
 
   public long getSizeInBlocks() {
     return encodedSize >> blockOffset;
+  }
+
+  public long getSizeForRendering() {
+    return encodedSize & ~blockMask;
   }
 
   public static String calcSizeStringFromEncoded(long encodedSize) {
@@ -410,7 +415,7 @@ public class FileSystemEntry {
     // field to get rid of this
     for (int i = 0; i < len - numSpecial; i++) {
       FileSystemEntry c = children[i];
-      long csize = c.encodedSize;
+      long csize = c.getSizeForRendering();
       parent_size -= csize;
 
       float top = yoffset;
@@ -426,7 +431,7 @@ public class FileSystemEntry {
 
     for (int i = len - numSpecial; i < len; i++) {
       FileSystemEntry c = children[i];
-      long csize = c.encodedSize;
+      long csize = c.getSizeForRendering();
       parent_size -= csize;
 
       float top = yoffset;
@@ -523,7 +528,7 @@ public class FileSystemEntry {
     // field to get rid of this
     for (int i = 0; i < len - numSpecial; i++) {
       FileSystemEntry c = children[i];
-      long csize = c.encodedSize;
+      long csize = c.getSizeForRendering();
       parent_size -= csize;
 
       float top = yoffset;
@@ -539,7 +544,7 @@ public class FileSystemEntry {
 
     for (int i = len - numSpecial; i < len; i++) {
       FileSystemEntry c = children[i];
-      long csize = c.encodedSize;
+      long csize = c.getSizeForRendering();
       parent_size -= csize;
 
       float top = yoffset;
@@ -624,7 +629,7 @@ public class FileSystemEntry {
 
     for (int i = 0; i < len; i++) {
       FileSystemEntry c = children[i];
-      long csize = c.encodedSize;
+      long csize = c.getSizeForRendering();
       parent_size -= csize;
 
       float top = yoffset;
@@ -648,7 +653,7 @@ public class FileSystemEntry {
       FileSystemEntry[] cchildren = c.children;
 
       if (cchildren != null)
-        FileSystemEntry.paintGPU(c.encodedSize, cchildren, rt,
+        FileSystemEntry.paintGPU(c.getSizeForRendering(), cchildren, rt,
             child_xoffset, yoffset, yscale,
             child_clipLeft, child_clipRight, child_clipTop, child_clipBottom, screenHeight);
 
@@ -722,7 +727,7 @@ public class FileSystemEntry {
 
     for (int i = 0; i < len; i++) {
       FileSystemEntry c = children[i];
-      long csize = c.encodedSize;
+      long csize = c.getSizeForRendering();
       parent_size -= csize;
 
       float top = yoffset;
@@ -746,7 +751,7 @@ public class FileSystemEntry {
       FileSystemEntry[] cchildren = c.children;
 
       if (cchildren != null)
-        FileSystemEntry.paint(c.encodedSize, cchildren, canvas,
+        FileSystemEntry.paint(c.getSizeForRendering(), cchildren, canvas,
             child_xoffset, yoffset, yscale,
             child_clipLeft, child_clipRight, child_clipTop, child_clipBottom, screenHeight);
 
@@ -846,17 +851,17 @@ public class FileSystemEntry {
     // screen_clip_y0 = yscale * (clip_y0 - elementOffset)
     // screen_clip_y1 = yscale * (clip_y1 - elementOffset)
 
-    paintGPU(encodedSize, children, rt, xoffset, yoffset, yscale, clipLeft, clipRight,
+    paintGPU(getSizeForRendering(), children, rt, xoffset, yoffset, yscale, clipLeft, clipRight,
         clipTop, clipBottom, screenHeight);
 
-    paintSpecialGPU(encodedSize, children, rt, xoffset, yoffset, yscale, clipLeft, clipRight,
+    paintSpecialGPU(getSizeForRendering(), children, rt, xoffset, yoffset, yscale, clipLeft, clipRight,
         clipTop, clipBottom, screenHeight, numSpecialEntries);
 
     // paint position
     float cursorLeft = cursor.depth * elementWidth + xoffset;
     float cursorTop = (cursor.top - viewTop) * yscale;
     float cursorRight = cursorLeft + elementWidth;
-    float cursorBottom = cursorTop + cursor.position.encodedSize * yscale;
+    float cursorBottom = cursorTop + cursor.position.getSizeForRendering() * yscale;
     rt.cursorSquare.drawFrame(cursorLeft, cursorTop, cursorRight, cursorBottom);
   }
 
@@ -895,17 +900,17 @@ public class FileSystemEntry {
     // screen_clip_y0 = yscale * (clip_y0 - elementOffset)
     // screen_clip_y1 = yscale * (clip_y1 - elementOffset)
 
-    paint(encodedSize, children, canvas, xoffset, yoffset, yscale, clipLeft, clipRight,
+    paint(getSizeForRendering(), children, canvas, xoffset, yoffset, yscale, clipLeft, clipRight,
         clipTop, clipBottom, screenHeight);
 
-    paintSpecial(encodedSize, children, canvas, xoffset, yoffset, yscale, clipLeft, clipRight,
+    paintSpecial(getSizeForRendering(), children, canvas, xoffset, yoffset, yscale, clipLeft, clipRight,
         clipTop, clipBottom, screenHeight, numSpecialEntries);
 
     // paint position
     float cursorLeft = cursor.depth * elementWidth + xoffset;
     float cursorTop = (cursor.top - viewTop) * yscale;
     float cursorRight = cursorLeft + elementWidth;
-    float cursorBottom = cursorTop + cursor.position.encodedSize * yscale;
+    float cursorBottom = cursorTop + cursor.position.getSizeForRendering() * yscale;
     canvas.drawRect(cursorLeft, cursorTop, cursorRight, cursorBottom, cursor_fg);
   }
 
@@ -1018,7 +1023,7 @@ public class FileSystemEntry {
       // Log.d("DiskUsage", "  Entry = " + entry.name);
       for (int c = 0; c < nchildren; c++) {
         FileSystemEntry e = children0[c];
-        long size = e.encodedSize;
+        long size = e.getSizeForRendering();
         if (currOffset + size < offset) {
           currOffset += size;
           continue;
@@ -1058,7 +1063,7 @@ public class FileSystemEntry {
       for (int i = 0; i < len; i++) {
         FileSystemEntry e = children[i];
         if (e == cursor) break;
-        offset += e.encodedSize;
+        offset += e.getSizeForRendering();
       }
       cursor = dir;
     }

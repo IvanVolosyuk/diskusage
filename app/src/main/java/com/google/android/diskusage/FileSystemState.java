@@ -395,9 +395,9 @@ public class FileSystemState {
       viewBottom += viewTop - oldTop;
     }
 
-    if (viewBottom > masterRoot.encodedSize + allowedOverflow) {
+    if (viewBottom > masterRoot.getSizeForRendering() + allowedOverflow) {
       long oldBottom = viewBottom;
-      viewBottom = masterRoot.encodedSize + allowedOverflow;
+      viewBottom = masterRoot.getSizeForRendering() + allowedOverflow;
       viewTop += viewBottom - oldBottom;
     }
 
@@ -568,9 +568,9 @@ public class FileSystemState {
           targetViewBottom += targetViewTop - oldTop;
         }
 
-        if (targetViewBottom > masterRoot.encodedSize + allowedOverflow) {
+        if (targetViewBottom > masterRoot.getSizeForRendering() + allowedOverflow) {
           long oldBottom = targetViewBottom;
-          targetViewBottom = masterRoot.encodedSize + allowedOverflow;
+          targetViewBottom = masterRoot.getSizeForRendering() + allowedOverflow;
           targetViewTop += targetViewBottom - oldBottom;
         }
       }
@@ -592,7 +592,7 @@ public class FileSystemState {
     this.mainThreadAction = new MainThreadAction(context);
 
     zoomState = ZoomState.ZOOM_ALLOCATED;
-    targetViewBottom = root.encodedSize;
+    targetViewBottom = root.getSizeForRendering();
     //this.viewRoot = root;
     this.masterRoot = root;
     updateSpecialEntries();
@@ -629,10 +629,10 @@ public class FileSystemState {
           oldPosition = oldPosition.parent;
         }
         long oldTop = masterRoot.getOffset(oldPosition);
-        long oldSize = oldPosition.encodedSize;
+        long oldSize = oldPosition.getSizeForRendering();
         long oldBottom = oldTop + oldSize;
         long newTop = newRoot.getOffset(newPosition);
-        long newSize = newPosition.encodedSize;
+        long newSize = newPosition.getSizeForRendering();
         long newBottom = newTop + newSize;
         double above = (oldTop - targetViewTop) / (double)oldSize;
         double bellow = (targetViewBottom - oldBottom) / (double)oldSize;
@@ -657,15 +657,15 @@ public class FileSystemState {
       public void run() {
         if (newRoot != null) rescanFinished(newRoot);
         if (animate) {
-          long large = masterRoot.encodedSize * 10;
-          long center = masterRoot.encodedSize / 2;
+          long large = masterRoot.getSizeForRendering() * 10;
+          long center = masterRoot.getSizeForRendering() / 2;
           viewTop = center - large;
           viewBottom = center + large;
           viewDepth = 0;
           prepareMotion(SystemClock.uptimeMillis());
           animationDuration = 300;
           targetViewTop = 0;
-          targetViewBottom = masterRoot.encodedSize;
+          targetViewBottom = masterRoot.getSizeForRendering();
           targetViewDepth = 0;
           zoomState = ZoomState.ZOOM_ALLOCATED;
           setZoomState();
@@ -744,7 +744,7 @@ public class FileSystemState {
 //      view.requestRepaint();
       return true;
     } else if (!screenTouching) {
-      if (targetViewTop < 0 || targetViewBottom > masterRoot.encodedSize
+      if (targetViewTop < 0 || targetViewBottom > masterRoot.getSizeForRendering()
           || viewDepth < 0 || FileSystemEntry.elementWidth > maxElementWidth) {
         prepareMotion(SystemClock.uptimeMillis());
         animationDuration = 300;
@@ -754,17 +754,17 @@ public class FileSystemState {
           long oldTop = targetViewTop;
           targetViewTop = 0;
           targetViewBottom += targetViewTop - oldTop;
-        } else if (targetViewBottom > masterRoot.encodedSize) {
+        } else if (targetViewBottom > masterRoot.getSizeForRendering()) {
           long oldBottom = targetViewBottom;
-          targetViewBottom = masterRoot.encodedSize;
+          targetViewBottom = masterRoot.getSizeForRendering();
           targetViewTop += targetViewBottom - oldBottom;
         }
         if (targetViewTop < 0) {
           targetViewTop = 0;
         }
 
-        if (targetViewBottom > masterRoot.encodedSize) {
-          targetViewBottom = masterRoot.encodedSize;
+        if (targetViewBottom > masterRoot.getSizeForRendering()) {
+          targetViewBottom = masterRoot.getSizeForRendering();
         }
 
         if (viewDepth < 0) {
@@ -836,7 +836,7 @@ public class FileSystemState {
     float cursorx0 = (cursor.depth - viewDepth) * FileSystemEntry.elementWidth;
     float cursory0 = (cursor.top - displayTop) * yscale;
     float cursorx1 = cursorx0 + FileSystemEntry.elementWidth;
-    float cursory1 = cursory0 + cursor.position.encodedSize * yscale;
+    float cursory1 = cursory0 + cursor.position.getSizeForRendering() * yscale;
     requestRepaint((int)cursorx0, (int)cursory0, (int)cursorx1 + 2, (int)cursory1 + 2);
   }
 
@@ -889,7 +889,7 @@ public class FileSystemState {
 //      Log.d("diskusage", "zoom false");
       fullZoom = false;
     } else {
-      if (entry.encodedSize * yscale > FileSystemEntry.fontSize * 2) {
+      if (entry.getSizeForRendering() * yscale > FileSystemEntry.fontSize * 2) {
         fullZoom = true;
       } else {
         fullZoom = false;
@@ -915,13 +915,13 @@ public class FileSystemState {
     }
     if (fullZoom) {
       targetViewTop = cursor.top;
-      targetViewBottom = cursor.top + cursor.position.encodedSize;
+      targetViewBottom = cursor.top + cursor.position.getSizeForRendering();
     } else {
     }
     if (targetViewBottom == prevViewBottom && targetViewTop == prevViewTop) {
       fullZoom = false;
       targetViewTop = cursor.top + 1;
-      targetViewBottom = cursor.top + cursor.position.encodedSize - 1;
+      targetViewBottom = cursor.top + cursor.position.getSizeForRendering() - 1;
       zoomFitLabelMoveUp(eventTime);
       zoomFitToScreen(eventTime);
     }
@@ -933,18 +933,18 @@ public class FileSystemState {
   }
 
   private final void zoomFitLabel(long eventTime) {
-    if (cursor.position.encodedSize == 0) {
+    if (cursor.position.getSizeForRendering() == 0) {
       //Log.d("DiskUsage", "position is of zero size");
       return;
     }
 
     float yscale = screenHeight / (float)(targetViewBottom - targetViewTop);
 
-    if (cursor.position.encodedSize * yscale > FileSystemEntry.fontSize * 2 + 2) {
+    if (cursor.position.getSizeForRendering() * yscale > FileSystemEntry.fontSize * 2 + 2) {
       //Log.d("DiskUsage", "position large enough to contain label");
     } else {
       //Log.d("DiskUsage", "zoom in");
-      float new_yscale = FileSystemEntry.fontSize * 2.5f / cursor.position.encodedSize;
+      float new_yscale = FileSystemEntry.fontSize * 2.5f / cursor.position.getSizeForRendering();
       prepareMotion(eventTime);
 
       targetViewTop = targetViewBottom - (long) (screenHeight / new_yscale);
@@ -966,24 +966,24 @@ public class FileSystemState {
   }
 
   private final void zoomFitLabelMoveUp(long eventTime) {
-    if (cursor.position.encodedSize == 0) {
+    if (cursor.position.getSizeForRendering() == 0) {
       //Log.d("DiskUsage", "position is of zero size");
       return;
     }
 
     zoomFitLabel(eventTime);
 
-    if (targetViewBottom < cursor.top + cursor.position.encodedSize) {
+    if (targetViewBottom < cursor.top + cursor.position.getSizeForRendering()) {
       //Log.d("DiskUsage", "move up as needed");
       prepareMotion(eventTime);
 
-      long offset = cursor.top + cursor.position.encodedSize
+      long offset = cursor.top + cursor.position.getSizeForRendering()
       - (long)(targetViewTop * 0.2 + targetViewBottom * 0.8);
       targetViewTop += offset;
       targetViewBottom += offset;
-      if (targetViewBottom > masterRoot.encodedSize) {
-        long diff = targetViewBottom - masterRoot.encodedSize;
-        targetViewBottom = masterRoot.encodedSize;
+      if (targetViewBottom > masterRoot.getSizeForRendering()) {
+        long diff = targetViewBottom - masterRoot.getSizeForRendering();
+        targetViewBottom = masterRoot.getSizeForRendering();
         targetViewTop -= diff;
       }
     }
@@ -992,7 +992,7 @@ public class FileSystemState {
 
   private final void zoomFitToScreen(long eventTime) {
     if (targetViewTop < cursor.top &&
-        targetViewBottom > cursor.top + cursor.position.encodedSize) {
+        targetViewBottom > cursor.top + cursor.position.getSizeForRendering()) {
 
       // Log.d("DiskUsage", "fits in, no need for zoom out");
       return;
@@ -1004,7 +1004,7 @@ public class FileSystemState {
 
     FileSystemEntry viewRoot = cursor.position.parent;
     targetViewTop = masterRoot.getOffset(viewRoot);
-    long size = viewRoot.encodedSize;
+    long size = viewRoot.getSizeForRendering();
     targetViewBottom = targetViewTop + size;
     zoomFitLabelMoveUp(eventTime);
     requestRepaint();
@@ -1109,7 +1109,7 @@ public class FileSystemState {
     }
 
     for (FileSystemEntry e : masterRoot.children[0].children) {
-      Log.d("diskusage", "entry = " + e.name + " " + e.encodedSize);
+      Log.d("diskusage", "entry = " + e.name + " " + e.getSizeInBlocks());
     }
 
     if (freeSpace != null) {
@@ -1385,10 +1385,10 @@ public class FileSystemState {
 
   private long getFreeSpaceZoom() {
     if (freeSpaceZoom != 0) return freeSpaceZoom;
-    if (freeSpace == null) return masterRoot.encodedSize;
+    if (freeSpace == null) return masterRoot.getSizeForRendering();
 
-    freeSpaceZoom = masterRoot.encodedSize;
-    long busy = masterRoot.encodedSize - freeSpace.encodedSize;
+    freeSpaceZoom = masterRoot.getSizeForRendering();
+    long busy = masterRoot.getSizeForRendering() - freeSpace.getSizeForRendering();
     float message = FileSystemEntry.fontSize * 2 + 1f;
     float height = screenHeight / 41f * 40f;
     long required = (long)(busy * (height / (height - message)));
@@ -1407,7 +1407,7 @@ public class FileSystemState {
     } else if (zoomState == ZoomState.ZOOM_FULL) {
       targetViewDepth = 0;
       targetViewTop = 0;
-      targetViewBottom = masterRoot.encodedSize;
+      targetViewBottom = masterRoot.getSizeForRendering();
     }
   }
   private void toggleZoomState() {
