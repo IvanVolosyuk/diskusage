@@ -197,9 +197,9 @@ public class FileSystemEntry {
     if (size < 1024 * 1024) return MULTIPLIER_KBYTES | (size >> 10);
     if (size < 1024 * 1024 * 10 ) return MULTIPLIER_MBYTES | (size >> 10);
     if (size < 1024 * 1024 * 200) return MULTIPLIER_MBYTES10 | (size >> 10);
-    if (size < (long)1024 * 1024 * 1024) return MULTIPLIER_MBYTES100 | (size >> 20);
-    if (size < (long)1024 * 1024 * 1024 * 10) return MULTIPLIER_GBYTES | (size >> 20);
-    if (size < (long)1024 * 1024 * 1024 * 200) return MULTIPLIER_GBYTES10 | (size >> 20);
+    if (size < (long) 1024 * 1024 * 1024) return MULTIPLIER_MBYTES100 | (size >> 20);
+    if (size < (long) 1024 * 1024 * 1024 * 10) return MULTIPLIER_GBYTES | (size >> 20);
+    if (size < (long) 1024 * 1024 * 1024 * 200) return MULTIPLIER_GBYTES10 | (size >> 20);
     return MULTIPLIER_GBYTES100 | (size >> 30);
   }
 

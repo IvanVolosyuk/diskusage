@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DiskUsage</string>
+    <string name="app_description">Programma per l\'analisi del contenuto memoria disco e recuperare spazio disco.</string>
+    <string name="scaning_directories">Analisi cartelle...</string>
+    <string name="button_show">Visualizza</string>
+    <string name="button_delete">Elimina</string>
+    <string name="button_rescan">Ri-analizza</string>
+    <string name="button_cancel">Annulla</string>
+    <string name="button_background">Secondo piano</string>
+    <string name="install_oi_file_manager">Installa Solid Explorer per visualizzare le cartelle</string>
+    <string name="title_for_path">%s</string>
+    <string name="title_in_oi_file_manager">Solid Explorer</string>
+    <string name="button_text_in_oi_file_manager">Ritorna a DiskUsage</string>
+    <string name="no_viewer_found">Nessun visualizzatore disponibile</string>
+    <string name="ask_to_delete_directory">Eliminare la cartella %s?</string>
+    <string name="ask_to_delete_file">Eliminare il file %s?</string>
+    <string name="out_of_memory">Memoria insufficiente!</string>
+    <string name="empty_or_missing_sdcard">Scheda SD vuota o mancante</string>
+    <string name="path_doesnt_exist">"%s
+non esiste"</string>
+    <string name="file_deleted">File eliminato</string>
+    <string name="error_file_wasnt_deleted">"Errore: file non eliminato"</string>
+    <string name="deleting_path">Eliminazione %s</string>
+    <string name="deleted_n_directories_and_n_files">Eliminati %1$d certelle e %2$d file</string>
+    <string name="deleted_n_directories_and_files_and_canceled">Eliminazione interrotta: %1$d cartelle e %2$d file rimasti</string>
+    <string name="deleted_n_directories_and_n_files_and_failed">Eliminazione fallita! %1$d cartelle e %2$d file sono stati eliminati</string>
+    <string name="n_bytes">%d byte</string>
+    <string name="n_kilobytes">%d KB</string>
+    <string name="n_megabytes">%5.2f MB</string>
+    <string name="n_megabytes10">%5.1f MB</string>
+    <string name="n_megabytes100">%d MB</string>
+    <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d cartelle)</string>
+    <string name="dir_empty">%s (vuota)</string>
+    <string name="dir_name_size">%1$s (%2$s)</string>
+    <string name="apps_bulk_uninstall_not_supported">Disinstallazione di app multiple non supportata</string>
+    <string name="app_storage">App storage</string>
+    <string name="storage_card">Scheda interna</string>
+    <string name="delete_summary">%1$d file, dim. totale: %2$s</string>
+    <string name="change_filter">Filtro...</string>
+    <string name="apps_filter">App filtro</string>
+    <string name="internal_only">Solo interno</string>
+    <string name="internal_only_desc">Escludi dati sulla scheda SD</string>
+    <string name="show_apk">Visualizza APK</string>
+    <string name="show_apk_desc">Visualizza file applicazione.</string>
+    <string name="show_data">Visualizza dati</string>
+    <string name="show_data_desc">Visualizza storage allocato per dati applicazioni.</string>
+    <string name="show_dalvikcache">Visualizza DalvikCache</string>
+    <string name="show_dalvikcache_desc">Visualizza DalvikCache allocata per le app nella partizione dati.</string>
+    <string name="show_cache">Visualizza cache</string>
+    <string name="show_cache_desc">"La cache applicazioni usa una partizione differente e non può essere usata da APK e dati."</string>
+    <string name="select_apps">Seleziona app</string>
+    <string name="select_storage">Seleziona storage</string>
+</resources>

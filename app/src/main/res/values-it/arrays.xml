@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="select_app_and_storage_ids">
+        <item>interna</item>
+        <item>app2sd</item>
+        <item>entrambe</item>
+    </string-array>
+    <string-array name="select_apps">
+        <item>interna.</item>
+        <item>Scheda SD.</item>
+        <item>Entrambe.</item>
+    </string-array>
+    <string-array name="select_storage">
+        <item>Visualizza memoria dispositivo.</item>
+        <item>Visualizza memoria scheda SD.</item>
+        <item>Visualizza entrambe.</item>
+    </string-array>
+</resources>
