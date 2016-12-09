@@ -104,10 +104,10 @@ public class NativeScannerStream extends InputStream {
     public void setupBinary(String binaryName)
         throws IOException, InterruptedException {
       // Remove 'scan' binary every run. TODO: do clean update on package update
-      if (remove) {
+//      if (remove) {
         new File(getScanBinaryPath(binaryName)).delete();
-        remove = false;
-      }
+//        remove = false;
+//      }
 
       File binary = new File(getScanBinaryPath(binaryName));
       if (binary.isFile()) return;
