@@ -1,5 +1,4 @@
 apply plugin: 'com.android.application'
-
 android {
     compileSdkVersion 23
     buildToolsVersion "25.0.1"
@@ -8,9 +7,9 @@ android {
         applicationId "com.google.android.diskusage"
         targetSdkVersion 19
 
-        ndk {
-            moduleName "scan"
-        }
+//        ndk {
+//            moduleName "scan"
+//        }
     }
 
     buildTypes {
@@ -19,4 +18,8 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }
+}
+
+dependencies {
+    compile files('src/main/extra/system.jar')
 }
