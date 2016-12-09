@@ -102,13 +102,13 @@ public class BackgroundDelete extends Thread {
     });
     dialog.setOnDismissListener(new OnDismissListener() {
       @Override
-      public void onDismiss(DialogInterface _) {
+      public void onDismiss(DialogInterface x) {
         dialog = null;
       }
     });
     dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
       @Override
-      public void onCancel(DialogInterface _) {
+      public void onCancel(DialogInterface x) {
         dialog = null;
       }
     });
