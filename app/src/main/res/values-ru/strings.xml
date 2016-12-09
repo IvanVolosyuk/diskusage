@@ -47,6 +47,9 @@
 <string name="n_megabytes">%5.2f Мб</string>
 <string name="n_megabytes10">%5.1f Мб</string>
 <string name="n_megabytes100">%d Мб</string>
+<string name="n_gigabytes">%5.2f Гб</string>
+<string name="n_gigabytes10">%5.1f Гб</string>
+<string name="n_gigabytes100">%d Гб</string>
 <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d папок)</string>
 <string name="dir_empty">%s (пуста)</string>
 <string name="dir_name_size">%1$s (%2$s)</string>

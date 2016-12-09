@@ -47,6 +47,9 @@
 <string name="n_megabytes">%5.2f MiB</string>
 <string name="n_megabytes10">%5.1f MiB</string>
 <string name="n_megabytes100">%d MiB</string>
+<string name="n_gigabytes">%5.2f GiB</string>
+<string name="n_gigabytes10">%5.1f GiB</string>
+<string name="n_gigabytes100">%d GiB</string>
 <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d dirs)</string>
 <string name="dir_empty">%s (empty)</string>
 <string name="dir_name_size">%1$s (%2$s)</string>

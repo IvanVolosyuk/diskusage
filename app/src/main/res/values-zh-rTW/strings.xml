@@ -48,6 +48,9 @@
 <string name="n_megabytes">%5.2f MB</string>
 <string name="n_megabytes10">%5.1f MB</string>
 <string name="n_megabytes100">%d MB</string>
+<string name="n_gigabytes">%5.2f GB</string>
+<string name="n_gigabytes10">%5.1f GB</string>
+<string name="n_gigabytes100">%d GB</string>
 <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d 資料夾)</string>
 <string name="dir_empty">%s (空)</string>
 <string name="dir_name_size">%1$s (%2$s)</string>

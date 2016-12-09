@@ -55,6 +55,9 @@ public class FileSystemEntry {
   private static String n_megabytes;
   private static String n_megabytes10;
   private static String n_megabytes100;
+  private static String n_gigabytes;
+  private static String n_gigabytes10;
+  private static String n_gigabytes100;
   private static String dir_name_size_num_dirs;
   private static String dir_empty;
   private static String dir_name_size;
@@ -113,11 +116,14 @@ public class FileSystemEntry {
   // 3 bits         | 21 bits  (2**18 = 44,040,192)
   // sizeMultiplier | size in multiplier of bytes
   // sizeMultiplier:
-  // 000 = multiplier=1,         format=(n_bytes "%d bytes", size)
-  // 001 = multiplier=1024,      format=(n_kilobytes "%d KiB", size)
-  // 010 = multiplier=1024,      format=(n_megabytes "%5.2f MiB", size / 1024.f)
-  // 011 = multiplier=1024,      format=(n_megabytes10 "%5.1f MiB", size / 1024.f)
-  // 100 = multiplier=1024*1024, format=(n_megabytes100 "%d MiB", size)
+  // 000 = multiplier=1,              format=(n_bytes "%d bytes", size)
+  // 001 = multiplier=1024,           format=(n_kilobytes "%d KiB", size)
+  // 010 = multiplier=1024,           format=(n_megabytes "%5.2f MiB", size / 1024.f)
+  // 011 = multiplier=1024,           format=(n_megabytes10 "%5.1f MiB", size / 1024.f)
+  // 100 = multiplier=1024*1024,      format=(n_megabytes100 "%d MiB", size)
+  // 101 = multiplier=1024*1024,      format=(n_gigabytes "%5.2f GiB", size/ 1024.f)
+  // 110 = multiplier=1024*1024,      format=(n_gigabytes10 "%5.1f GiB", size/ 1024.f)
+  // 111 = multiplier=1024*1024*1024, format=(n_gigabytes100 "%d GiB", size)
 
   // Ranges for sizeMultipliers:
   // 0: sz < 1024:               "%4.0f bytes", sz
@@ -145,6 +151,9 @@ public class FileSystemEntry {
   private static final int MULTIPLIER_MBYTES = 2 << MULTIPLIER_SHIFT;
   private static final int MULTIPLIER_MBYTES10 = 3 << MULTIPLIER_SHIFT;
   private static final int MULTIPLIER_MBYTES100 = 4 << MULTIPLIER_SHIFT;
+  private static final int MULTIPLIER_GBYTES = 5 << MULTIPLIER_SHIFT;
+  private static final int MULTIPLIER_GBYTES10 = 6 << MULTIPLIER_SHIFT;
+  private static final int MULTIPLIER_GBYTES100 = 7 << MULTIPLIER_SHIFT;
   private static final int SIZE_MASK = (1 << MULTIPLIER_SHIFT) - 1;
 
 //  static int blockSize;
@@ -170,6 +179,9 @@ public class FileSystemEntry {
     case MULTIPLIER_MBYTES: return String.format(n_megabytes, size * (1f / 1024));
     case MULTIPLIER_MBYTES10: return String.format(n_megabytes10, size * (1f / 1024));
     case MULTIPLIER_MBYTES100: return String.format(n_megabytes100, size);
+    case MULTIPLIER_GBYTES: return String.format(n_gigabytes, size * (1f / 1024));
+    case MULTIPLIER_GBYTES10: return String.format(n_gigabytes10, size * (1f / 1024));
+    case MULTIPLIER_GBYTES100: return String.format(n_gigabytes100, size);
     }
     return "";
   }
@@ -185,7 +197,10 @@ public class FileSystemEntry {
     if (size < 1024 * 1024) return MULTIPLIER_KBYTES | (size >> 10);
     if (size < 1024 * 1024 * 10 ) return MULTIPLIER_MBYTES | (size >> 10);
     if (size < 1024 * 1024 * 200) return MULTIPLIER_MBYTES10 | (size >> 10);
-    return MULTIPLIER_MBYTES100 | (size >> 20);
+    if (size < (long)1024 * 1024 * 1024) return MULTIPLIER_MBYTES100 | (size >> 20);
+    if (size < (long)1024 * 1024 * 1024 * 10) return MULTIPLIER_GBYTES | (size >> 20);
+    if (size < (long)1024 * 1024 * 1024 * 200) return MULTIPLIER_GBYTES10 | (size >> 20);
+    return MULTIPLIER_GBYTES100 | (size >> 30);
   }
 
   public void setSizeInBlocks(long blocks, int blockSize) {
@@ -1152,6 +1167,9 @@ public class FileSystemEntry {
     n_megabytes = context.getString(R.string.n_megabytes);
     n_megabytes10 = context.getString(R.string.n_megabytes10);
     n_megabytes100 = context.getString(R.string.n_megabytes100);
+    n_gigabytes = context.getString(R.string.n_gigabytes);
+    n_gigabytes10 = context.getString(R.string.n_gigabytes10);
+    n_gigabytes100 = context.getString(R.string.n_gigabytes100);
     dir_name_size_num_dirs = context.getString(R.string.dir_name_size_num_dirs);
     dir_empty = context.getString(R.string.dir_empty);
     dir_name_size = context.getString(R.string.dir_name_size);
