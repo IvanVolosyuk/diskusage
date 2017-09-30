@@ -71,10 +71,6 @@ public class FileSystemState {
     }
 
     public void warnOnFileSelect() {
-      if (VERSION.SDK_INT < VERSION_CODES.HONEYCOMB) {
-        Toast.makeText(context,
-            "Press menu to preview or delete", Toast.LENGTH_SHORT).show();
-      }
     }
 
     public void view(FileSystemEntry entry) {

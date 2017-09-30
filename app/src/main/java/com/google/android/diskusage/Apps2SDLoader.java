@@ -54,10 +54,7 @@ public class Apps2SDLoader {
   }
 
 
-  public FileSystemEntry[] load(
-      boolean sdOnly,
-      final AppFilter appFilter,
-      final int blockSize) throws Throwable {
+  public FileSystemEntry[] load(final int blockSize) throws Throwable {
     UsageStatsManager usageStatsManager = (UsageStatsManager) diskUsage.getSystemService(Context.USAGE_STATS_SERVICE);
 
 
@@ -109,8 +106,9 @@ public class Apps2SDLoader {
                 pkg,
                 stats.getAppBytes(),
                 stats.getDataBytes(),
-                stats.getCacheBytes());
-        p.applyFilter(appFilter, blockSize);
+                stats.getCacheBytes(),
+                metadata.flags);
+        p.applyFilter(blockSize);
         entries.add(p);
         numLoadedPackages++;
       } catch (PackageManager.NameNotFoundException e) {
