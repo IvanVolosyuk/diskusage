@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -34,7 +35,9 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.widget.TextView;
@@ -42,6 +45,7 @@ import android.widget.Toast;
 
 import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.datasource.DebugDataSourceBridge;
+import com.google.android.diskusage.datasource.PortableFile;
 import com.google.android.diskusage.datasource.fast.DefaultDataSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
@@ -49,7 +53,6 @@ public class SelectActivity extends Activity {
   private AlertDialog dialog;
   Map<String,Bundle> bundles = new TreeMap<String,Bundle>();
   ArrayList<Runnable> actionList = new ArrayList<Runnable>();
-  private boolean expandRootMountPoints;
 //  private static boolean debugUnhidden = true;
   private static boolean debugLoadedDump = false;
   private DataSource debugDataSource;
@@ -81,42 +84,19 @@ public class SelectActivity extends Activity {
   };
 
   private class DiskUsageAction extends AbstractUsageAction {
-    private final String title;
     private final MountPoint mountPoint;
 
-    DiskUsageAction(String title, MountPoint mountPoint) {
-      this.title = title;
+    DiskUsageAction(MountPoint mountPoint) {
       this.mountPoint = mountPoint;
     }
 
     public void run() {
-      runAction(getKeyForStorage(mountPoint), title, mountPoint.root, DiskUsage.class);
+      runAction(getKeyForStorage(mountPoint), mountPoint.title, mountPoint.root, DiskUsage.class);
     }
   };
-
-  private class AppUsageAction extends AbstractUsageAction {
-    private final String title;
-    public AppUsageAction(String title) {
-      this.title = title;
-    }
-
-    public void run() {
-      runAction(getKeyForApp(), title, "apps", AppUsage.class);
-    }
-  };
-  public String getKeyForApp() {
-    return "app";
-  }
 
   public static String getKeyForStorage(MountPoint mountPoint) {
-    return (mountPoint.rootRequired ? "rooted" : "storage:") + mountPoint.root;
-  }
-
-  private class ShowHideAction implements Runnable {
-    public void run() {
-      Intent i = new Intent(SelectActivity.this, ShowHideMountPointsActivity.class);
-      startActivity(i);
-    }
+    return "storage:" + mountPoint.root;
   }
 
   private class EnableDebugAction implements Runnable {
@@ -187,48 +167,15 @@ public class SelectActivity extends Activity {
   }
 
   public Handler handler = new Handler();
-  public Runnable checkForMountsUpdates = new Runnable() {
-    @Override
-    public void run() {
-      boolean reload = false;
-      try {
-//        BufferedReader reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.mounts_honeycomb), "UTF-8"));
-        BufferedReader reader = DataSource.get().getProcReader();
-        String line;
-        int checksum = 0;
-        while ((line = reader.readLine()) != null) {
-          checksum += line.length();
-        }
-        reader.close();
-        if (checksum != MountPoint.checksum) {
-          reload = true;
-        }
-      } catch (Throwable t) {}
-
-      if (reload) {
-        dialog.hide();
-        MountPoint.reset();
-        makeDialog();
-      }
-      handler.postDelayed(this, 2000);
-    }
-  };
-
 
   public void makeDialog() {
     ArrayList<String> options = new ArrayList<String>();
     actionList.clear();
 
-    final String programStorage = getString(R.string.app_storage);
-
-    if(MountPoint.getHoneycombSdcard(this) == null){
-      options.add(programStorage);
-      actionList.add(new AppUsageAction(programStorage));
-    }
-
+//    PortableFile[] fileDirs = DataSource.get().getExternalFilesDirs(this);
     for (MountPoint mountPoint : MountPoint.getMountPoints(this).values()) {
       options.add(mountPoint.title);
-      actionList.add(new DiskUsageAction(mountPoint.title, mountPoint));
+      actionList.add(new DiskUsageAction(mountPoint));
     }
 
     if (/*debugUnhidden && */debugDataSourceBridge != null) {
@@ -250,38 +197,6 @@ public class SelectActivity extends Activity {
       actionList.add(new DisableDebug());
     }
 
-    if (DataSource.get().isDeviceRooted()) {
-      SharedPreferences prefs =  getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
-      Map<String, ?> ignoreList = prefs.getAll();
-      if (!ignoreList.keySet().isEmpty()) {
-        Set<String> ignores = ignoreList.keySet();
-        for (MountPoint mountPoint : MountPoint.getRootedMountPoints(this).values()) {
-          if (ignores.contains(mountPoint.root)) continue;
-          options.add(mountPoint.root);
-          actionList.add(new DiskUsageAction(mountPoint.root, mountPoint));
-        }
-        options.add("[Show/hide]");
-        actionList.add(new ShowHideAction());
-      } else if (expandRootMountPoints) {
-        for (MountPoint mountPoint : MountPoint.getRootedMountPoints(this).values()) {
-          options.add(mountPoint.root);
-          actionList.add(new DiskUsageAction(mountPoint.root, mountPoint));
-        }
-        options.add("[Show/hide]");
-        actionList.add(new ShowHideAction());
-      } else {
-        options.add("[Root required]");
-        actionList.add(new Runnable() {
-          @Override
-          public void run() {
-            expandRootMountPoints = true;
-            makeDialog();
-          }
-        });
-
-      }
-    }
-
     final String[] optionsArray = options.toArray(new String[options.size()]);
 
     dialog = new AlertDialog.Builder(this)
@@ -299,48 +214,74 @@ public class SelectActivity extends Activity {
         finish();
       }
     }).create();
-    /*try {
-      if (debugDataSourceBridge != null) {
-        dialog.getListView().setOnItemLongClickListener(
-            new OnItemLongClickListener() {
-          @Override
-          public boolean onItemLongClick(
-              AdapterView<?> arg0, View arg1, int arg2, long arg3) {
-            debugUnhidden = true;
-            dialog.hide();
-            makeDialog();
-            return true;
-          }
-        });
-      }
-    } catch (Throwable t) {
-      // api 3
-    }*/
     dialog.show();
   }
+
+  private static final int MY_PERMISSIONS_REQUEST_READ_STORAGE = 1;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     FileSystemEntry.setupStrings(this);
     setContentView(new TextView(this));
-//    ActionBar bar = getActionBar();
-//    bar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_USE_LOGO);
+
+    if (this.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED) {
+
+      // Should we show an explanation?
+      if (this.shouldShowRequestPermissionRationale(
+              Manifest.permission.READ_EXTERNAL_STORAGE)) {
+
+        // Show an explanation to the user *asynchronously* -- don't block
+        // this thread waiting for the user's response! After the user
+        // sees the explanation, try again to request the permission.
+
+      } else {
+
+        // No explanation needed, we can request the permission.
+
+        this.requestPermissions(
+                new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                MY_PERMISSIONS_REQUEST_READ_STORAGE);
+      }
+    }
+  }
+  @Override
+  public void onRequestPermissionsResult(int requestCode,
+                                         String permissions[], int[] grantResults) {
+    switch (requestCode) {
+      case MY_PERMISSIONS_REQUEST_READ_STORAGE: {
+        // If request is cancelled, the result arrays are empty.
+        if (grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+          // permission was granted, yay! Do the
+          // contacts-related task you need to do.
+          Log.d("diskusage", "GRANTED READ storage");
+
+        } else {
+          Log.d("diskusage", "DENIED READ storage");
+
+          // permission denied, boo! Disable the
+          // functionality that depends on this permission.
+        }
+        return;
+      }
+
+      // other 'case' lines to check for other
+      // permissions this app might request
+    }
   }
 
   @Override
   protected void onResume() {
     super.onResume();
-//    ActionBar actionBar = getActionBar();
-//    actionBar.setDisplayHomeAsUpEnabled(true);
     makeDialog();
-    handler.post(checkForMountsUpdates);
   }
 
   @Override
   protected void onPause() {
     if (dialog.isShowing()) dialog.dismiss();
-    handler.removeCallbacks(checkForMountsUpdates);
     super.onPause();
   }
 

@@ -27,11 +27,16 @@ import java.util.List;
 
 import android.app.ActivityManager;
 import android.app.AlertDialog;
+import android.app.AppOpsManager;
+import android.app.usage.StorageStatsManager;
+import android.app.usage.UsageStats;
+import android.app.usage.UsageStatsManager;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
@@ -39,6 +44,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.DocumentsContract;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
@@ -60,18 +66,11 @@ import com.google.android.diskusage.utils.MimeTypes;
 public class DiskUsage extends LoadableActivity {
   // FIXME: wrap to direct requests to rendering thread
   protected FileSystemState fileSystemState;
-  public static final int RESULT_DELETE_CONFIRMED = 10;
-  public static final int RESULT_DELETE_CANCELED = 11;
 
   public static final String STATE_KEY = "state";
   public static final String TITLE_KEY = "title";
   public static final String ROOT_KEY = "root";
   public static final String KEY_KEY = "key";
-
-  public static final String DELETE_PATH_KEY = "path";
-  public static final String DELETE_ABSOLUTE_PATH_KEY = "absolute_path";
-
-  private String pathToDelete;
 
   private String rootPath;
   private String rootTitle;
@@ -97,9 +96,40 @@ public class DiskUsage extends LoadableActivity {
 
   }
 
+   private boolean isAccessGranted() {
+    try {
+      PackageManager packageManager = getPackageManager();
+      ApplicationInfo applicationInfo = packageManager.getApplicationInfo(getPackageName(), 0);
+      AppOpsManager appOpsManager = (AppOpsManager) getSystemService(Context.APP_OPS_SERVICE);
+      int mode = 0;
+      if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.KITKAT) {
+        mode = appOpsManager.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
+                applicationInfo.uid, applicationInfo.packageName);
+      }
+      return (mode == AppOpsManager.MODE_ALLOWED);
+
+    } catch (PackageManager.NameNotFoundException e) {
+      return false;
+    }
+  }
+
   @Override
   protected void onCreate(Bundle icicle) {
     super.onCreate(icicle);
+    if (!isAccessGranted()) {
+      Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
+      startActivity(intent);
+    }
+    UsageStatsManager usageStatsManager = (UsageStatsManager) getSystemService(Context.USAGE_STATS_SERVICE);
+    final List<UsageStats> queryUsageStats=usageStatsManager.queryUsageStats(
+            UsageStatsManager.INTERVAL_YEARLY, 2017-2,2017); //fIXME
+    StorageStatsManager storageStatsManager = (StorageStatsManager) getSystemService(Context.STORAGE_STATS_SERVICE);
+
+    for (UsageStats s : queryUsageStats) {
+      Log.d("diskusage", "app: " + s.getPackageName());
+//      usageStatsManager.
+    }
+
     Log.d("diskusage", "onCreate()");
     setContentView(new TextView(this));
     menu.onCreate();
@@ -166,11 +196,6 @@ public class DiskUsage extends LoadableActivity {
           r.run();
         }
         afterLoadAction.clear();
-        if (pathToDelete != null) {
-          String path = pathToDelete;
-          pathToDelete = null;
-          continueDelete(path);
-        }
       }
     }, false);
   }
@@ -190,12 +215,6 @@ public class DiskUsage extends LoadableActivity {
         }
       });
     }
-  }
-
-  @Override
-  public void onActivityResult(int a, int result, Intent i) {
-    if (result != RESULT_DELETE_CONFIRMED) return;
-    pathToDelete = i.getStringExtra("path");
   }
 
   @Override
@@ -259,65 +278,6 @@ public class DiskUsage extends LoadableActivity {
     pkg_removed = pkg;
   }
 
-  void continueDelete(String path) {
-    FileSystemEntry entry = fileSystemState.masterRoot.getEntryByName(path, true);
-    if (entry != null) {
-      BackgroundDelete.startDelete(this, entry);
-    } else {
-      Toast.makeText(this,
-          "Oops. Can't find directory to be deleted.", Toast.LENGTH_SHORT);
-    }
-  }
-
-  public void askForDeletion(final FileSystemEntry entry) {
-    final String path = entry.path2();
-    final String fullPath = entry.absolutePath();
-    Log.d("DiskUsage", "Deletion requested for " + path);
-
-    if (entry instanceof FileSystemEntrySmall) {
-      Toast.makeText(this,
-          "Delete directory instead", Toast.LENGTH_SHORT).show();
-
-      return;
-    }
-    if (entry.children == null || entry.children.length == 0) {
-      if (entry instanceof FileSystemPackage) {
-        this.pkg_removed = (FileSystemPackage) entry;
-        BackgroundDelete.startDelete(this, entry);
-        return;
-      }
-
-      // Delete single file or directory
-      new AlertDialog.Builder(this)
-      .setTitle(new File(fullPath).isDirectory()
-          ? format(R.string.ask_to_delete_directory, path)
-          : format(R.string.ask_to_delete_file, path))
-      .setPositiveButton(str(R.string.button_delete),
-          new DialogInterface.OnClickListener() {
-        @Override
-        public void onClick(DialogInterface dialog, int which) {
-          BackgroundDelete.startDelete(DiskUsage.this, entry);
-        }
-      })
-      .setNegativeButton(str(R.string.button_cancel),
-          new DialogInterface.OnClickListener() {
-        @Override
-        public void onClick(DialogInterface dialog, int whichButton) {
-        }
-      }).create().show();
-    } else {
-      Intent i = new Intent(this, DeleteActivity.class);
-      i.putExtra(DELETE_PATH_KEY, path);
-      i.putExtra(DELETE_ABSOLUTE_PATH_KEY, fullPath);
-      i.putExtra(DeleteActivity.NUM_FILES_KEY, entry.getNumFiles());
-
-      i.putExtra(DiskUsage.KEY_KEY, this.key);
-      i.putExtra(DiskUsage.TITLE_KEY, this.getRootTitle());
-      i.putExtra(DiskUsage.ROOT_KEY, this.getRootPath());
-      i.putExtra(DeleteActivity.SIZE_KEY, entry.sizeString());
-      this.startActivityForResult(i, 0);
-    }
-  }
   private String format(int id, Object... args) {
     return getString(id, args);
   }
@@ -349,19 +309,21 @@ public class DiskUsage extends LoadableActivity {
       return;
     }
 
-    File file = new File(entry.absolutePath());
+    String path = entry.absolutePath();
+    File file = new File(path);
     Uri uri = Uri.fromFile(file);
 
     if (file.isDirectory()) {
-//      intent = new Intent(Intent.ACTION_GET_CONTENT);
-//      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//      intent.setDataAndType(uri, "file/*");
-//
-//      try {
-//        startActivity(intent);
-//        return;
-//      } catch(ActivityNotFoundException e) {
-//      }
+      intent = new Intent(Intent.ACTION_VIEW);
+      intent.addCategory(Intent.CATEGORY_OPENABLE);
+      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      intent.setDataAndType(uri, DocumentsContract.Document.MIME_TYPE_DIR);
+
+      try {
+        startActivity(intent);
+        return;
+      } catch(ActivityNotFoundException e) {
+      }
 
       intent = new Intent("org.openintents.action.VIEW_DIRECTORY");
       intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -458,12 +420,6 @@ public class DiskUsage extends LoadableActivity {
     }, true);
   }
 
-  public void showFilterDialog() {
-    Intent i = new Intent(this, FilterActivity.class);
-    i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-    startActivityForResult(i, 0);
-  }
-
   public void finishOnBack() {
     if (!menu.readyToFinish()) {
       return;
@@ -555,14 +511,6 @@ public class DiskUsage extends LoadableActivity {
     }
   }
 
-  MemoryClass memoryClass = MemoryClass.getInstance(this);
-
-  private int getMemoryQuota() {
-    int totalMem = memoryClass.maxHeap();
-    int numMountPoints = MountPoint.getMountPoints(this).size();
-    return totalMem / (numMountPoints + 1);
-  }
-
   static class FileSystemStats {
     final int blockSize;
     final long freeBlocks;
@@ -623,40 +571,14 @@ public class DiskUsage extends LoadableActivity {
 
   @Override
   FileSystemSuperRoot scan() throws IOException, InterruptedException {
-    MountPoint mountPoint0 = null;
-    if (key.startsWith("rooted")) {
-      mountPoint0 = MountPoint.getRooted(this, getRootPath());
-    } else {
-      mountPoint0 = MountPoint.getNormal(this, getRootPath());
-    }
-    final MountPoint mountPoint = mountPoint0;
+    final MountPoint mountPoint = MountPoint.getNormal(this, getRootPath());
+    final MountPoint realMountPoint = mountPoint;
     final FileSystemStats stats = new FileSystemStats(mountPoint);
 
-    int heap = getMemoryQuota();
-    FileSystemEntry rootElement = null;
-
-    final NativeScanner scanner = new NativeScanner(DiskUsage.this, stats.blockSize, stats.busyBlocks, heap);
+    final Scanner scanner = new Scanner(50, stats.blockSize);
     progressUpdater = makeProgressUpdater(scanner, stats);
     handler.post(progressUpdater);
-
-    MountPoint realMountPoint = mountPoint;
-    boolean fakeDataHoneycomb = (isMergedStorage()
-        && key.equals("storage:/data"));
-    if (fakeDataHoneycomb) realMountPoint = MountPoint.getHoneycombSdcard(this);
-
-    try {
-//      if (true) throw new RuntimeException("native fail");
-      rootElement = scanner.scan(realMountPoint);
-    } catch (RuntimeException e) {
-      if (realMountPoint.rootRequired) throw e;
-      // Legacy code for devices which fail to setup native code
-      handler.removeCallbacks(progressUpdater);
-      final Scanner legacyScanner = new Scanner(
-          20, stats.blockSize, realMountPoint.getExcludeFilter(), stats.busyBlocks, heap);
-      progressUpdater = makeProgressUpdater(legacyScanner, stats);
-      handler.post(progressUpdater);
-      rootElement = legacyScanner.scan(DataSource.get().createLegacyScanFile(realMountPoint.root));
-    }
+    FileSystemEntry rootElement = scanner.scan(DataSource.get().createLegacyScanFile(mountPoint.root));
 
     handler.removeCallbacks(progressUpdater);
 
@@ -668,17 +590,7 @@ public class DiskUsage extends LoadableActivity {
       }
     }
 
-    if (mountPoint.hasApps2SD) {
-      FileSystemEntry[] apps = loadApps2SD(true, AppFilter.getFilterForDiskUsage(), stats.blockSize);
-      if (apps != null) {
-        FileSystemEntry apps2sd =
-          FileSystemEntry.makeNode(null, "Apps2SD").setChildren(
-              apps, stats.blockSize);
-        entries.add(apps2sd);
-      }
-    }
-
-    if (fakeDataHoneycomb || mountPoint.forceHasApps) {
+    if (mountPoint.forceHasApps) {
       FileSystemEntry media = FileSystemRoot.makeNode(
           "media", realMountPoint.root).setChildren(entries.toArray(new FileSystemEntry[0]),
               stats.blockSize);
@@ -728,10 +640,6 @@ public class DiskUsage extends LoadableActivity {
       Log.e("diskusage", "problem loading apps2sd info", t);
       return null;
     }
-  }
-
-  public FileSystemEntry.ExcludeFilter getExcludeFilter() {
-    return MountPoint.getMountPoints(this).get(getRootPath()).getExcludeFilter();
   }
 
   @Override

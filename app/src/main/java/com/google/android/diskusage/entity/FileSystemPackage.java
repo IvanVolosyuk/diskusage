@@ -119,6 +119,16 @@ public class FileSystemPackage extends FileSystemEntry {
     }
     this.codeSize = codeSize;
   }
+  public FileSystemPackage(
+          String name, String pkg, long codeSize, long dataSize, long cacheSize) {
+    super(null, name);
+    this.pkg = pkg;
+    this.cacheSize = cacheSize;
+    this.dataSize = dataSize;
+    this.flags = 0;
+    this.dalvikCacheSize = 0;
+    this.codeSize = codeSize;
+  }
 
   public boolean onSD() {
     return (flags & SDCARD_FLAG) != 0;

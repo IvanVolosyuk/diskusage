@@ -1,6 +1,7 @@
 package com.google.android.diskusage.datasource.fast;
 
 import java.io.File;
+import java.io.IOException;
 
 import com.google.android.diskusage.datasource.LegacyFile;
 
@@ -19,6 +20,11 @@ public class LegacyFileImpl implements LegacyFile {
   @Override
   public String getName() {
     return file.getName();
+  }
+
+  @Override
+  public String getCannonicalPath() throws IOException {
+    return file.getCanonicalPath();
   }
 
   @Override

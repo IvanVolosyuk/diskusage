@@ -23,9 +23,7 @@ public abstract class DiskUsageMenu {
   protected MenuItem searchMenuItem;
   protected MenuItem showMenuItem;
   protected MenuItem rescanMenuItem;
-  protected MenuItem deleteMenuItem;
   protected MenuItem rendererMenuItem;
-  protected MenuItem filterMenuItem;
 
   public DiskUsageMenu(DiskUsage diskusage) {
     this.diskusage = diskusage;
@@ -119,28 +117,12 @@ public abstract class DiskUsageMenu {
       }
     });
 
-    deleteMenuItem = menu.add(getString(R.string.button_delete));
-    deleteMenuItem.setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        diskusage.askForDeletion(selectedEntity);
-        return true;
-      }
-    });
-
     rendererMenuItem = menu.add("Renderer");
     rendererMenuItem.setVisible(
         diskusage.rendererManager.isHardwareRendererSupported());
     rendererMenuItem.setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
         diskusage.rendererManager.switchRenderer(masterRoot);
-        return true;
-      }
-    });
-
-    filterMenuItem = menu.add(getString(R.string.change_filter));
-    filterMenuItem.setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        diskusage.showFilterDialog();
         return true;
       }
     });
@@ -156,7 +138,6 @@ public abstract class DiskUsageMenu {
       searchMenuItem.setEnabled(false);
       showMenuItem.setEnabled(false);
       rescanMenuItem.setEnabled(false);
-      deleteMenuItem.setEnabled(false);
       rendererMenuItem.setEnabled(false);
       return;
     }
@@ -165,7 +146,6 @@ public abstract class DiskUsageMenu {
       searchMenuItem.setEnabled(false);
       showMenuItem.setEnabled(false);
       rescanMenuItem.setEnabled(true);
-      deleteMenuItem.setEnabled(false);
       rendererMenuItem.setEnabled(false);
     }
 
@@ -180,59 +160,5 @@ public abstract class DiskUsageMenu {
     boolean view = !(selectedEntity == diskusage.fileSystemState.masterRoot.children[0]
                 || selectedEntity instanceof FileSystemSpecial);
     showMenuItem.setEnabled(view);
-
-    boolean fileOrNotSearching = searchPattern == null || selectedEntity.children == null;
-    deleteMenuItem.setEnabled(view && selectedEntity instanceof FileSystemFile
-        && fileOrNotSearching);
-
-    boolean isAppUsage = diskusage instanceof AppUsage;
-
-    deleteMenuItem.setVisible(!isAppUsage);
-    filterMenuItem.setVisible(isAppUsage);
   }
-
-//  @Override
-//  public boolean onPrepareOptionsMenu(Menu menu) {
-//    //Log.d("DiskUsage", "onCreateContextMenu");
-//    menu.clear();
-//    platform.addSearchMenuEntry(menu);
-//    if (fileSystemState == null) return true;
-//
-//    boolean showFileMenu = addShowMenuEntry(menu);
-//    addRendererSwitchItem(menu);
-//    addRescanMenuEntry(menu);
-//
-//    final FileSystemEntry menuForEntry = selectedEntity;
-//    menu.add(str(R.string.button_delete))
-//    .setEnabled(showFileMenu && menuForEntry instanceof FileSystemFile)
-//    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-//      public boolean onMenuItemClick(MenuItem item) {
-//        askForDeletion(menuForEntry);
-//        return true;
-//      }
-//    });
-//    return true;
-//  }
-
-//  @Override // FIXME AppUsage
-//  public final boolean onPrepareOptionsMenu(Menu menu) {
-//    //Log.d("DiskUsage", "onCreateContextMenu");
-//    menu.clear();
-//    platform.addSearchMenuEntry(menu);
-//    if (fileSystemState == null) return true;
-//    addShowMenuEntry(menu);
-//    addRendererSwitchItem(menu);
-//    addRescanMenuEntry(menu);
-//
-//    menu.add(getString(R.string.change_filter))
-//    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-//      public boolean onMenuItemClick(MenuItem item) {
-//        showFilterDialog();
-//        return true;
-//      }
-//    });
-//    return true;
-//  }
-//
-
 }
