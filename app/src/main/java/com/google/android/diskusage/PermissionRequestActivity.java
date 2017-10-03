@@ -21,20 +21,42 @@ package com.google.android.diskusage;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.AppOpsManager;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.provider.Settings;
 
 public class PermissionRequestActivity extends Activity {
+    private static int DISKUSAGE_REQUEST_CODE = 10;
+    private static int ASK_PERMISSION_REQUEST_CODE = 11;
+
+    private String key;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-    }
+        Intent i = getIntent();
 
-    @Override
-    protected void onResume() {
-        super.onResume();
+        key = i.getStringExtra(DiskUsage.KEY_KEY);
+        if (key == null) {
+            // Just close instead of crashing later
+            finish();
+            return;
+        }
+
+        MountPoint mountPoint = MountPoint.getForKey(this, key);
+        if (mountPoint == null) {
+            finish();
+            return;
+        }
+        if ((!mountPoint.hasApps()) || isAccessGranted()) {
+            forwardToDiskUsage();
+            return;
+        }
+
         new AlertDialog.Builder(this)
                 .setTitle("Usage Access permision needed")
                 .setMessage("Allow DiskUsage to get list of installed apps?")
@@ -42,22 +64,50 @@ public class PermissionRequestActivity extends Activity {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
-                        startActivity(intent);
-                        finish();
-
-                    }
-                })
-                .setOnDismissListener(new DialogInterface.OnDismissListener() {
-                    @Override
-                    public void onDismiss(DialogInterface dialogInterface) {
-                        finish();
+                        startActivityForResult(intent, ASK_PERMISSION_REQUEST_CODE);
                     }
                 })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-                        finish();
+                        forwardToDiskUsage();
                     }
                 }).create().show();
     }
+
+    public void forwardToDiskUsage() {
+        Intent input = getIntent();
+        Intent diskusage = new Intent(this, DiskUsage.class);
+        diskusage.putExtra(DiskUsage.KEY_KEY, input.getStringExtra(DiskUsage.KEY_KEY));
+        diskusage.putExtra(DiskUsage.STATE_KEY, input.getBundleExtra(DiskUsage.STATE_KEY));
+        startActivityForResult(diskusage, DISKUSAGE_REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == DISKUSAGE_REQUEST_CODE) {
+            setResult(0, data);
+            finish();
+        } else if (requestCode == ASK_PERMISSION_REQUEST_CODE) {
+            forwardToDiskUsage();
+        }
+    }
+
+    private boolean isAccessGranted() {
+        try {
+            PackageManager packageManager = getPackageManager();
+            ApplicationInfo applicationInfo = packageManager.getApplicationInfo(getPackageName(), 0);
+            AppOpsManager appOpsManager = (AppOpsManager) getSystemService(Context.APP_OPS_SERVICE);
+            int mode = 0;
+            if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.KITKAT) {
+                mode = appOpsManager.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
+                        applicationInfo.uid, applicationInfo.packageName);
+            }
+            return (mode == AppOpsManager.MODE_ALLOWED);
+
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
+    }
+
 }

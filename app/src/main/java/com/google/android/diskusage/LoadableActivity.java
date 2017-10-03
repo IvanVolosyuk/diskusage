@@ -47,8 +47,6 @@ public abstract class LoadableActivity extends Activity {
     FileSystemEntry.setupStrings(this);
   }
 
-  public abstract String getRootPath();
-  public abstract String getRootTitle();
   public abstract String getKey();
 
   abstract FileSystemSuperRoot scan() throws IOException, InterruptedException;
@@ -131,7 +129,7 @@ public abstract class LoadableActivity extends Activity {
       public void run() {
         String error;
         try {
-          Log.d("diskusage", "running scan for " + getRootPath());
+          Log.d("diskusage", "running scan for " + getKey());
           final FileSystemSuperRoot newRoot = scan();
 
           handler.post(new Runnable() {

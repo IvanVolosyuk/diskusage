@@ -19,30 +19,22 @@
 
 package com.google.android.diskusage;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
-import android.annotation.TargetApi;
 import android.content.Context;
-import android.os.Build;
 import android.util.Log;
 
 import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.datasource.PortableFile;
-import com.google.android.diskusage.datasource.StatFsSource;
-import com.google.android.diskusage.entity.FileSystemEntry;
-import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
-import com.google.android.diskusage.entity.FileSystemRoot;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class MountPoint {
-  String title;
-  final String root;
-  final boolean forceHasApps;
+  private String title;
+  private final String root;
+  private final boolean forceHasApps;
 
   private static boolean init = false;
 
@@ -52,37 +44,46 @@ public class MountPoint {
     this.forceHasApps = forceHasApps;
   }
 
-  private static Map<String, MountPoint> mountPoints = new TreeMap<>();
-
-  public static Map<String,MountPoint> getMountPoints(Context context) {
-    initMountPoints(context);
-    return mountPoints;
-  }
-
-  public static MountPoint getNormal(Context context, String rootPath) {
-    initMountPoints(context);
-    return mountPoints.get(rootPath);
-  }
-
-  public static MountPoint forPath(Context context, String path) {
-	Log.d("diskusage", "Looking for mount point for path: " + path);
-    initMountPoints(context);
-    MountPoint match = null;
-    path = FileSystemRoot.withSlash(path);
-    for (MountPoint m : mountPoints.values()) {
-      if (path.contains(FileSystemRoot.withSlash(m.root))) {
-        if (match == null || match.root.length() < m.root.length()) {
-          Log.d("diskusage", "MATCH:" + m.root);
-          match = m;
-        }
-      }
-    }
-
-    return match;
-  }
-
   public String getRoot() {
     return root;
+  }
+
+  public String getTitle() {
+    return title;
+  }
+
+  public boolean isRootRequired() {
+    return false;
+  }
+
+  public String getKey() {
+    return "storage:" + root;
+  }
+
+  public boolean hasApps() {
+    return forceHasApps;
+  }
+
+  private static List<MountPoint> mountPoints = new ArrayList<>();
+  private static Map<String,MountPoint> mountPointForKey = new HashMap<>();
+
+  int getChecksum() {
+    return RootMountPoint.checksum;
+  }
+
+  public static MountPoint getForKey(Context context, String key) {
+    initMountPoints(context);
+    MountPoint mountPoint = mountPointForKey.get(key);
+    if (mountPoint != null) {
+      return mountPoint;
+    }
+    return RootMountPoint.getForKey(context, key);
+  }
+
+  public static List<MountPoint> getMountPoints(Context context) {
+    initMountPoints(context);
+    RootMountPoint.initMountPoints(context);
+    return mountPoints;
   }
 
   private static void initMountPoints(Context context) {
@@ -94,12 +95,16 @@ public class MountPoint {
       Log.d("diskusage", "mountpoint " + path);
       boolean internal = !dir.isExternalStorageRemovable();
       String title =  internal ? context.getString(R.string.storage_card) : path;
-      mountPoints.put(path, new MountPoint(title, path, internal));
+      MountPoint mountPoint = new MountPoint(title, path, internal);
+      mountPoints.add(mountPoint);
+      mountPointForKey.put(mountPoint.getKey(), mountPoint);
     }
   }
 
   public static void reset() {
-    mountPoints = new TreeMap<>();
+    mountPoints = new ArrayList<>();
+    mountPointForKey = new HashMap<>();
     init = false;
+    RootMountPoint.reset();
   }
 }

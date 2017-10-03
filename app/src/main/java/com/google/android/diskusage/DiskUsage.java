@@ -19,6 +19,7 @@
 
 package com.google.android.diskusage;
 
+import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.AppOpsManager;
 import android.content.ActivityNotFoundException;
@@ -62,48 +63,18 @@ import java.util.Collections;
 import java.util.List;
 
 public class DiskUsage extends LoadableActivity {
-  private static int ASK_PERMISSION_REQUEST_CODE = 1;
 
   // FIXME: wrap to direct requests to rendering thread
   protected FileSystemState fileSystemState;
 
   public static final String STATE_KEY = "state";
-  public static final String TITLE_KEY = "title";
-  public static final String ROOT_KEY = "root";
   public static final String KEY_KEY = "key";
 
-  private String rootPath;
-  private String rootTitle;
   String key;
-  private boolean askedForPermission = false;
 
   private static final MimeTypes mimeTypes = new MimeTypes();
   DiskUsageMenu menu = DiskUsageMenu.getInstance(this);
   RendererManager rendererManager = new RendererManager(this);
-
-   private boolean isAccessGranted() {
-    try {
-      PackageManager packageManager = getPackageManager();
-      ApplicationInfo applicationInfo = packageManager.getApplicationInfo(getPackageName(), 0);
-      AppOpsManager appOpsManager = (AppOpsManager) getSystemService(Context.APP_OPS_SERVICE);
-      int mode = 0;
-      if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.KITKAT) {
-        mode = appOpsManager.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
-                applicationInfo.uid, applicationInfo.packageName);
-      }
-      return (mode == AppOpsManager.MODE_ALLOWED);
-
-    } catch (PackageManager.NameNotFoundException e) {
-      return false;
-    }
-  }
-
-  @Override
-  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-    if (requestCode == ASK_PERMISSION_REQUEST_CODE) {
-      askedForPermission = true;
-    }
-  }
 
   @Override
   protected void onCreate(Bundle icicle) {
@@ -114,25 +85,21 @@ public class DiskUsage extends LoadableActivity {
     Intent i = getIntent();
 
 
-    rootPath = i.getStringExtra(ROOT_KEY);
-    rootTitle = i.getStringExtra(TITLE_KEY);
     key = i.getStringExtra(KEY_KEY);
-    Bundle receivedState = i.getBundleExtra(STATE_KEY);
-    Log.d("diskusage", "onCreate, rootPath = " + rootPath + " receivedState = " + receivedState);
-    if (receivedState != null) onRestoreInstanceState(receivedState);
     if (key == null) {
       // Just close instead of crashing later
       finish();
       return;
     }
-    MountPoint mountPoint = MountPoint.getMountPoints(this).get(rootPath);
+    Bundle receivedState = i.getBundleExtra(STATE_KEY);
+
+    MountPoint mountPoint = MountPoint.getForKey(this, key);
     if (mountPoint == null) {
       finish();
       return;
     }
-    if (mountPoint.forceHasApps && !isAccessGranted() && !askedForPermission) {
-      startActivityForResult(new Intent(this, PermissionRequestActivity.class), ASK_PERMISSION_REQUEST_CODE);
-    }
+    Log.d("diskusage", "onCreate, rootPath = " + mountPoint.getRoot() + " receivedState = " + receivedState);
+    if (receivedState != null) onRestoreInstanceState(receivedState);
   }
 
   ArrayList<Runnable> afterLoadAction = new ArrayList<Runnable>();
@@ -427,12 +394,11 @@ public class DiskUsage extends LoadableActivity {
     fileSystemState.killRenderThread();
     fileSystemState.saveState(outState);
     menu.onSaveInstanceState(outState);
-    outState.putBoolean("askedForPermission", askedForPermission);
   }
 
   @Override
   protected void onRestoreInstanceState(final Bundle inState) {
-    Log.d("diskusage", "onRestoreInstanceState, rootPath = " + inState.getString(ROOT_KEY));
+    Log.d("diskusage", "onRestoreInstanceState, rootPath = " + inState.getString(KEY_KEY));
 
     if (fileSystemState != null)
       fileSystemState.restoreStateInRenderThread(inState);
@@ -446,7 +412,6 @@ public class DiskUsage extends LoadableActivity {
     }
 
     menu.onRestoreInstanceState(inState);
-    askedForPermission = inState.getBoolean("askedForPermission");
   }
 
   public interface AfterLoad {
@@ -456,6 +421,41 @@ public class DiskUsage extends LoadableActivity {
   Handler handler = new Handler();
 
   private Runnable progressUpdater;
+
+  static abstract class MemoryClass {
+    abstract int maxHeap();
+
+    static class MemoryClassDefault extends MemoryClass {
+      @Override
+      int maxHeap() {
+        return 16 * 1024 * 1024;
+      }
+    };
+
+    static MemoryClass getInstance(DiskUsage diskUsage) {
+      final int sdkVersion = DataSource.get().getAndroidVersion();
+      if (sdkVersion < Build.VERSION_CODES.ECLAIR) {
+        return new MemoryClassDefault();
+      } else {
+        return diskUsage.new MemoryClassDetected();
+      }
+    }
+  };
+
+  class MemoryClassDetected extends MemoryClass {
+    @Override
+    int maxHeap() {
+      ActivityManager manager = (ActivityManager) DiskUsage.this.getSystemService(Context.ACTIVITY_SERVICE);
+      return manager.getMemoryClass() * 1024 * 1024;
+    }
+  }
+  MemoryClass memoryClass = MemoryClass.getInstance(this);
+
+  private int getMemoryQuota() {
+    int totalMem = memoryClass.maxHeap();
+    int numMountPoints = MountPoint.getMountPoints(this).size();
+    return totalMem / (numMountPoints + 1);
+  }
 
   static class FileSystemStats {
     final int blockSize;
@@ -517,16 +517,25 @@ public class DiskUsage extends LoadableActivity {
 
   @Override
   FileSystemSuperRoot scan() throws IOException, InterruptedException {
-    final MountPoint mountPoint = MountPoint.getNormal(this, getRootPath());
+    final MountPoint mountPoint = MountPoint.getForKey(this, key);
     final MountPoint realMountPoint = mountPoint;
     final FileSystemStats stats = new FileSystemStats(mountPoint);
+    int heap = getMemoryQuota();
 
-    final Scanner scanner = new Scanner(50, stats.blockSize);
-    progressUpdater = makeProgressUpdater(scanner, stats);
-    handler.post(progressUpdater);
-    FileSystemEntry rootElement = scanner.scan(DataSource.get().createLegacyScanFile(mountPoint.root));
-
-    handler.removeCallbacks(progressUpdater);
+    FileSystemEntry rootElement;
+    try {
+      final NativeScanner scanner = new NativeScanner(this, stats.blockSize, stats.busyBlocks, heap);
+      progressUpdater = makeProgressUpdater(scanner, stats);
+      handler.post(progressUpdater);
+      rootElement = scanner.scan(mountPoint);
+      handler.removeCallbacks(progressUpdater);
+    } catch (RuntimeException e) {
+      final Scanner scanner = new Scanner(20, stats.blockSize, stats.busyBlocks, heap);
+      progressUpdater = makeProgressUpdater(scanner, stats);
+      handler.post(progressUpdater);
+      rootElement = scanner.scan(DataSource.get().createLegacyScanFile(mountPoint.getRoot()));
+      handler.removeCallbacks(progressUpdater);
+    }
 
     ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
 
@@ -536,9 +545,9 @@ public class DiskUsage extends LoadableActivity {
       }
     }
 
-    if (mountPoint.forceHasApps) {
+    if (mountPoint.hasApps()) {
       FileSystemRoot media = (FileSystemRoot) FileSystemRoot.makeNode(
-          "media", realMountPoint.root).setChildren(entries.toArray(new FileSystemEntry[0]),
+          "media", realMountPoint.getRoot()).setChildren(entries.toArray(new FileSystemEntry[0]),
               stats.blockSize);
       entries = new ArrayList<FileSystemEntry>();
       entries.add(media);
@@ -568,8 +577,7 @@ public class DiskUsage extends LoadableActivity {
       }
     }
 
-    rootElement = FileSystemRoot.makeNode(
-        getRootTitle(), mountPoint.root)
+    rootElement = FileSystemRoot.makeNode(mountPoint.getTitle(), mountPoint.getRoot())
         .setChildren(entries.toArray(new FileSystemEntry[0]), stats.blockSize);
     FileSystemSuperRoot newRoot = new FileSystemSuperRoot(stats.blockSize);
     newRoot.setChildren(new FileSystemEntry[] { rootElement }, stats.blockSize);
@@ -679,16 +687,6 @@ public class DiskUsage extends LoadableActivity {
     super.onPrepareOptionsMenu(menu);
     this.menu.onPrepareOptionsMenu(menu);
     return true;
-  }
-
-  @Override
-  public String getRootTitle() {
-    return rootTitle;
-  }
-
-  @Override
-  public String getRootPath() {
-    return rootPath;
   }
 
   @Override
