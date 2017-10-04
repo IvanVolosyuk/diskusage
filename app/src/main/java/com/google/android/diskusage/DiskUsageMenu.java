@@ -23,7 +23,9 @@ public abstract class DiskUsageMenu {
   protected MenuItem searchMenuItem;
   protected MenuItem showMenuItem;
   protected MenuItem rescanMenuItem;
+  protected MenuItem deleteMenuItem;
   protected MenuItem rendererMenuItem;
+  protected MenuItem filterMenuItem;
 
   public DiskUsageMenu(DiskUsage diskusage) {
     this.diskusage = diskusage;
@@ -117,6 +119,14 @@ public abstract class DiskUsageMenu {
       }
     });
 
+    deleteMenuItem = menu.add(getString(R.string.button_delete));
+    deleteMenuItem.setOnMenuItemClickListener(new OnMenuItemClickListener() {
+      public boolean onMenuItemClick(MenuItem item) {
+        diskusage.askForDeletion(selectedEntity);
+        return true;
+      }
+    });
+
     rendererMenuItem = menu.add("Renderer");
     rendererMenuItem.setVisible(
         diskusage.rendererManager.isHardwareRendererSupported());
@@ -138,6 +148,7 @@ public abstract class DiskUsageMenu {
       searchMenuItem.setEnabled(false);
       showMenuItem.setEnabled(false);
       rescanMenuItem.setEnabled(false);
+      deleteMenuItem.setEnabled(false);
       rendererMenuItem.setEnabled(false);
       return;
     }
@@ -146,6 +157,7 @@ public abstract class DiskUsageMenu {
       searchMenuItem.setEnabled(false);
       showMenuItem.setEnabled(false);
       rescanMenuItem.setEnabled(true);
+      deleteMenuItem.setEnabled(false);
       rendererMenuItem.setEnabled(false);
     }
 
@@ -160,5 +172,9 @@ public abstract class DiskUsageMenu {
     boolean view = !(selectedEntity == diskusage.fileSystemState.masterRoot.children[0]
                 || selectedEntity instanceof FileSystemSpecial);
     showMenuItem.setEnabled(view);
+
+    boolean fileOrNotSearching = searchPattern == null || selectedEntity.children == null;
+    deleteMenuItem.setEnabled(view && selectedEntity instanceof FileSystemFile
+        && fileOrNotSearching);
   }
 }

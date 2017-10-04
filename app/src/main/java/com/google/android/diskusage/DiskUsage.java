@@ -66,11 +66,17 @@ public class DiskUsage extends LoadableActivity {
 
   // FIXME: wrap to direct requests to rendering thread
   protected FileSystemState fileSystemState;
+  public static final int RESULT_DELETE_CONFIRMED = 10;
+  public static final int RESULT_DELETE_CANCELED = 11;
 
   public static final String STATE_KEY = "state";
   public static final String KEY_KEY = "key";
 
+  public static final String DELETE_PATH_KEY = "path";
+  public static final String DELETE_ABSOLUTE_PATH_KEY = "absolute_path";
   String key;
+
+  private String pathToDelete;
 
   private static final MimeTypes mimeTypes = new MimeTypes();
   DiskUsageMenu menu = DiskUsageMenu.getInstance(this);
@@ -135,6 +141,11 @@ public class DiskUsage extends LoadableActivity {
           r.run();
         }
         afterLoadAction.clear();
+        if (pathToDelete != null) {
+          String path = pathToDelete;
+          pathToDelete = null;
+          continueDelete(path);
+        }
       }
     }, false);
   }
@@ -154,6 +165,12 @@ public class DiskUsage extends LoadableActivity {
         }
       });
     }
+  }
+
+  @Override
+  public void onActivityResult(int a, int result, Intent i) {
+    if (result != RESULT_DELETE_CONFIRMED) return;
+    pathToDelete = i.getStringExtra("path");
   }
 
   @Override
@@ -217,6 +234,63 @@ public class DiskUsage extends LoadableActivity {
     pkg_removed = pkg;
   }
 
+  void continueDelete(String path) {
+    FileSystemEntry entry = fileSystemState.masterRoot.getEntryByName(path, true);
+    if (entry != null) {
+      BackgroundDelete.startDelete(this, entry);
+    } else {
+      Toast.makeText(this,
+          "Oops. Can't find directory to be deleted.", Toast.LENGTH_SHORT);
+    }
+  }
+
+  public void askForDeletion(final FileSystemEntry entry) {
+    final String path = entry.path2();
+    final String fullPath = entry.absolutePath();
+    Log.d("DiskUsage", "Deletion requested for " + path);
+
+    if (entry instanceof FileSystemEntrySmall) {
+      Toast.makeText(this,
+          "Delete directory instead", Toast.LENGTH_SHORT).show();
+
+      return;
+    }
+    if (entry.children == null || entry.children.length == 0) {
+      if (entry instanceof FileSystemPackage) {
+        this.pkg_removed = (FileSystemPackage) entry;
+        BackgroundDelete.startDelete(this, entry);
+        return;
+      }
+
+      // Delete single file or directory
+      new AlertDialog.Builder(this)
+      .setTitle(new File(fullPath).isDirectory()
+          ? format(R.string.ask_to_delete_directory, path)
+          : format(R.string.ask_to_delete_file, path))
+      .setPositiveButton(str(R.string.button_delete),
+          new DialogInterface.OnClickListener() {
+        @Override
+        public void onClick(DialogInterface dialog, int which) {
+          BackgroundDelete.startDelete(DiskUsage.this, entry);
+        }
+      })
+      .setNegativeButton(str(R.string.button_cancel),
+          new DialogInterface.OnClickListener() {
+        @Override
+        public void onClick(DialogInterface dialog, int whichButton) {
+        }
+      }).create().show();
+    } else {
+      Intent i = new Intent(this, DeleteActivity.class);
+      i.putExtra(DELETE_PATH_KEY, path);
+      i.putExtra(DELETE_ABSOLUTE_PATH_KEY, fullPath);
+      i.putExtra(DeleteActivity.NUM_FILES_KEY, entry.getNumFiles());
+
+      i.putExtra(DiskUsage.KEY_KEY, this.key);
+      i.putExtra(DeleteActivity.SIZE_KEY, entry.sizeString());
+      this.startActivityForResult(i, 0);
+    }
+  }
   private String format(int id, Object... args) {
     return getString(id, args);
   }
