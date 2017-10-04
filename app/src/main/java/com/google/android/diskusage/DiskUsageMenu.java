@@ -25,7 +25,6 @@ public abstract class DiskUsageMenu {
   protected MenuItem rescanMenuItem;
   protected MenuItem deleteMenuItem;
   protected MenuItem rendererMenuItem;
-  protected MenuItem filterMenuItem;
 
   public DiskUsageMenu(DiskUsage diskusage) {
     this.diskusage = diskusage;
@@ -174,7 +173,8 @@ public abstract class DiskUsageMenu {
     showMenuItem.setEnabled(view);
 
     boolean fileOrNotSearching = searchPattern == null || selectedEntity.children == null;
+    MountPoint mountPoint = MountPoint.getForKey(diskusage, diskusage.getKey());
     deleteMenuItem.setEnabled(view && selectedEntity instanceof FileSystemFile
-        && fileOrNotSearching);
+        && fileOrNotSearching && mountPoint.isDeleteSupported());
   }
 }

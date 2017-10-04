@@ -56,6 +56,10 @@ public class MountPoint {
     return false;
   }
 
+  public boolean isDeleteSupported() {
+    return forceHasApps;
+  }
+
   public String getKey() {
     return "storage:" + root;
   }

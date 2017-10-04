@@ -59,6 +59,11 @@ public class RootMountPoint extends MountPoint {
   }
 
   @Override
+  public boolean isDeleteSupported() {
+    return false;
+  }
+
+  @Override
   public String getKey() {
       return "rooted:" + getRoot();
   }
