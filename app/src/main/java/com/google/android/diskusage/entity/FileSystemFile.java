@@ -10,6 +10,12 @@ public class FileSystemFile extends FileSystemEntry {
     return new FileSystemFile(parent, name);
   }
 
+
+  @Override
+  public boolean isDeletable() {
+    return true;
+  }
+
   @Override
   public FileSystemEntry create() {
     return new FileSystemFile(null, this.name);

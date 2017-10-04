@@ -621,7 +621,7 @@ public class DiskUsage extends LoadableActivity {
 
     if (mountPoint.hasApps()) {
       FileSystemRoot media = (FileSystemRoot) FileSystemRoot.makeNode(
-          "media", realMountPoint.getRoot()).setChildren(entries.toArray(new FileSystemEntry[0]),
+          "media", realMountPoint.getRoot(), false).setChildren(entries.toArray(new FileSystemEntry[0]),
               stats.blockSize);
       entries = new ArrayList<FileSystemEntry>();
       entries.add(media);
@@ -651,7 +651,7 @@ public class DiskUsage extends LoadableActivity {
       }
     }
 
-    rootElement = FileSystemRoot.makeNode(mountPoint.getTitle(), mountPoint.getRoot())
+    rootElement = FileSystemRoot.makeNode(mountPoint.getTitle(), mountPoint.getRoot(), false)
         .setChildren(entries.toArray(new FileSystemEntry[0]), stats.blockSize);
     FileSystemSuperRoot newRoot = new FileSystemSuperRoot(stats.blockSize);
     newRoot.setChildren(new FileSystemEntry[] { rootElement }, stats.blockSize);
@@ -671,7 +671,7 @@ public class DiskUsage extends LoadableActivity {
     FileSystemEntry e = root.getByAbsolutePath(path);
     if (e != null) {
       e.remove(blockSize);
-      FileSystemRoot newRoot = FileSystemRoot.makeNode(newName, path);
+      FileSystemRoot newRoot = FileSystemRoot.makeNode(newName, path, true);
       newRoot.setChildren(e.children, blockSize);
       pkg.addPublicChild(newRoot, type, blockSize);
     }

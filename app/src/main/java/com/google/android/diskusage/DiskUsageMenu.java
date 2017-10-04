@@ -174,7 +174,7 @@ public abstract class DiskUsageMenu {
 
     boolean fileOrNotSearching = searchPattern == null || selectedEntity.children == null;
     MountPoint mountPoint = MountPoint.getForKey(diskusage, diskusage.getKey());
-    deleteMenuItem.setEnabled(view && selectedEntity instanceof FileSystemFile
+    deleteMenuItem.setEnabled(view && selectedEntity.isDeletable()
         && fileOrNotSearching && mountPoint.isDeleteSupported());
   }
 }

@@ -203,6 +203,10 @@ public class FileSystemEntry {
     return MULTIPLIER_GBYTES100 | (size >> 30);
   }
 
+  public boolean isDeletable() {
+    return false;
+  }
+
   public void setSizeInBlocks(long blocks, int blockSize) {
     long bytes = blocks * blockSize;
     encodedSize = (blocks << blockOffset) | makeBytesPart(bytes);
