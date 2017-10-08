@@ -1,0 +1,31 @@
+# travis build for APhotoManager
+language: android
+
+jdk:
+  - oraclejdk8
+
+addons:
+
+android:
+  components:
+    # https://github.com/travis-ci/travis-ci/issues/5036
+    - tools
+
+    # values in gradle.properties and .travis must be the same
+    # - build-tools-24.0.2
+    - build-tools-25.0.1
+    - android-26
+
+    - add-on
+    - extra
+
+before_install:
+# http://stackoverflow.com/questions/33820638/travis-yml-gradlew-permission-denied
+# must execute
+# git update-index --chmod=+x gradlew
+# instead of 
+# - chmod +x gradlew
+ 
+script:
+  - jdk_switcher use oraclejdk8
+  - ./gradlew assemble test
