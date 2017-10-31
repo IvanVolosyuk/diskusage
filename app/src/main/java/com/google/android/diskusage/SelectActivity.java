@@ -264,7 +264,7 @@ public class SelectActivity extends Activity {
         actionList.get(which).run();
       }
     })
-    .setTitle("View")
+    .setTitle(R.string.ask_view)
     .setOnCancelListener(new OnCancelListener() {
       @Override
       public void onCancel(DialogInterface dialog) {

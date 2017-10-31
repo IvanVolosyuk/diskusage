@@ -122,7 +122,7 @@ public class DiskUsageMenuPreCupcake extends DiskUsageMenu {
   
   @Override
   public MenuItem makeSearchMenuEntry(Menu menu) {
-    MenuItem item = menu.add("Search");
+    MenuItem item = menu.add(R.string.button_search);
     item.setOnMenuItemClickListener(new OnMenuItemClickListener() {
       public boolean onMenuItemClick(MenuItem item) {
         searchRequest();

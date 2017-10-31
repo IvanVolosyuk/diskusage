@@ -642,12 +642,12 @@ public class DiskUsage extends LoadableActivity {
     long systemBlocks = stats.totalBlocks - stats.freeBlocks - visibleBlocks;
     Collections.sort(entries, FileSystemEntry.COMPARE);
     if (systemBlocks > 0) {
-      entries.add(new FileSystemSystemSpace("System data", systemBlocks * stats.blockSize, stats.blockSize));
-      entries.add(new FileSystemFreeSpace("Free space", stats.freeBlocks * stats.blockSize, stats.blockSize));
+      entries.add(new FileSystemSystemSpace(getString(R.string.graph_system_data), systemBlocks * stats.blockSize, stats.blockSize));
+      entries.add(new FileSystemFreeSpace(getString(R.string.graph_free_space), stats.freeBlocks * stats.blockSize, stats.blockSize));
     } else {
       long freeBlocks = stats.freeBlocks + systemBlocks;
       if (freeBlocks > 0) {
-        entries.add(new FileSystemFreeSpace("Free space", freeBlocks * stats.blockSize, stats.blockSize));
+        entries.add(new FileSystemFreeSpace(getString(R.string.graph_free_space), freeBlocks * stats.blockSize, stats.blockSize));
       }
     }
 
