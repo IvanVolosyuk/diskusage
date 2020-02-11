@@ -327,15 +327,16 @@ public class DiskUsage extends LoadableActivity {
     Uri uri = Uri.fromFile(file);
 
     if (file.isDirectory()) {
+      // Go on with default file manager
+      // Shoud this be optional?
       intent = new Intent(Intent.ACTION_VIEW);
-      intent.addCategory(Intent.CATEGORY_OPENABLE);
       intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setDataAndType(uri, DocumentsContract.Document.MIME_TYPE_DIR);
+      intent.setDataAndType(uri, "inode/directory");
 
       try {
         startActivity(intent);
         return;
-      } catch(ActivityNotFoundException|FileUriExposedException e) {
+      } catch(ActivityNotFoundException e) {
       }
 
       intent = new Intent("org.openintents.action.VIEW_DIRECTORY");
