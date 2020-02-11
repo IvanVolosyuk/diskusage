@@ -19,7 +19,7 @@
  -->
 <resources>
     <string name="app_name">DiskUsage</string>
-<string name="app_description">Utility to examine SDcard content and cleanup some space there.</string>
+<string name="app_description">Utility to examine SD card content and cleanup some space there.</string>
 <string name="scaning_directories">Scanning directories...</string>
 <string name="button_show">Show</string>
 <string name="button_delete">Delete</string>
@@ -34,7 +34,7 @@
 <string name="ask_to_delete_directory">Delete %s directory?</string>
 <string name="ask_to_delete_file">Delete %s file?</string>
 <string name="out_of_memory">Not enough memory!</string>
-<string name="empty_or_missing_sdcard">Empty or missing sdcard</string>
+<string name="empty_or_missing_sdcard">Empty or missing SD card</string>
 <string name="path_doesnt_exist">%s\ndoesn\'t exist</string>
 <string name="file_deleted">File deleted</string>
 <string name="error_file_wasnt_deleted">Error: file wasn\'t deleted</string>
@@ -71,18 +71,18 @@
 <string name="show_cache_desc">Application cache uses different partition and can\'t be used by apk and data.</string>
 <string name="select_apps">Select apps</string>
 <string name="select_storage">Select storage</string>
-  <string name="button_search">Search</string>
-  <string name="graph_free_space">Free space</string>
-  <string name="graph_system_data">System data</string>
-  <string name="ask_view">View</string>
-  <string-array name="select_apps">
-  <item>On phone.</item>
-  <item>On sd card.</item>
+<string name="button_search">Search</string>
+<string name="graph_free_space">Free space</string>
+<string name="graph_system_data">System data</string>
+<string name="ask_view">View</string>
+<string-array name="select_apps">
+  <item>On device.</item>
+  <item>On SD card.</item>
   <item>Both.</item>
 </string-array>
 <string-array name="select_storage">
-  <item>Show phone memory.</item>
-  <item>Show sd card memory.</item>
+  <item>Show device memory.</item>
+  <item>Show SD card memory.</item>
   <item>Show both.</item>
 </string-array>
 </resources>
