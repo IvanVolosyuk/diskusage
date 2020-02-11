@@ -19,10 +19,8 @@
 
 package com.google.android.diskusage.entity;
 
-import com.google.android.diskusage.AppFilter;
 
 public class FileSystemSpecial extends FileSystemEntry {
-  public AppFilter filter;
 
   public FileSystemSpecial(String name, long size, int blockSize) {
     super(null, name);
@@ -43,7 +41,6 @@ public class FileSystemSpecial extends FileSystemEntry {
   public FileSystemEntry create() {
     // dummy values for size
     FileSystemSpecial copy = new FileSystemSpecial(this.name, 0, 512);
-    copy.filter = filter;
     return copy;
   }
 }

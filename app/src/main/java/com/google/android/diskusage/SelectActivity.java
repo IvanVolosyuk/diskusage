@@ -19,14 +19,6 @@
 
 package com.google.android.diskusage;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -44,6 +36,14 @@ import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.datasource.DebugDataSourceBridge;
 import com.google.android.diskusage.datasource.fast.DefaultDataSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
 
 public class SelectActivity extends Activity {
   private AlertDialog dialog;
@@ -67,10 +67,8 @@ public class SelectActivity extends Activity {
 
 
   private abstract class AbstractUsageAction implements Runnable {
-    public void runAction(String key, String title, String rootKey, Class<?> viewer) {
+    public void runAction(String key, Class<?> viewer) {
       Intent i = new Intent(SelectActivity.this, viewer);
-      i.putExtra(DiskUsage.TITLE_KEY, title);
-      i.putExtra(DiskUsage.ROOT_KEY, rootKey);
       i.putExtra(DiskUsage.KEY_KEY, key);
       Bundle bundle = bundles.get(key);
       if (bundle != null) {
@@ -81,36 +79,16 @@ public class SelectActivity extends Activity {
   };
 
   private class DiskUsageAction extends AbstractUsageAction {
-    private final String title;
     private final MountPoint mountPoint;
 
-    DiskUsageAction(String title, MountPoint mountPoint) {
-      this.title = title;
+    DiskUsageAction(MountPoint mountPoint) {
       this.mountPoint = mountPoint;
     }
 
     public void run() {
-      runAction(getKeyForStorage(mountPoint), title, mountPoint.root, DiskUsage.class);
+      runAction(mountPoint.getKey(), PermissionRequestActivity.class);
     }
   };
-
-  private class AppUsageAction extends AbstractUsageAction {
-    private final String title;
-    public AppUsageAction(String title) {
-      this.title = title;
-    }
-
-    public void run() {
-      runAction(getKeyForApp(), title, "apps", AppUsage.class);
-    }
-  };
-  public String getKeyForApp() {
-    return "app";
-  }
-
-  public static String getKeyForStorage(MountPoint mountPoint) {
-    return (mountPoint.rootRequired ? "rooted" : "storage:") + mountPoint.root;
-  }
 
   private class ShowHideAction implements Runnable {
     public void run() {
@@ -192,7 +170,6 @@ public class SelectActivity extends Activity {
     public void run() {
       boolean reload = false;
       try {
-//        BufferedReader reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.mounts_honeycomb), "UTF-8"));
         BufferedReader reader = DataSource.get().getProcReader();
         String line;
         int checksum = 0;
@@ -200,7 +177,8 @@ public class SelectActivity extends Activity {
           checksum += line.length();
         }
         reader.close();
-        if (checksum != MountPoint.checksum) {
+        if (checksum != RootMountPoint.checksum) {
+            Log.d("diskusage", checksum + " vs " + RootMountPoint.checksum);
           reload = true;
         }
       } catch (Throwable t) {}
@@ -219,16 +197,10 @@ public class SelectActivity extends Activity {
     ArrayList<String> options = new ArrayList<String>();
     actionList.clear();
 
-    final String programStorage = getString(R.string.app_storage);
-
-    if(MountPoint.getHoneycombSdcard(this) == null){
-      options.add(programStorage);
-      actionList.add(new AppUsageAction(programStorage));
-    }
-
-    for (MountPoint mountPoint : MountPoint.getMountPoints(this).values()) {
-      options.add(mountPoint.title);
-      actionList.add(new DiskUsageAction(mountPoint.title, mountPoint));
+//    PortableFile[] fileDirs = DataSource.get().getExternalFilesDirs(this);
+    for (MountPoint mountPoint : MountPoint.getMountPoints(this)) {
+      options.add(mountPoint.getTitle());
+      actionList.add(new DiskUsageAction(mountPoint));
     }
 
     if (/*debugUnhidden && */debugDataSourceBridge != null) {
@@ -255,17 +227,17 @@ public class SelectActivity extends Activity {
       Map<String, ?> ignoreList = prefs.getAll();
       if (!ignoreList.keySet().isEmpty()) {
         Set<String> ignores = ignoreList.keySet();
-        for (MountPoint mountPoint : MountPoint.getRootedMountPoints(this).values()) {
-          if (ignores.contains(mountPoint.root)) continue;
-          options.add(mountPoint.root);
-          actionList.add(new DiskUsageAction(mountPoint.root, mountPoint));
+        for (MountPoint mountPoint : RootMountPoint.getRootedMountPoints(this)) {
+          if (ignores.contains(mountPoint.getRoot())) continue;
+          options.add(mountPoint.getRoot());
+          actionList.add(new DiskUsageAction(mountPoint));
         }
         options.add("[Show/hide]");
         actionList.add(new ShowHideAction());
       } else if (expandRootMountPoints) {
-        for (MountPoint mountPoint : MountPoint.getRootedMountPoints(this).values()) {
-          options.add(mountPoint.root);
-          actionList.add(new DiskUsageAction(mountPoint.root, mountPoint));
+        for (MountPoint mountPoint : RootMountPoint.getRootedMountPoints(this)) {
+          options.add(mountPoint.getRoot());
+          actionList.add(new DiskUsageAction(mountPoint));
         }
         options.add("[Show/hide]");
         actionList.add(new ShowHideAction());

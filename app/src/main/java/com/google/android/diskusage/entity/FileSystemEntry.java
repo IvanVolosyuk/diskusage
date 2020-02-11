@@ -203,6 +203,10 @@ public class FileSystemEntry {
     return MULTIPLIER_GBYTES100 | (size >> 30);
   }
 
+  public boolean isDeletable() {
+    return false;
+  }
+
   public void setSizeInBlocks(long blocks, int blockSize) {
     long bytes = blocks * blockSize;
     encodedSize = (blocks << blockOffset) | makeBytesPart(bytes);
@@ -1105,7 +1109,7 @@ public class FileSystemEntry {
       while (parent0 != null) {
         parent0.setSizeInBlocks(parent0.getSizeInBlocks() - blocks, blockSize);
         parent0.clearDrawingCache();
-//        java.util.Arrays.sort(parent0.children, this);
+        java.util.Arrays.sort(parent0.children, FileSystemEntry.COMPARE);
         parent0 = parent0.parent;
       }
       return;

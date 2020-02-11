@@ -20,6 +20,7 @@
 package com.google.android.diskusage;
 
 import java.io.File;
+import java.io.IOException;
 
 import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
@@ -37,6 +38,7 @@ public class BackgroundDelete extends Thread {
   ProgressDialog dialog;
   File file;
   String path;
+  String rootPath;
   DiskUsage diskUsage;
   FileSystemEntry entry;
 
@@ -57,8 +59,8 @@ public class BackgroundDelete extends Thread {
     path = entry.path2();
     String deleteRoot = entry.absolutePath();
     file = new File(deleteRoot);
-    for (MountPoint mountPoint : MountPoint.getMountPoints(diskUsage).values()) {
-      if ((mountPoint.root + "/").startsWith(deleteRoot + "/")) {
+    for (MountPoint mountPoint : MountPoint.getMountPoints(diskUsage)) {
+      if ((mountPoint.getRoot() + "/").startsWith(deleteRoot + "/")) {
         Toast.makeText(diskUsage, "This delete operation will erase entire storage - canceled.",
             Toast.LENGTH_LONG).show();
         return;
@@ -153,17 +155,21 @@ public class BackgroundDelete extends Thread {
 
   public void restore() {
     Log.d("DiskUsage", "restore started for " + path);
+    MountPoint mountPoint = MountPoint.getForKey(diskUsage, diskUsage.getKey());
     int displayBlockSize = diskUsage.fileSystemState.masterRoot.getDisplayBlockSize();
-    FileSystemEntry newEntry = new Scanner(
-        // FIXME: hacked allocatedBlocks and heap size
-        20, displayBlockSize, null, 0, 4).scan(
-            DataSource.get().createLegacyScanFile(diskUsage.getRootPath() + "/" + path));
-    // FIXME: may be problems in case of two deletions
-    entry.parent.insert(newEntry, displayBlockSize);
-    diskUsage.fileSystemState.restore(newEntry);
-
-    Log.d("DiskUsage", "restoring undeleted: "
-        + newEntry.name + " " + newEntry.sizeString());
+    try {
+      FileSystemEntry newEntry = new Scanner(
+              // FIXME: hacked allocatedBlocks and heap size
+              20, displayBlockSize, 0, 4).scan(
+              DataSource.get().createLegacyScanFile(mountPoint.getRoot() + "/" + path));
+      // FIXME: may be problems in case of two deletions
+      entry.parent.insert(newEntry, displayBlockSize);
+      diskUsage.fileSystemState.restore(newEntry);
+      Log.d("DiskUsage", "restoring undeleted: "
+              + newEntry.name + " " + newEntry.sizeString());
+    } catch (IOException e) {
+      Log.d("diskusage", "Failed to restore");
+    }
   }
 
   public void notifyUser() {

@@ -2,12 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.google.android.diskusage"
     android:installLocation="auto"
-    android:versionCode="3080"
-    android:versionName="3.8.0">
-    <uses-sdk android:minSdkVersion="1" android:targetSdkVersion="19"/>
+    android:versionCode="4002"
+    android:versionName="4.0.2">
+    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="19"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.GET_PACKAGE_SIZE"/>
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
     <supports-screens android:smallScreens="true"
                   android:anyDensity="true"
                   android:normalScreens="true"
@@ -34,18 +35,8 @@
               android:theme="@style/Theme.NoBackground"
               android:hardwareAccelerated="false"
               android:windowSoftInputMode="adjustResize" android:exported="true">
-        <intent-filter>
-           <action android:name="com.google.android.diskusage.VIEW" />
-           <category android:name="android.intent.category.DEFAULT"/>
-           <data android:scheme="file"/>
-        </intent-filter>
     </activity>
-        
-    <activity android:name=".AppUsage" android:label="@string/app_name"
-              android:theme="@style/Theme.NoBackground"
-              android:hardwareAccelerated="false"
-              android:windowSoftInputMode="adjustResize"/>
-    <activity android:name=".FilterActivity"/>
+    <activity android:name=".PermissionRequestActivity"/>
     <activity android:name=".DeleteActivity"/>
     <activity android:name="ShowHideMountPointsActivity"/>
 </application>

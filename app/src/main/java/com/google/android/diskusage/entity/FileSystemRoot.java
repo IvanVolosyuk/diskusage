@@ -4,25 +4,31 @@ import com.google.android.diskusage.MountPoint;
 
 public class FileSystemRoot extends FileSystemEntry {
   final String rootPath;
+  private final boolean deletable;
 
-  protected FileSystemRoot(String name, String rootPath) {
+  protected FileSystemRoot(String name, String rootPath, boolean deletable) {
     super(null, name);
     this.rootPath = rootPath;
+    this.deletable = deletable;
   }
   
-  public static FileSystemRoot makeNode(String name, String rootPath) {
-    return new FileSystemRoot(name, rootPath);
+  public static FileSystemRoot makeNode(String name, String rootPath, boolean deletable) {
+    return new FileSystemRoot(name, rootPath, deletable);
   }
 
   @Override
   public FileSystemEntry create() {
-    return new FileSystemRoot(this.name, this.rootPath);
+    return new FileSystemRoot(this.name, this.rootPath, this.deletable);
   }
 
   @Override
   public FileSystemEntry filter(CharSequence pattern, int blockSize) {
     // don't match name
     return filterChildren(pattern, blockSize);
+  }
+
+  public boolean isDeletable() {
+    return deletable;
   }
   
   public static String withSlash(String path) {

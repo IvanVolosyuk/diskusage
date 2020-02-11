@@ -1,6 +1,7 @@
 package com.google.android.diskusage.datasource.fast;
 
 import java.io.File;
+import java.io.IOException;
 
 import android.annotation.TargetApi;
 import android.os.Build;
@@ -25,13 +26,22 @@ public class PortableFileImpl implements PortableFile {
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   @Override
   public boolean isExternalStorageEmulated() {
-    return Environment.isExternalStorageEmulated(file);
+    try {
+      return Environment.isExternalStorageEmulated(file);
+    } catch (Exception e) {
+      return false;
+    }
   }
 
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   @Override
   public boolean isExternalStorageRemovable() {
-    return Environment.isExternalStorageRemovable(file);
+    try {
+      return Environment.isExternalStorageRemovable(file);
+    } catch (Exception e) {
+      return false;
+    }
+
   }
 
   @Override

@@ -19,12 +19,12 @@
  -->
 <resources>
     <string name="app_name">DiskUsage</string>
-    <string name="app_description">Programma het geheugengebruik te onderzoeken en plaats vrij te maken.</string>
-    <string name="scaning_directories">Mappen scannen...</string>
-    <string name="button_show">Tonen</string>
-    <string name="button_delete">Verwijderen</string>
-    <string name="button_rescan">Herscannen</string>
-    <string name="button_cancel">Annuleren</string>
+    <string name="app_description">Programma om het geheugengebruik te bekijken en ruimte te maken.</string>
+    <string name="scaning_directories">Mappen aan het scannen...</string>
+    <string name="button_show">Toon</string>
+    <string name="button_delete">Verwijder</string>
+    <string name="button_rescan">Herscan</string>
+    <string name="button_cancel">Annuleer</string>
     <string name="button_background">Achtergrond</string>
     <string name="install_oi_file_manager">Installeer &quot;Solid Explorer&quot; om mappen te bekijken</string>
     <string name="title_for_path">%s</string>
@@ -36,12 +36,12 @@
     <string name="out_of_memory">Niet genoeg ruimte!</string>
     <string name="empty_or_missing_sdcard">Lege of geen SD-kaart</string>
     <string name="path_doesnt_exist">%s\nbestaat niet</string>
-    <string name="file_deleted">Bestand verwijderd</string>
+    <string name="file_deleted">Bestand is verwijderd</string>
     <string name="error_file_wasnt_deleted">Fout: bestand is niet verwijderd</string>
     <string name="deleting_path">%s verwijderen</string>
     <string name="deleted_n_directories_and_n_files">%1$d mappen en %2$d bestanden</string>
     <string name="deleted_n_directories_and_files_and_canceled">Verwijderen geannuleerd: reeds %1$d mappen en %2$d bestanden</string>
-    <string name="deleted_n_directories_and_n_files_and_failed">Verwijderen mislukt!: %1$d mappen en %2$d bestanden verwijderd</string>
+    <string name="deleted_n_directories_and_n_files_and_failed">Verwijderen mislukt!: %1$d mappen en %2$d bestanden zijn verwijderd</string>
     <string name="n_bytes">%d bytes</string>
     <string name="n_kilobytes">%d KB</string>
     <string name="n_megabytes">%5.2f MB</string>
@@ -50,32 +50,32 @@
     <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d mappen)</string>
     <string name="dir_empty">%s (leeg)</string>
     <string name="dir_name_size">%1$s (%2$s)</string>
-    <string name="apps_bulk_uninstall_not_supported">Meerdere applicaties verwijderen niet ondersteund</string>
-    <string name="app_storage">App geheugen</string>
+    <string name="apps_bulk_uninstall_not_supported">Meerdere applicaties verwijderen is niet ondersteund</string>
+    <string name="app_storage">Appgeheugen</string>
     <string name="storage_card">Geheugenkaart</string>
     <string name="delete_summary">%1$d bestanden, totale grootte: %2$s</string>
     <string name="change_filter">Filter...</string>
-    <string name="apps_filter">Apps Filter</string>
-    <string name="internal_only">Enkel inwendig</string>
-    <string name="internal_only_desc">Geen data op SD-kaart tonen</string>
-    <string name="show_apk">Toon Apk</string>
-    <string name="show_apk_desc">Toon applicatie bestanden.</string>
-    <string name="show_data">Toon Data</string>
+    <string name="apps_filter">Appsfilter</string>
+    <string name="internal_only">Alleen inwendig</string>
+    <string name="internal_only_desc">Toon geen data van SD-kaart</string>
+    <string name="show_apk">Toon apk</string>
+    <string name="show_apk_desc">Toon applicatiebestanden.</string>
+    <string name="show_data">Toon data</string>
     <string name="show_data_desc">Toon geheugen gebruikt voor data.</string>
     <string name="show_dalvikcache">Toon DalvikCache</string>
-    <string name="show_dalvikcache_desc">Toon geheugen gebruikt voor dalvikCache op de data partitie.</string>
-    <string name="show_cache">Toon Cache</string>
-    <string name="show_cache_desc">Applicatie cache gebruikt een andere partitie en kan niet worden gebruikt door apk of data.</string>
+    <string name="show_dalvikcache_desc">Toon geheugen gebruikt voor dalvikCache op de datapartitie.</string>
+    <string name="show_cache">Toon cache</string>
+    <string name="show_cache_desc">Applicatiecache gebruikt een andere partitie en kan niet worden gebruikt voor apk of data.</string>
     <string name="select_apps">Kies applicaties</string>
     <string name="select_storage">Kies opslag</string>
     <string-array name="select_apps">
-        <item>Op telefoon.</item>
+        <item>Op apparaat.</item>
         <item>Op SD-kaart.</item>
         <item>Beide.</item>
     </string-array>
     <string-array name="select_storage">
-        <item>Toon telefoon geheugen.</item>
-        <item>Toon SD-kaart geheugen.</item>
+        <item>Toon geheugen apparaat.</item>
+        <item>Toon geheugen SD-kaart.</item>
         <item>Toon beide.</item>
 </string-array>
 </resources>

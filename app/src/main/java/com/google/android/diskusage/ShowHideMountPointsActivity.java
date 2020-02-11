@@ -1,5 +1,6 @@
 package com.google.android.diskusage;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -15,8 +16,6 @@ import com.google.android.diskusage.DiskUsage.FileSystemStats;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class ShowHideMountPointsActivity extends PreferenceActivity {
-  static final String FILTER_RESULT = "res";
-  
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -27,20 +26,20 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
   @Override
   protected void onResume() {
     super.onResume();
-    Map<String, MountPoint> mountPoints = MountPoint.getRootedMountPoints(this);
+    List<MountPoint> mountPoints = RootMountPoint.getRootedMountPoints(this);
     PreferenceScreen prefs = getPreferenceScreen();
     prefs.removeAll();
     SharedPreferences shprefs =  getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
     Map<String, ?> ignoreList = shprefs.getAll();
     Set<String> ignores = ignoreList.keySet();
 
-    for (MountPoint mountPoint: mountPoints.values()) {
+    for (MountPoint mountPoint: mountPoints) {
       CheckBoxPreference pref = new CheckBoxPreference(this);
       FileSystemEntry.setupStrings(this);
       FileSystemStats stats = new FileSystemStats(mountPoint);
       pref.setSummary(stats.formatUsageInfo());
-      pref.setTitle(mountPoint.root);
-      pref.setChecked(!ignores.contains(mountPoint.root));
+      pref.setTitle(mountPoint.getRoot());
+      pref.setChecked(!ignores.contains(mountPoint.getRoot()));
       prefs.addPreference(pref);
     }
   }

@@ -185,7 +185,7 @@ public class NativeScanner implements ProgressGenerator {
 
   FileSystemEntry scan(MountPoint mountPoint) throws IOException, InterruptedException {
     is = DataSource.get().createNativeScanner(
-        context, mountPoint.getRoot(), mountPoint.rootRequired);
+        context, mountPoint.getRoot(), mountPoint.isRootRequired());
     while (getByte() != 0);
 
     Type type = getType();
@@ -427,9 +427,7 @@ public class NativeScanner implements ProgressGenerator {
    * Stores parent into field, name obtained from file, size of this directory
    * is calculated as a sum of all children.
    * @param parent parent directory object.
-   * @param file corresponding File object
    * @param depth current directory tree depth
-   * @param maxdepth maximum directory tree depth
    * @throws IOException
    */
   private void scanDirectory(FileSystemEntry parent, String name,
