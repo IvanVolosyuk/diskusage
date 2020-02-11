@@ -71,6 +71,10 @@
 <string name="show_cache_desc">Application cache uses different partition and can\'t be used by apk and data.</string>
 <string name="select_apps">Select apps</string>
 <string name="select_storage">Select storage</string>
+<string name="button_search">Search</string>
+<string name="graph_free_space">Free space</string>
+<string name="graph_system_data">System data</string>
+<string name="ask_view">View</string>
 <string-array name="select_apps">
   <item>On device.</item>
   <item>On SD card.</item>

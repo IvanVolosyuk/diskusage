@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+ * DiskUsage - displays sdcard usage on android.
+ * Copyright (C) 2008 Ivan Volosyuk
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ -->
+<resources>
+    <string name="app_name">DiskUsage</string>
+<string name="app_description">Tool um den Inhalt der SD-Karte zu untersuchen und Speicher darauf aufzuräumen.</string>
+<string name="scaning_directories">Scanne Verzeichnisse...</string>
+<string name="button_show">Anzeigen</string>
+<string name="button_delete">Löschen</string>
+<string name="button_rescan">Neu scannen</string>
+<string name="button_cancel">Abbrechen</string>
+<string name="button_background">Hintergrund</string>
+<string name="install_oi_file_manager">&quot;Solid Explorer&quot; installieren um Verzeichnisse anzuzeigen</string>
+<string name="title_for_path">%s</string>
+<string name="title_in_oi_file_manager">Solid Explorer</string>
+<string name="button_text_in_oi_file_manager">Zurück zu DiskUsage</string>
+<string name="no_viewer_found">Keine App zum Anzeigen gefunden</string>
+<string name="ask_to_delete_directory">Verzeichnis %s löschen?</string>
+<string name="ask_to_delete_file">Datei %s löschen?</string>
+<string name="out_of_memory">Nicht genug RAM!</string>
+<string name="empty_or_missing_sdcard">Leere oder keine SD-Karte</string>
+<string name="path_doesnt_exist">%s\ndoesn\'t exist</string>
+<string name="file_deleted">Datei gelöscht</string>
+<string name="error_file_wasnt_deleted">Fehler: Datei nicht gelöscht</string>
+<string name="deleting_path">Lösche %s</string>
+<string name="deleted_n_directories_and_n_files">%1$d Verzeichnisse und %2$d Dateien gelöscht</string>
+<string name="deleted_n_directories_and_files_and_canceled">Löschen abgebrochen: %1$d Verzeichnisse und %2$d Dateien bisher gelöscht</string>
+<string name="deleted_n_directories_and_n_files_and_failed">Löschen fehlgeschlagen!: %1$d Verzeichnisse und %2$d Dateien gelöscht</string>
+<string name="n_bytes">%d bytes</string>
+<string name="n_kilobytes">%d KiB</string>
+<string name="n_megabytes">%5.2f MiB</string>
+<string name="n_megabytes10">%5.1f MiB</string>
+<string name="n_megabytes100">%d MiB</string>
+<string name="n_gigabytes">%5.2f GiB</string>
+<string name="n_gigabytes10">%5.1f GiB</string>
+<string name="n_gigabytes100">%d GiB</string>
+<string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d Verz.)</string>
+<string name="dir_empty">%s (leer)</string>
+<string name="dir_name_size">%1$s (%2$s)</string>
+  <string name="app_storage">App Speicher</string>
+<string name="storage_card">SD-Karte</string>
+<string name="delete_summary">%1$d Dateien, Gesamtgröße: %2$s</string>
+<string name="change_filter">Filter...</string>
+  <string name="internal_only">Nur interner Speicher</string>
+  <string name="show_apk">Apk anzeigen</string>
+<string name="show_apk_desc">App Dateien anzeigen.</string>
+<string name="show_data">Daten anzeigen</string>
+  <string name="show_dalvikcache">DalvikCache anzeigen</string>
+<string name="show_dalvikcache_desc">Speicher des dalvikCache der Apps auf der Datenpartition anzeigen.</string>
+<string name="show_cache">Cache anzeigen</string>
+  <string name="select_apps">Apps Auswählen</string>
+<string name="select_storage">Speicher auswählen</string>
+<string-array name="select_apps">
+  <item>Interner Speicher</item>
+  <item>SD-Karte</item>
+  <item>Beides</item>
+</string-array>
+<string-array name="select_storage">
+  <item>Internen Speicher anzeigen</item>
+  <item>SD-Kartenspeicher anzeigen</item>
+  <item>Beides</item>
+</string-array>
+  <string name="apps_bulk_uninstall_not_supported">Löschen mehrerer Apps nicht unterstützt</string>
+  <string name="apps_filter">Apps Filter</string>
+  <string name="internal_only_desc">Daten der SD-Karte ausschließen</string>
+  <string name="show_data_desc">Speicher der App Daten anzeigen.</string>
+  <string name="show_cache_desc">Der App Cache ist auf einer anderen Partition und kann nicht für die Apks oder Daten genutzt werden.</string>
+    <string name="button_search">Suchen</string>
+  <string name="graph_free_space">Frei</string>
+  <string name="graph_system_data">Systemdaten</string>
+    <string name="ask_view">Auswahl</string>
+</resources>

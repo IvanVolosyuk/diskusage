@@ -1,17 +1,17 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/menu_search"
-        android:title="Search"
+        android:title="@string/button_search"
         android:icon="@drawable/icon"
         android:showAsAction="ifRoom"
         android:actionViewClass="android.widget.SearchView"/>
     <item android:id="@+id/show"
-        android:title="Show"
+        android:title="@string/button_show"
         android:showAsAction="ifRoom|withText" />
     <item android:id="@+id/rescan"
-        android:title="Rescan"
+        android:title="@string/button_rescan"
         android:showAsAction="ifRoom|withText" />
     <item android:id="@+id/delete"
-        android:title="Delete"
+        android:title="@string/button_delete"
         android:showAsAction="ifRoom|withText" />
 </menu>
     

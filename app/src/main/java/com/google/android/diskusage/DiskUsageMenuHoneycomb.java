@@ -57,7 +57,7 @@ public class DiskUsageMenuHoneycomb extends DiskUsageMenu {
 
   @Override
   public MenuItem makeSearchMenuEntry(Menu menu) {
-    MenuItem item = menu.add("Search");
+    MenuItem item = menu.add(R.string.button_search);
     searchView = new SearchView(diskusage);
     origSearchBackground = searchView.getBackground();
     item.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
