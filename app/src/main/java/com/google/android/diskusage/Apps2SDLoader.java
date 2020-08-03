@@ -119,8 +119,6 @@ public class Apps2SDLoader {
     FileSystemEntry[] result = entries.toArray(new FileSystemEntry[] {});
     Arrays.sort(result, FileSystemEntry.COMPARE);
     handler.removeCallbacks(progressUpdater);
-    StructStatVfs a = Os.statvfs("/sdcard");
-    StructStat s = Os.stat("/sdcard");
     return result;
   }
 }
