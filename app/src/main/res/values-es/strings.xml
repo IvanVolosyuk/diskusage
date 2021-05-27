@@ -64,6 +64,11 @@
 <string name="show_data_desc">Mostrar el almacenamiento reservado por los datos de aplicación.</string>
 <string name="show_dalvikcache">Mostrar DalvikCache</string>
 <string name="show_dalvikcache_desc">Mostrar la dalvikCache reservada por tus aplicaciones en la partición de datos.</string>
-<string name="show_cache">Mostrar Cache</string>
-<string name="show_cache_desc">La cache de aplicaciones usa una partición distinta y no se puede usar para apliaciones ni datos.</string>
+<string name="show_cache">Mostrar Caché</string>
+<string name="show_cache_desc">La caché de aplicaciones usa una partición distinta y no se puede usar para apliaciones ni datos.</string>
+<string name="select_apps">Seleccionar aplicaciones</string>
+<string name="select_storage">Seleccionar almacenamiento</string>
+<string name="button_search">Buscar</string>
+<string name="graph_free_space">Espacio libre</string>
+<string name="graph_system_data">Datos del sistema</string>
 </resources>
