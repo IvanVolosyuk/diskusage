@@ -1,11 +1,12 @@
 apply plugin: 'com.android.application'
 android {
-    compileSdkVersion 26
-    buildToolsVersion "25.0.1"
+    compileSdkVersion 30
+    buildToolsVersion "30.0.3"
 
     defaultConfig {
         applicationId "com.google.android.diskusage"
-        targetSdkVersion 19
+        targetSdkVersion 30
+        minSdk 16
 
 //        ndk {
 //            moduleName "scan"
