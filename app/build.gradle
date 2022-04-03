@@ -21,5 +21,5 @@ android {
 }
 
 dependencies {
-    compile files('src/main/extra/system.jar')
+    implementation files('src/main/extra/system.jar')
 }
