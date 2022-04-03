@@ -64,12 +64,8 @@ public class NativeScannerStream extends InputStream {
 
     private NativeScannerStream runScanner(String root,
         boolean rootRequired) throws IOException, InterruptedException {
-      String binaryName = "scan";
-      final int sdkVersion = DataSource.get().getAndroidVersion();
-      if (sdkVersion >= 21 /* Lollipop */) {
-        binaryName = "scan5";
-      }
-      setupBinary(binaryName);
+      String binaryName = "libscan.so";
+      // setupBinary(binaryName);
       boolean deviceIsRooted = DataSource.get().isDeviceRooted();
       Process process = null;
 
@@ -116,7 +112,7 @@ public class NativeScannerStream extends InputStream {
     }
 
     private String getScanBinaryPath(String binaryName) {
-      return context.getDir("binary", Context.MODE_PRIVATE).getAbsolutePath()
+      return context.getApplicationInfo().nativeLibraryDir
           + "/" + binaryName;
     }
 
