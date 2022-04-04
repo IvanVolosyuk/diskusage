@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008 Ivan Volosyuk
  *
@@ -23,24 +23,29 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.AppOpsManager;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.Settings;
+import android.widget.Toast;
+import com.google.android.diskusage.datasource.DataSource;
 
 public class PermissionRequestActivity extends Activity {
-    private static int DISKUSAGE_REQUEST_CODE = 10;
-    private static int ASK_PERMISSION_REQUEST_CODE = 11;
+    private final static int DISKUSAGE_REQUEST_CODE = 10;
+    private final static int PERMISSION_REQUEST_USAGE_ACCESS_CODE = 11;
+    private final static int PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE = 12;
 
-    private String key;
+    private final DataSource dataSource = DataSource.get();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Intent i = getIntent();
 
-        key = i.getStringExtra(DiskUsage.KEY_KEY);
+        final String key = i.getStringExtra(DiskUsage.KEY_KEY);
         if (key == null) {
             // Just close instead of crashing later
             finish();
@@ -58,21 +63,16 @@ public class PermissionRequestActivity extends Activity {
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("Usage Access permision needed")
-                .setMessage("Allow DiskUsage to get list of installed apps?")
-                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
-                        startActivityForResult(intent, ASK_PERMISSION_REQUEST_CODE);
-                    }
+                .setTitle(R.string.dialog_usage_access_title)
+                .setMessage(R.string.dialog_usage_access_desc)
+                .setPositiveButton(android.R.string.ok, (dialogInterface, i1) -> {
+                    Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
+                    startActivityForResult(intent, PERMISSION_REQUEST_USAGE_ACCESS_CODE);
                 })
-                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        forwardToDiskUsage();
-                    }
-                }).create().show();
+                .setNegativeButton(android.R.string.cancel, (dialogInterface, i12) ->
+                        forwardToDiskUsage()).create().show();
+
+        requestExternalStoragePermission();
     }
 
     public void forwardToDiskUsage() {
@@ -85,11 +85,50 @@ public class PermissionRequestActivity extends Activity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == DISKUSAGE_REQUEST_CODE) {
             setResult(0, data);
             finish();
-        } else if (requestCode == ASK_PERMISSION_REQUEST_CODE) {
+        } else if (requestCode == PERMISSION_REQUEST_USAGE_ACCESS_CODE) {
             forwardToDiskUsage();
+        } else if (requestCode == PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE) {
+            if (dataSource.getAndroidVersion() >= Build.VERSION_CODES.R) {
+                if (Environment.isExternalStorageManager()) {
+                    forwardToDiskUsage();
+                } else {
+                    Toast.makeText(this, R.string.dialog_external_storage_access_error, Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
+
+    private void requestExternalStoragePermission() {
+        if (dataSource.getAndroidVersion() >= Build.VERSION_CODES.R) {
+            if (Environment.isExternalStorageManager()) {
+                forwardToDiskUsage();
+            } else {
+                final Intent i = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                i.setData(Uri.parse("package:" + getPackageName()));
+                startActivityForResult(i, PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE);
+            }
+        } else if (dataSource.getAndroidVersion() >= Build.VERSION_CODES.M) {
+            if (ActivityCompat.checkSelfPermission(
+                    this, Manifest.permission.READ_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(
+                        this, Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED) {
+                forwardToDiskUsage();
+            } else {
+                ActivityCompat.requestPermissions(
+                        this,
+                        new String[] {
+                                Manifest.permission.READ_EXTERNAL_STORAGE,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        },
+                        PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE
+                );
+            }
         }
     }
 

@@ -75,6 +75,9 @@
 <string name="graph_free_space">Free space</string>
 <string name="graph_system_data">System data</string>
 <string name="ask_view">View</string>
+<string name="dialog_usage_access_title">Usage Access Permission Needed</string>
+<string name="dialog_usage_access_desc">Allow DiskUsage to get list of installed apps?</string>
+<string name="dialog_external_storage_access_error">Access to external storage has been denied.</string>
 <string-array name="select_apps">
   <item>On device.</item>
   <item>On SD card.</item>
