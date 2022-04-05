@@ -1,15 +1,16 @@
 package com.google.android.diskusage.ui;
 
-import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.support.annotation.NonNull;
-import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.R;
+import com.google.android.diskusage.datasource.SearchManager;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemSpecial;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
+import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import org.jetbrains.annotations.Contract;
 
 public abstract class DiskUsageMenu {
@@ -29,18 +30,10 @@ public abstract class DiskUsageMenu {
     this.diskusage = diskusage;
   }
 
-  @Contract("_ -> new")
   @NonNull
+  @Contract("_ -> new")
   public static DiskUsageMenu getInstance(DiskUsage diskusage) {
-    final int sdkVersion = DataSource.get().getAndroidVersion();
-    if (sdkVersion < Build.VERSION_CODES.CUPCAKE) {
-      return new DiskUsageMenuPreCupcake(diskusage);
-    }
-    if (sdkVersion >= Build.VERSION_CODES.HONEYCOMB) {
-      return new DiskUsageMenuHoneycomb(diskusage);
-    } else {
-      return new DiskUsageMenuFroyo(diskusage);
-    }
+    return new DiskUsageMenuHoneycomb(diskusage);
   }
 
   public abstract void onCreate();

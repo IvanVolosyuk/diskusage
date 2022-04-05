@@ -193,14 +193,7 @@ public class FileSystemState {
     @NonNull
     private static VersionedMultitouchHandler newInstance(
         FileSystemState view) {
-      final int sdkVersion = DataSource.get().getAndroidVersion();
-      VersionedMultitouchHandler detector = null;
-      if (sdkVersion < Build.VERSION_CODES.ECLAIR) {
-        detector = new VersionedMultitouchHandler();
-      } else {
-        detector = view.new MultiTouchHandler();
-      }
-      return detector;
+      return view.new MultiTouchHandler();
     }
 
     public MyMotionEvent newMyMotionEvent(MotionEvent ev) {
