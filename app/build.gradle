@@ -7,10 +7,6 @@ android {
         applicationId "com.google.android.diskusage"
         targetSdkVersion 30
         minSdk 16
-
-//        ndk {
-//            moduleName "scan"
-//        }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -21,6 +17,11 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+        }
+    }
+    externalNativeBuild {
+        ndkBuild {
+            path file('src/main/jni/Android.mk')
         }
     }
 }
