@@ -1,7 +1,7 @@
 <resources>
-    <style name="Theme" parent="android:Theme">
+    <style name="Theme" parent="android:Theme.DeviceDefault">
     </style>
-    <style name="Theme.NoBackground" parent="android:Theme">
+    <style name="Theme.NoBackground" parent="android:Theme.DeviceDefault">
         <item name="android:windowBackground">@null</item>
     </style>
 </resources>
