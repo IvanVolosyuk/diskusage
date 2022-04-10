@@ -21,12 +21,17 @@ package com.google.android.diskusage.ui.delete;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.Set;
 import java.util.TreeSet;
-
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import android.content.Context;
-import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,71 +39,65 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 import android.support.annotation.NonNull;
 import com.google.android.diskusage.R;
+import com.google.android.diskusage.databinding.ListDirItemBinding;
+import com.google.android.diskusage.databinding.ListFileItemBinding;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 
+// TODO: Use RecyclerView and RecyclerAdapter
 public class FileInfoAdapter extends BaseAdapter {
-  private int count;
-  private final ArrayList<Entry> entries = new ArrayList<>();
-  private boolean finished = false;
-  LayoutInflater inflater;
-
+  private int itemCount;
   private final String deletePath;
-  private String base;
-  
-  private final ArrayList<String> workingSet = new ArrayList<>();
-  private String currentDir = "";
-  TextView summary;
-  long totalSize;
-  Context context;
-  
+  private final TextView summaryView;
+  private final Context context;
+
   public FileInfoAdapter(Context context, String deletePath,
       int count, TextView summary) {
     this.context = context;
-    this.count = count;
+    this.itemCount = count;
     this.deletePath = deletePath;
-    this.summary = summary;
+    this.summaryView = summary;
   }
-  
+  private boolean isFinished = false;
+
+  private final ArrayList<Entry> entries = new ArrayList<>();
+  private final LinkedList<String> workingSet = new LinkedList<>();
+  private String parentBase;
+  private String currentDir = "";
+  private long totalSize;
+
+  private LoaderTaskRunner taskRunner;
+  private static final Executor THREAD_POOL_EXECUTOR =
+          new ThreadPoolExecutor(5, 128, 1,
+                  TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+
   public static void setMessage(
           @NonNull Context context, @NonNull TextView textView, int numfiles, String sizeString) {
     String text = context.getString(
         R.string.delete_summary, numfiles, sizeString);
     textView.setText(text);
   }
-  
+
   static class Entry {
     String size;
     String name;
-    
+
     Entry(String size, String name) {
       this.size = size;
       this.name = name;
     }
   }
-  
-  Entry overflow = new Entry("", ".             .             .             .             .");
-  
-  Entry getEntry(int pos) {
-    if (pos >= entries.size()) {
-      return overflow;
-    }
-    return entries.get(pos);
-  }
-  
-  Comparator<String> reverseCaseInsensitiveOrder = (object1, object2) -> object2.compareToIgnoreCase(object1);
-  
+
   private void prepareRoots() {
-    base = new File(deletePath).getParent();
-    File entity = new File(deletePath);
-    String name = entity.getName();
-    workingSet.add(name);
+    File topEntity = new File(deletePath);
+    parentBase = topEntity.getParent();
+    workingSet.add(topEntity.getName());
   }
-  
+
   private boolean loadOne(ArrayList<Entry> newEntries) {
-    if (base == null) prepareRoots();
-    
-    while (true) {
-      if (workingSet.isEmpty()) {
+    if (parentBase == null) prepareRoots();
+
+    while (!workingSet.isEmpty()) {
+      //* if (workingSet.isEmpty()) {
 //        finished = true;
 //        count = entries.size();
 //        notifyDataSetChanged();
@@ -106,14 +105,14 @@ public class FileInfoAdapter extends BaseAdapter {
 //          summary.setText(
 //              String.format("%d files, total size: %s",
 //                  count, FileSystemEntry.calcSizeString(totalSize)));
-        return false;
-      }
+        //return false;
+      //}
 
-      String last = workingSet.remove(workingSet.size() - 1);
-      File currentEntity = new File(base + "/" + last);
+      String last = workingSet.removeLast();
+      File currentEntity = new File(parentBase + File.separatorChar + last);
       if (currentEntity.isFile()) {
         String dirName = "";
-        int sep = last.lastIndexOf("/");
+        int sep = last.lastIndexOf(File.separatorChar);
         if (sep != -1) {
           dirName = last.substring(0, sep);
           last = last.substring(sep + 1);
@@ -130,25 +129,26 @@ public class FileInfoAdapter extends BaseAdapter {
       }
 
       File[] entries = currentEntity.listFiles();
-      Set<String> dirs = new TreeSet<>(reverseCaseInsensitiveOrder);
-      Set<String> files = new TreeSet<>(reverseCaseInsensitiveOrder);
+      Set<String> dirs = new TreeSet<>(String::compareToIgnoreCase);
+      Set<String> files = new TreeSet<>(String::compareToIgnoreCase);
 
       if (entries == null) continue;
-      
+
       for (File entity : entries) {
         String name = entity.getName();
         if (entity.isFile()) {
-          files.add(last + "/" + name);
+          files.add(last + File.separatorChar + name);
         } else {
-          dirs.add(last + "/" + name);
+          dirs.add(last + File.separatorChar + name);
         }
       }
       workingSet.addAll(dirs);
       workingSet.addAll(files);
     }
+    return false;
   }
 
-//  public void load(int pos) {
+//*  public void load(int pos) {
 //    while (!finished && entries.size() <= pos + 10) {
 //      loadOne();
 //    }
@@ -156,9 +156,9 @@ public class FileInfoAdapter extends BaseAdapter {
 
   @Override
   public int getCount() {
-    return Math.max(count, entries.size() + (finished ? 0 : 1));
+    return Math.max(itemCount, entries.size() + (isFinished ? 0 : 1));
   }
-  
+
   @Override
   public int getViewTypeCount() {
     return 2;
@@ -166,13 +166,16 @@ public class FileInfoAdapter extends BaseAdapter {
 
   @Override
   public Object getItem(int position) {
-    return getEntry(position);
+    if (position >= entries.size()) {
+      return new Entry("", ".             .             .             .             .");
+    }
+    return entries.get(position);
   }
-  
+
   @Override
   public int getItemViewType(int position) {
-    Entry entry = getEntry(position);
-    
+    Entry entry = (Entry) getItem(position);
+
     return (entry.size == null) ? 1 : 0;
   }
 
@@ -180,17 +183,42 @@ public class FileInfoAdapter extends BaseAdapter {
   public long getItemId(int position) {
     return position;
   }
-  
-  public boolean running = false;
-  
-  class LoaderTask extends AsyncTask<Integer, Void, ArrayList<Entry>> {
-    int currentPos;
-    public LoaderTask(int currentPos) {
-      this.currentPos = currentPos;
+
+  public boolean isRunning = false;
+  // TODO: Use Kotlin CoroutineScope
+  static class LoaderTaskRunner {
+    private final Executor executor = THREAD_POOL_EXECUTOR;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+
+    public interface Callback<R> {
+      void onComplete(R result);
     }
+
+    public <R> void executeAsync(Callable<R> callable, Callback<R> callback) {
+      executor.execute(() -> {
+        try {
+          final R result = callable.call();
+          handler.post(() -> {
+            callback.onComplete(result);
+          });
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      });
+    }
+  }
+
+  class LoaderTask implements Callable<ArrayList<Entry>> {
+    // int currentPos;
+    private final Integer input;
+    public LoaderTask(/* int currentPos, */Integer input) {
+      //this.currentPos = currentPos;
+      this.input = input;
+    }
+
     @Override
-    protected ArrayList<Entry> doInBackground(@NonNull Integer... params) {
-      int toLoad = params[0];
+    public ArrayList<Entry> call() {
+      int toLoad = input;
       ArrayList<Entry> newEntries = new ArrayList<>();
       for (int i = 0; i < toLoad; i++) {
         if (!loadOne(newEntries)) {
@@ -199,71 +227,70 @@ public class FileInfoAdapter extends BaseAdapter {
       }
       return newEntries;
     }
-    
-    @Override
-    protected void onPostExecute(@NonNull ArrayList<Entry> newEntries) {
-      running = false;
-      if (newEntries.size() == 0) {
-        finished = true;
-        count = entries.size();
-        notifyDataSetChanged();
-        setMessage(context, summary, count, FileSystemEntry.calcSizeString(totalSize));
+  }
+
+  private int maxPos;
+  private void onPostExecute(@NonNull ArrayList<Entry> newEntries) {
+    isRunning = false;
+    if (newEntries.size() == 0) {
+      isFinished = true;
+      itemCount = entries.size();
+      notifyDataSetChanged();
+      summaryView.setText(context.getString(R.string.delete_summary,
+              itemCount, FileSystemEntry.calcSizeString(totalSize)));
+    } else {
+      entries.addAll(newEntries);
+      notifyDataSetChanged();
+
+      int toLoad = maxPos + 200 - entries.size();
+      if (toLoad > 0) {
+        isRunning = true;
+        taskRunner.executeAsync(new LoaderTask(20), this::onPostExecute); // request even more
+      }
+    }
+  }
+
+  @Override
+  public View getView(int position, View view, ViewGroup parent) {
+    if (!isFinished) {
+      if (isRunning) {
+        if (position > maxPos) maxPos = position;
       } else {
-        entries.addAll(newEntries);
-        notifyDataSetChanged();
-        
-        int toLoad = maxPos + 200 - entries.size();
+        taskRunner = new LoaderTaskRunner();
+        int toLoad = position + 200 - entries.size();
         if (toLoad > 0) {
-          running = true;
-          new LoaderTask(maxPos).execute(20); // request even more
+          isRunning = true;
+          taskRunner.executeAsync(new LoaderTask(20), this::onPostExecute); // request even more
         }
       }
     }
-  }
-  
-  private int maxPos;
-  
-  @Override
-  public View getView(int position, View view, ViewGroup parent) {
-    
-    if (finished) {
-    } else if (running) {
-      if (position > maxPos) maxPos = position;
-    } else {
-      int toLoad = position + 200 - entries.size();
-      if (toLoad > 0) {
-        running = true;
-        new LoaderTask(position).execute(20); // request even more
-      }
-    } 
-    Entry entry = getEntry(position);
-    
-    LayoutInflater inflater = this.inflater;
-    if (inflater == null) {
-      inflater = this.inflater = (LayoutInflater) parent.getContext().getSystemService(
-          Context.LAYOUT_INFLATER_SERVICE);
-    }
+
+    final Entry entry = (Entry) getItem(position);
+    final LayoutInflater layoutInflater = LayoutInflater.from(parent.getContext());
 
     if (entry.size == null) {
       // directory
-      if (view == null) {
-        view = inflater.inflate(R.layout.list_dir_item, null);
+      final ListDirItemBinding binding;
+      if (view != null) {
+        binding = ListDirItemBinding.bind(view);
+      } else {
+        binding = ListDirItemBinding.inflate(layoutInflater);
       }
-      TextView nameView = (TextView) view.findViewById(R.id.name);
-      nameView.setText(entry.name);
+      binding.name.setText(entry.name);
+      return binding.getRoot();
     } else {
-      if (view == null) {
-        view = inflater.inflate(R.layout.list_file_item, null);
+      final ListFileItemBinding binding;
+      if (view != null) {
+        binding = ListFileItemBinding.bind(view);
+      } else {
+        binding = ListFileItemBinding.inflate(layoutInflater);
       }
-      TextView nameView = (TextView) view.findViewById(R.id.name);
-      TextView sizeView = (TextView) view.findViewById(R.id.size);
-      nameView.setText(entry.name);
-      sizeView.setText(entry.size);
+      binding.name.setText(entry.name);
+      binding.size.setText(entry.size);
+      return binding.getRoot();
     }
-    
-    return view;
   }
-  
+
   @Override
   public boolean areAllItemsEnabled() {
     return false;
@@ -273,7 +300,7 @@ public class FileInfoAdapter extends BaseAdapter {
   public boolean isEnabled(int position) {
     return false;
   }
-  
+
   public boolean hasStableIds() {
     return true;
   }
