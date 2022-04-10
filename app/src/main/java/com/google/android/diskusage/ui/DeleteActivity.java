@@ -21,25 +21,30 @@ package com.google.android.diskusage.ui;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.support.annotation.NonNull;
 import android.util.Log;
-import com.google.android.diskusage.databinding.ActivityCommonBinding;
+import android.view.Menu;
+import android.view.MenuItem;
+import com.google.android.diskusage.R;
+import com.google.android.diskusage.databinding.DeleteViewBinding;
 import com.google.android.diskusage.ui.delete.FileInfoAdapter;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 
 public class DeleteActivity extends Activity {
   public static final String NUM_FILES_KEY = "numFiles";
   public static final String SIZE_KEY = "size";
+  
+  Intent responseIntent;
 
   @Override
   protected void onResume() {
     super.onResume();
 //    Debug.startMethodTracing("diskusage");
     FileSystemEntry.setupStrings(this);
-
     final String path = getIntent().getStringExtra(
         DiskUsage.DELETE_PATH_KEY);
     final String absolutePath = getIntent().getStringExtra(
-        DiskUsage.DELETE_ABSOLUTE_PATH_KEY);
+            DiskUsage.DELETE_ABSOLUTE_PATH_KEY);
     Log.d("diskusage", "DeleteActivity: " + path + " -> " + absolutePath);
 
     DeleteViewBinding binding = DeleteViewBinding.inflate(getLayoutInflater());
@@ -49,26 +54,48 @@ public class DeleteActivity extends Activity {
     FileInfoAdapter.setMessage(
         this, binding.summary, count, sizeString);
 
-    final Intent responseIntent = new Intent();
+    responseIntent = new Intent();
     responseIntent.putExtra(DiskUsage.DELETE_PATH_KEY, path);
     binding.list.setAdapter(new FileInfoAdapter(
         this,
         absolutePath,
         count,
         binding.summary));
-    binding.okButton.setOnClickListener(view -> {
+    /* binding.okButton.setOnClickListener(view -> {
       setResult(DiskUsage.RESULT_DELETE_CONFIRMED, responseIntent);
       finish();
     });
     binding.cancelButton.setOnClickListener(view -> {
       setResult(DiskUsage.RESULT_DELETE_CANCELED);
       finish();
-    });
+    }); **/
   }
-  
+
+  @Override
+  public boolean onCreateOptionsMenu(Menu menu) {
+    getMenuInflater().inflate(R.menu.ask_for_delete_menu, menu);
+    return super.onCreateOptionsMenu(menu);
+  }
+
+  @Override
+  public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+    int itemId = item.getItemId();
+    if (itemId == R.id.ask_cancel) {
+      setResult(DiskUsage.RESULT_DELETE_CANCELED);
+      finish();
+      return true;
+    } else if (itemId == R.id.ask_delete) {
+      setResult(DiskUsage.RESULT_DELETE_CONFIRMED, responseIntent);
+      finish();
+      return true;
+    }
+    return super.onOptionsItemSelected(item);
+  }
+
+  /*
   @Override
   protected void onPause() {
     super.onPause();
-//    Debug.stopMethodTracing();
-  }
+    // Debug.stopMethodTracing();
+  } **/
 }

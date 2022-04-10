@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/ask_cancel"
+        android:title="@android:string/cancel"
+        android:showAsAction="ifRoom" />
+    <item android:id="@+id/ask_delete"
+        android:title="@string/button_delete"
+        android:showAsAction="ifRoom" />
+</menu>

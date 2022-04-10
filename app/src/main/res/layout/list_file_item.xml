@@ -1,36 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="horizontal"
-    android:layout_width="fill_parent"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:focusable="false"
-    >
-<TextView  
-    android:layout_width="0dip" 
-    android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:id="@+id/size" 
-    android:maxLines="1"
-    android:lines="1"
-    android:inputType="none"
-    android:focusable="false"
-    android:gravity="right"
-    android:ellipsize="end"
-    android:singleLine="true"
-    />
-<TextView
-    android:paddingLeft="10px"  
-    android:layout_width="0dip"
-    android:layout_height="wrap_content"
-    android:layout_weight="4"
-    android:id="@+id/name" 
-    android:maxLines="1"
-    android:inputType="none"
-    android:lines="1"
-    android:gravity="left"
-    android:ellipsize="none"
-    android:focusable="false"
-    android:singleLine="true"
-    />
-    
+    android:focusable="false" >
+    <TextView
+        android:id="@+id/size"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:focusable="false"
+        android:gravity="end"
+        android:inputType="none"
+        android:singleLine="true" />
+    <TextView
+        android:id="@+id/name"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="4"
+        android:ellipsize="none"
+        android:focusable="false"
+        android:gravity="start"
+        android:inputType="none"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:singleLine="true"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"/>
 </LinearLayout>
