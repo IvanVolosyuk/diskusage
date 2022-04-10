@@ -51,7 +51,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"/>
   </LinearLayout>
-  <com.google.android.diskusage.MyTextView
+  <com.google.android.diskusage.ui.MyTextView
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
     android:layout_alignParentBottom="true"

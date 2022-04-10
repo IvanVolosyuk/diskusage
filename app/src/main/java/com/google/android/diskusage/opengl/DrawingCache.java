@@ -1,6 +1,6 @@
 package com.google.android.diskusage.opengl;
 
-import com.google.android.diskusage.entity.FileSystemEntry;
+import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.opengl.RenderingThread.TextPixels;
 
 public class DrawingCache {

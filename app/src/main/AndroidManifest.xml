@@ -25,20 +25,19 @@
                  android:theme="@style/Theme"
                  android:hardwareAccelerated="true"
                  android:requestLegacyExternalStorage="true">
-        <activity android:name=".SelectActivity"
-                  android:label="@string/app_name" >
+        <activity android:name=".ui.SelectActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-    <activity android:name=".DiskUsage" android:label="@string/app_name"
-              android:theme="@style/Theme.NoBackground"
+    <activity android:name=".ui.DiskUsage"
+        android:theme="@style/Theme.NoBackground"
               android:hardwareAccelerated="false"
               android:windowSoftInputMode="adjustResize" android:exported="true">
     </activity>
-    <activity android:name=".PermissionRequestActivity"/>
-    <activity android:name=".DeleteActivity"/>
-    <activity android:name="ShowHideMountPointsActivity"/>
+    <activity android:name=".ui.PermissionRequestActivity"/>
+    <activity android:name=".ui.DeleteActivity"/>
+    <activity android:name=".ui.ShowHideMountPointsActivity"/>
 </application>
 </manifest> 

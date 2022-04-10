@@ -9,9 +9,9 @@ import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.support.annotation.NonNull;
-import com.google.android.diskusage.FileSystemState;
-import com.google.android.diskusage.FileSystemState.FileSystemView;
-import com.google.android.diskusage.FileSystemState.MyMotionEvent;
+import com.google.android.diskusage.ui.FileSystemState;
+import com.google.android.diskusage.ui.FileSystemState.FileSystemView;
+import com.google.android.diskusage.ui.FileSystemState.MyMotionEvent;
 
 public final class FileSystemViewGPU extends SurfaceView
                                      implements FileSystemView, SurfaceHolder.Callback {
