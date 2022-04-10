@@ -80,4 +80,6 @@
     <string name="dialog_usage_access_title">需要使用情况访问权限</string>
     <string name="dialog_usage_access_desc">要允许磁盘详情获取已安装应用列表吗？</string>
     <string name="dialog_external_storage_access_error">已拒绝访问外置存储。</string>
+    <string name="about_view_source_code"><![CDATA[在 %s 上查看源代码]]></string>
+    <string name="action_about">关于</string>
 </resources>

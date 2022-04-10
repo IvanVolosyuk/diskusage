@@ -80,4 +80,5 @@
     <string name="dialog_usage_access_title">需要使用狀況存取權限</string>
     <string name="dialog_usage_access_desc">要允許磁碟詳情獲取已安裝程式清單嗎？</string>
     <string name="dialog_external_storage_access_error">已拒絕存取外部儲存。</string>
+    <string name="about_view_source_code"><![CDATA[在 %s 上查看原始碼]]></string>
 </resources>

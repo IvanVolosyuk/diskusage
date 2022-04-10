@@ -1,11 +1,18 @@
 package com.google.android.diskusage.ui;
 
+import android.content.pm.PackageManager;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.support.annotation.NonNull;
+import android.app.AlertDialog;
 import com.google.android.diskusage.R;
+import com.google.android.diskusage.databinding.AboutDialogBinding;
 import com.google.android.diskusage.datasource.SearchManager;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemSpecial;
@@ -25,6 +32,7 @@ public abstract class DiskUsageMenu {
   protected MenuItem rescanMenuItem;
   protected MenuItem deleteMenuItem;
   protected MenuItem rendererMenuItem;
+  protected MenuItem aboutMenuItem;
 
   public DiskUsageMenu(DiskUsage diskusage) {
     this.diskusage = diskusage;
@@ -117,6 +125,32 @@ public abstract class DiskUsageMenu {
         diskusage.rendererManager.isHardwareRendererSupported());
     rendererMenuItem.setOnMenuItemClickListener(item -> {
       diskusage.rendererManager.switchRenderer(masterRoot);
+      return true;
+    });
+
+    aboutMenuItem = menu.add(R.string.action_about);
+    aboutMenuItem.setOnMenuItemClickListener(item -> {
+      final AboutDialogBinding binding =
+              AboutDialogBinding.inflate(LayoutInflater.from(diskusage), null, false);
+      binding.sourceCode.setMovementMethod(LinkMovementMethod.getInstance());
+      binding.sourceCode.setText(Html.fromHtml(diskusage.getString(
+              R.string.about_view_source_code,
+              "<b><a href=\"https://github.com/IvanVolosyuk/diskusage\">GitHub</a></b>"
+              ))
+      );
+      binding.icon.setImageBitmap(
+              BitmapFactory.decodeResource(diskusage.getResources(), R.drawable.icon)
+      );
+      try {
+        binding.versionName.setText(diskusage.getPackageManager().getPackageInfo(
+                diskusage.getPackageName(), 0
+        ).versionName);
+      } catch (PackageManager.NameNotFoundException e) {
+        e.printStackTrace();
+      }
+      new AlertDialog.Builder(diskusage)
+              .setView(binding.getRoot())
+              .show();
       return true;
     });
 

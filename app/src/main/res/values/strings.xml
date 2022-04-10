@@ -94,4 +94,6 @@
   <item>Show SD card memory.</item>
   <item>Show both.</item>
 </string-array>
+    <string name="about_view_source_code"><![CDATA[View source code at %s]]></string>
+    <string name="action_about">About</string>
 </resources>

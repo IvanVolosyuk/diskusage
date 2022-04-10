@@ -3,7 +3,7 @@
         android:title="@string/button_search"
         android:icon="@drawable/icon"
         android:showAsAction="ifRoom"
-        android:actionViewClass="android.widget.SearchView"/>
+        android:actionViewClass="android.widget.SearchView" />
     <item android:id="@+id/show"
         android:title="@string/button_show"
         android:showAsAction="ifRoom|withText" />
@@ -13,6 +13,9 @@
     <item android:id="@+id/delete"
         android:title="@string/button_delete"
         android:showAsAction="ifRoom|withText" />
+    <item android:id="@+id/action_about"
+        android:title="@string/action_about"
+        android:showAsAction="never" />
 </menu>
     
     
