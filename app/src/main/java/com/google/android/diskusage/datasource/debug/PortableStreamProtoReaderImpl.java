@@ -1,20 +1,25 @@
 package com.google.android.diskusage.datasource.debug;
 
+import android.support.annotation.NonNull;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
 import com.google.android.diskusage.proto.PortableStreamProto;
 
+import org.jetbrains.annotations.Contract;
+
 public class PortableStreamProtoReaderImpl extends InputStream {
   private final PortableStreamProto proto;
   private final ByteArrayInputStream is;
 
-  public PortableStreamProtoReaderImpl(PortableStreamProto proto) {
+  public PortableStreamProtoReaderImpl(@NonNull PortableStreamProto proto) {
     this.proto = proto;
     this.is = new ByteArrayInputStream(proto.data);
   }
 
+  @NonNull
+  @Contract("_ -> new")
   public static PortableStreamProtoReaderImpl create(
       PortableStreamProto proto) {
     return new PortableStreamProtoReaderImpl(proto);

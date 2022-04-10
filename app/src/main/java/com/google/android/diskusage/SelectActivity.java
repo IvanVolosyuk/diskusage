@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008-2011 Ivan Volosyuk
  *
@@ -22,21 +22,18 @@ package com.google.android.diskusage;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.util.Log;
-import android.widget.TextView;
 import android.widget.Toast;
-
+import com.google.android.diskusage.databinding.ActivityCommonBinding;
 import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.datasource.DebugDataSourceBridge;
 import com.google.android.diskusage.datasource.fast.DefaultDataSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -47,8 +44,8 @@ import java.util.TreeMap;
 
 public class SelectActivity extends Activity {
   private AlertDialog dialog;
-  Map<String,Bundle> bundles = new TreeMap<String,Bundle>();
-  ArrayList<Runnable> actionList = new ArrayList<Runnable>();
+  Map<String, Bundle> bundles = new TreeMap<>();
+  ArrayList<Runnable> actionList = new ArrayList<>();
   private boolean expandRootMountPoints;
 //  private static boolean debugUnhidden = true;
   private static boolean debugLoadedDump = false;
@@ -76,7 +73,7 @@ public class SelectActivity extends Activity {
       }
       startActivityForResult(i, 0);
     }
-  };
+  }
 
   private class DiskUsageAction extends AbstractUsageAction {
     private final MountPoint mountPoint;
@@ -88,7 +85,7 @@ public class SelectActivity extends Activity {
     public void run() {
       runAction(mountPoint.getKey(), PermissionRequestActivity.class);
     }
-  };
+  }
 
   private class ShowHideAction implements Runnable {
     public void run() {
@@ -181,7 +178,7 @@ public class SelectActivity extends Activity {
             Log.d("diskusage", checksum + " vs " + RootMountPoint.checksum);
           reload = true;
         }
-      } catch (Throwable t) {}
+      } catch (Throwable ignored) {}
 
       if (reload) {
         dialog.hide();
@@ -194,7 +191,7 @@ public class SelectActivity extends Activity {
 
 
   public void makeDialog() {
-    ArrayList<String> options = new ArrayList<String>();
+    ArrayList<String> options = new ArrayList<>();
     actionList.clear();
 
 //    PortableFile[] fileDirs = DataSource.get().getExternalFilesDirs(this);
@@ -243,34 +240,21 @@ public class SelectActivity extends Activity {
         actionList.add(new ShowHideAction());
       } else {
         options.add("[Root required]");
-        actionList.add(new Runnable() {
-          @Override
-          public void run() {
-            expandRootMountPoints = true;
-            makeDialog();
-          }
+        actionList.add(() -> {
+          expandRootMountPoints = true;
+          makeDialog();
         });
 
       }
     }
 
-    final String[] optionsArray = options.toArray(new String[options.size()]);
+    final String[] optionsArray = options.toArray(new String[0]);
 
     dialog = new AlertDialog.Builder(this)
     .setItems(optionsArray,
-        new DialogInterface.OnClickListener() {
-      @Override
-      public void onClick(DialogInterface dialog, int which) {
-        actionList.get(which).run();
-      }
-    })
+            (dialog, which) -> actionList.get(which).run())
     .setTitle(R.string.ask_view)
-    .setOnCancelListener(new OnCancelListener() {
-      @Override
-      public void onCancel(DialogInterface dialog) {
-        finish();
-      }
-    }).create();
+    .setOnCancelListener(dialog -> finish()).create();
     /*try {
       if (debugDataSourceBridge != null) {
         dialog.getListView().setOnItemLongClickListener(
@@ -295,7 +279,8 @@ public class SelectActivity extends Activity {
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     FileSystemEntry.setupStrings(this);
-    setContentView(new TextView(this));
+    ActivityCommonBinding binding = ActivityCommonBinding.inflate(getLayoutInflater());
+    setContentView(binding.getRoot());
 //    ActionBar bar = getActionBar();
 //    bar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_USE_LOGO);
   }
@@ -326,7 +311,7 @@ public class SelectActivity extends Activity {
   }
 
   @Override
-  protected void onSaveInstanceState(Bundle outState) {
+  protected void onSaveInstanceState(@NonNull Bundle outState) {
     super.onSaveInstanceState(outState);
     for (Entry<String, Bundle> entry : bundles.entrySet()) {
       outState.putBundle(entry.getKey(), entry.getValue());

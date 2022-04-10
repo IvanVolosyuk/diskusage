@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008-2011 Ivan Volosyuk
  *

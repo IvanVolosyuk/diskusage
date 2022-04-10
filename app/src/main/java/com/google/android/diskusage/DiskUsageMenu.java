@@ -5,13 +5,12 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.MenuItem.OnMenuItemClickListener;
-
+import android.support.annotation.NonNull;
 import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.entity.FileSystemEntry;
-import com.google.android.diskusage.entity.FileSystemFile;
 import com.google.android.diskusage.entity.FileSystemSpecial;
 import com.google.android.diskusage.entity.FileSystemSuperRoot;
+import org.jetbrains.annotations.Contract;
 
 public abstract class DiskUsageMenu {
   protected final DiskUsage diskusage;
@@ -30,6 +29,8 @@ public abstract class DiskUsageMenu {
     this.diskusage = diskusage;
   }
 
+  @Contract("_ -> new")
+  @NonNull
   public static DiskUsageMenu getInstance(DiskUsage diskusage) {
     final int sdkVersion = DataSource.get().getAndroidVersion();
     if (sdkVersion < Build.VERSION_CODES.CUPCAKE) {
@@ -47,11 +48,11 @@ public abstract class DiskUsageMenu {
   public abstract void searchRequest();
   public abstract MenuItem makeSearchMenuEntry(Menu menu);
 
-  public final void onSaveInstanceState(Bundle outState) {
+  public final void onSaveInstanceState(@NonNull Bundle outState) {
     outState.putString("search", searchPattern);
   }
 
-  public final void onRestoreInstanceState(Bundle inState) {
+  public final void onRestoreInstanceState(@NonNull Bundle inState) {
     searchPattern = inState.getString("search");
   }
 
@@ -78,13 +79,11 @@ public abstract class DiskUsageMenu {
     return matched;
   }
 
-  public void addRescanMenuEntry(Menu menu) {
+  public void addRescanMenuEntry(@NonNull Menu menu) {
     menu.add(getString(R.string.button_rescan))
-    .setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        diskusage.rescan();
-        return true;
-      }
+    .setOnMenuItemClickListener(item -> {
+      diskusage.rescan();
+      return true;
     });
   }
 
@@ -97,43 +96,35 @@ public abstract class DiskUsageMenu {
     return diskusage.getString(id);
   }
 
-  public boolean onPrepareOptionsMenu(Menu menu) {
+  public boolean onPrepareOptionsMenu(@NonNull Menu menu) {
     menu.clear();
     searchMenuItem = makeSearchMenuEntry(menu);
 
     showMenuItem = menu.add(getString(R.string.button_show));
-    showMenuItem.setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        if (selectedEntity != null) {
-          diskusage.view(selectedEntity);
-        }
-        return true;
+    showMenuItem.setOnMenuItemClickListener(item -> {
+      if (selectedEntity != null) {
+        diskusage.view(selectedEntity);
       }
+      return true;
     });
     rescanMenuItem = menu.add(getString(R.string.button_rescan));
-    rescanMenuItem.setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        diskusage.rescan();
-        return true;
-      }
+    rescanMenuItem.setOnMenuItemClickListener(item -> {
+      diskusage.rescan();
+      return true;
     });
 
     deleteMenuItem = menu.add(getString(R.string.button_delete));
-    deleteMenuItem.setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        diskusage.askForDeletion(selectedEntity);
-        return true;
-      }
+    deleteMenuItem.setOnMenuItemClickListener(item -> {
+      diskusage.askForDeletion(selectedEntity);
+      return true;
     });
 
     rendererMenuItem = menu.add("Renderer");
     rendererMenuItem.setVisible(
         diskusage.rendererManager.isHardwareRendererSupported());
-    rendererMenuItem.setOnMenuItemClickListener(new OnMenuItemClickListener() {
-      public boolean onMenuItemClick(MenuItem item) {
-        diskusage.rendererManager.switchRenderer(masterRoot);
-        return true;
-      }
+    rendererMenuItem.setOnMenuItemClickListener(item -> {
+      diskusage.rendererManager.switchRenderer(masterRoot);
+      return true;
     });
 
     updateMenu();

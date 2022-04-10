@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008-2011 Ivan Volosyuk
  *
@@ -21,27 +21,21 @@ package com.google.android.diskusage;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
-
 import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Paint;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.StyleSpan;
-import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.View;
-import android.widget.ProgressBar;
-import android.widget.TextView;
-
+import com.google.android.diskusage.databinding.ProgressBinding;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class MyProgressDialog extends AlertDialog {
   private final Context context;
-  private TextView percentView;
-  private TextView detailsView;
-  private ProgressBar progressBar;
+  private ProgressBinding binding;
   private CharSequence details;
 
   private long progress;
@@ -59,8 +53,9 @@ public class MyProgressDialog extends AlertDialog {
   private int depth = 0;
   private boolean warned = false;
 
-  private final String path(FileSystemEntry entry) {
-    ArrayList<String> pathElements = new ArrayList<String>();
+  @NonNull
+  private String path(FileSystemEntry entry) {
+    ArrayList<String> pathElements = new ArrayList<>();
     FileSystemEntry current = entry;
     while (current != null) {
       pathElements.add(current.name);
@@ -82,21 +77,20 @@ public class MyProgressDialog extends AlertDialog {
 
   char[] prevPathChars = new char[0];
 
-  private String makePathString(String path) {
+  private String makePathString(@NonNull String path) {
 //    Log.d("diskusage", "path = " + path);
     char[] pathChars = path.toCharArray();
     char[] prevPathChars = this.prevPathChars;
     int len = Math.min(pathChars.length, prevPathChars.length);
     int diff;
-    TextView detailsView = this.detailsView;
-    Paint textPaint = detailsView.getPaint();
+    Paint textPaint = binding.progressDetails.getPaint();
 
     for (diff = 0; diff < len; diff++) {
       if (pathChars[diff] == prevPathChars[diff]) continue;
       break;
     }
 
-    float winWidth = detailsView.getWidth();
+    float winWidth = binding.progressDetails.getWidth();
     float extraTextWidth = textPaint.measureText("/.../G");
     float width = winWidth - extraTextWidth;
     if (width < extraTextWidth) return path;
@@ -174,15 +168,13 @@ public class MyProgressDialog extends AlertDialog {
 
   public void onProgressChanged() {
     /* Update the number and percent */
-    long progress = MyProgressDialog.this.progress;
-    long max = MyProgressDialog.this.max;
     double percent = (double) progress / (double) max * basePercent + (1 - basePercent);
-    progressBar.setProgress((int)(percent * 10000));
-    detailsView.setText(details);  // progressNumber.setText(String.format(format, progress, max));
+    binding.progress.setProgress((int)(percent * 10000));
+    binding.progressDetails.setText(details);  // progressNumber.setText(String.format(format, progress, max));
     SpannableString tmp = new SpannableString(progressPercentFormat.format(percent));
     tmp.setSpan(new StyleSpan(android.graphics.Typeface.BOLD),
         0, tmp.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-    percentView.setText(tmp);
+    binding.progressPercent.setText(tmp);
 //    Log.d("diskusage", "details: " + details);
 //    Log.d("diskusage", "depth = " + depth);
     if (depth > 40 && !warned) {
@@ -212,16 +204,11 @@ public class MyProgressDialog extends AlertDialog {
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
-    LayoutInflater inflater = LayoutInflater.from(context);
-    View view = inflater.inflate(R.layout.progress, null);
-    progressBar = (ProgressBar) view.findViewById(R.id.progress);
-    progressBar.setMax(10000);
-    detailsView = (TextView) view.findViewById(R.id.progress_details);
-    percentView = (TextView) view.findViewById(R.id.progress_percent);
+    binding = ProgressBinding.inflate(LayoutInflater.from(context));
     progressPercentFormat = NumberFormat.getPercentInstance();
     progressPercentFormat.setMaximumFractionDigits(0);
-    setView(view);
-    progressBar.setMax(10000);
+    binding.progress.setMax(10000);
+    setView(binding.getRoot());
     onProgressChanged();
     super.onCreate(savedInstanceState);
   }

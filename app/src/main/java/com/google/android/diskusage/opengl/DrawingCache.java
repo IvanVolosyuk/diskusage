@@ -4,7 +4,7 @@ import com.google.android.diskusage.entity.FileSystemEntry;
 import com.google.android.diskusage.opengl.RenderingThread.TextPixels;
 
 public class DrawingCache {
-  private FileSystemEntry entry;
+  private final FileSystemEntry entry;
   private String sizeString;
   public RenderingThread.TextPixels textPixels;
   public RenderingThread.TextPixels sizePixels;

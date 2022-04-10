@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008-2011 Ivan Volosyuk
  *
@@ -32,20 +32,20 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
-
+import android.support.annotation.NonNull;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class FileInfoAdapter extends BaseAdapter {
   private int count;
-  private ArrayList<Entry> entries = new ArrayList<Entry>();
+  private final ArrayList<Entry> entries = new ArrayList<>();
   private boolean finished = false;
   LayoutInflater inflater;
 
-  private String deletePath;
+  private final String deletePath;
   private String base;
   
-  private ArrayList<String> workingSet = new ArrayList<String>();
+  private final ArrayList<String> workingSet = new ArrayList<>();
   private String currentDir = "";
   TextView summary;
   long totalSize;
@@ -60,13 +60,13 @@ public class FileInfoAdapter extends BaseAdapter {
   }
   
   public static void setMessage(
-      Context context, TextView textView, int numfiles, String sizeString) {
+          @NonNull Context context, @NonNull TextView textView, int numfiles, String sizeString) {
     String text = context.getString(
         R.string.delete_summary, numfiles, sizeString);
     textView.setText(text);
   }
   
-  class Entry {
+  static class Entry {
     String size;
     String name;
     
@@ -85,12 +85,7 @@ public class FileInfoAdapter extends BaseAdapter {
     return entries.get(pos);
   }
   
-  Comparator<String> reverseCaseInsensitiveOrder = new Comparator<String>() {
-    @Override
-    public int compare(String object1, String object2) {
-      return object2.compareToIgnoreCase(object1);
-    }
-  };
+  Comparator<String> reverseCaseInsensitiveOrder = (object1, object2) -> object2.compareToIgnoreCase(object1);
   
   private void prepareRoots() {
     base = new File(deletePath).getParent();
@@ -135,8 +130,8 @@ public class FileInfoAdapter extends BaseAdapter {
       }
 
       File[] entries = currentEntity.listFiles();
-      Set<String> dirs = new TreeSet<String>(reverseCaseInsensitiveOrder);
-      Set<String> files = new TreeSet<String>(reverseCaseInsensitiveOrder);
+      Set<String> dirs = new TreeSet<>(reverseCaseInsensitiveOrder);
+      Set<String> files = new TreeSet<>(reverseCaseInsensitiveOrder);
 
       if (entries == null) continue;
       
@@ -148,13 +143,8 @@ public class FileInfoAdapter extends BaseAdapter {
           dirs.add(last + "/" + name);
         }
       }
-      for (String dir : dirs) {
-        workingSet.add(dir);
-      }
-
-      for (String file : files) {
-        workingSet.add(file);
-      }
+      workingSet.addAll(dirs);
+      workingSet.addAll(files);
     }
   }
 
@@ -199,9 +189,9 @@ public class FileInfoAdapter extends BaseAdapter {
       this.currentPos = currentPos;
     }
     @Override
-    protected ArrayList<Entry> doInBackground(Integer... params) {
+    protected ArrayList<Entry> doInBackground(@NonNull Integer... params) {
       int toLoad = params[0];
-      ArrayList<Entry> newEntries = new ArrayList<Entry>();
+      ArrayList<Entry> newEntries = new ArrayList<>();
       for (int i = 0; i < toLoad; i++) {
         if (!loadOne(newEntries)) {
           return newEntries;
@@ -211,7 +201,7 @@ public class FileInfoAdapter extends BaseAdapter {
     }
     
     @Override
-    protected void onPostExecute(ArrayList<Entry> newEntries) {
+    protected void onPostExecute(@NonNull ArrayList<Entry> newEntries) {
       running = false;
       if (newEntries.size() == 0) {
         finished = true;
@@ -229,7 +219,7 @@ public class FileInfoAdapter extends BaseAdapter {
         }
       }
     }
-  };
+  }
   
   private int maxPos;
   

@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008-2011 Ivan Volosyuk
  *
@@ -20,32 +20,20 @@
 package com.google.android.diskusage;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
-
-import android.annotation.TargetApi;
 import android.content.Context;
-import android.os.Build;
 import android.util.Log;
-
 import com.google.android.diskusage.datasource.DataSource;
-import com.google.android.diskusage.datasource.PortableFile;
-import com.google.android.diskusage.datasource.StatFsSource;
-import com.google.android.diskusage.entity.FileSystemEntry;
-import com.google.android.diskusage.entity.FileSystemEntry.ExcludeFilter;
-import com.google.android.diskusage.entity.FileSystemRoot;
 
 public class RootMountPoint extends MountPoint {
-  private final String fsType;
+  // private final String fsType;
 
   RootMountPoint(String root, String fsType) {
     super(root, root, false);
-    this.fsType = fsType;
+    // this.fsType = fsType;
   }
 
   @Override

@@ -1,7 +1,7 @@
 package com.google.android.diskusage.datasource.debug;
 
 import android.os.Build;
-
+import android.support.annotation.NonNull;
 import com.google.android.diskusage.datasource.StatFsSource;
 import com.google.android.diskusage.proto.StatFsProto;
 
@@ -82,7 +82,8 @@ public class StatFsSourceProtoImpl implements StatFsSource {
     return proto.totalBytes;
   }
 
-  static StatFsProto makeProto(String mountPoint, StatFsSource s, int androidVersion) {
+  @NonNull
+  static StatFsProto makeProto(String mountPoint, @NonNull StatFsSource s, int androidVersion) {
     StatFsProto p = new StatFsProto();
     p.mountPoint = mountPoint;
     p.availableBlocks = s.getAvailableBlocks();

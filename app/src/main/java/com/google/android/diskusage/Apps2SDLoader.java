@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008-2011 Ivan Volosyuk
  *
@@ -54,7 +54,7 @@ public class Apps2SDLoader {
   }
 
 
-  public FileSystemEntry[] load(final int blockSize) throws Throwable {
+  public FileSystemEntry[] load(final long blockSize) throws Throwable {
     UsageStatsManager usageStatsManager = (UsageStatsManager) diskUsage.getSystemService(Context.USAGE_STATS_SERVICE);
 
 

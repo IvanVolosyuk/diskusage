@@ -4,7 +4,7 @@ import com.google.android.diskusage.entity.FileSystemEntry;
 import com.google.android.diskusage.entity.FileSystemSuperRoot;
 
 public class SearchManager {
-  private DiskUsageMenu menu;
+  private final DiskUsageMenu menu;
   private Search finishedSearch;
   private Search activeSearch;
   private String query;
@@ -25,13 +25,8 @@ public class SearchManager {
         this.newRoot = (FileSystemSuperRoot)
         root.filter(this.query, baseRoot.getDisplayBlockSize());
         if (isInterrupted()) return;
-        menu.diskusage.handler.post(new Runnable() {
-          @Override
-          public void run() {
-            searchFinished(Search.this);
-          }
-        });
-      } catch (FileSystemEntry.SearchInterruptedException e) {}
+        menu.diskusage.handler.post(() -> searchFinished(Search.this));
+      } catch (FileSystemEntry.SearchInterruptedException ignored) {}
     }
   }
 

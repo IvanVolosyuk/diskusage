@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008-2011 Ivan Volosyuk
  *
@@ -21,18 +21,15 @@ package com.google.android.diskusage;
 
 import android.content.Context;
 import android.util.Log;
-
 import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.datasource.PortableFile;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class MountPoint {
-  private String title;
+  private final String title;
   private final String root;
   private final boolean forceHasApps;
 

@@ -1,5 +1,6 @@
 package com.google.android.diskusage.datasource.debug;
 
+import android.support.annotation.NonNull;
 import com.google.android.diskusage.proto.PortableResultProto;
 
 public abstract class PortableResult {
@@ -24,8 +25,7 @@ public abstract class PortableResult {
       throw new RuntimeException("cannot replay - no data");
     }
     if (status.exception != null) {
-      Exception e = PortableExceptionProtoImpl.create(status.exception);
-      throw e;
+      throw PortableExceptionProtoImpl.create(status.exception);
     } else if (status.evaluated) {
       // all good
     } else {
@@ -34,7 +34,7 @@ public abstract class PortableResult {
   }
 
   public static void replayWithException(
-      PortableResultProto status, Runnable runnable) throws Exception {
+          PortableResultProto status, @NonNull Runnable runnable) throws Exception {
     replayException(status);
     runnable.run();
   }

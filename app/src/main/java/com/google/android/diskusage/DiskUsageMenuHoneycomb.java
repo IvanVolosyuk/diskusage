@@ -3,6 +3,7 @@ package com.google.android.diskusage;
 import android.app.ActionBar;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -10,7 +11,6 @@ import android.view.View;
 import android.widget.SearchView;
 import android.widget.SearchView.OnCloseListener;
 import android.widget.SearchView.OnQueryTextListener;
-
 import com.google.android.diskusage.entity.FileSystemSuperRoot;
 
 public class DiskUsageMenuHoneycomb extends DiskUsageMenu {
@@ -40,7 +40,7 @@ public class DiskUsageMenuHoneycomb extends DiskUsageMenu {
   }
 
 
-  public void setShowAsAction(MenuItem item) {
+  public void setShowAsAction(@NonNull MenuItem item) {
     item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
   }
   
@@ -56,7 +56,7 @@ public class DiskUsageMenuHoneycomb extends DiskUsageMenu {
   }
 
   @Override
-  public MenuItem makeSearchMenuEntry(Menu menu) {
+  public MenuItem makeSearchMenuEntry(@NonNull Menu menu) {
     MenuItem item = menu.add(R.string.button_search);
     searchView = new SearchView(diskusage);
     origSearchBackground = searchView.getBackground();
@@ -95,7 +95,7 @@ public class DiskUsageMenuHoneycomb extends DiskUsageMenu {
   }
   
   @Override
-  public boolean onPrepareOptionsMenu(Menu menu) {
+  public boolean onPrepareOptionsMenu(@NonNull Menu menu) {
     super.onPrepareOptionsMenu(menu);
     setShowAsAction(showMenuItem);
     return true;

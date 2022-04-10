@@ -1,7 +1,7 @@
 package com.google.android.diskusage.datasource.debug;
 
 import android.os.Build;
-
+import android.support.annotation.NonNull;
 import com.google.android.diskusage.datasource.AppStats;
 import com.google.android.diskusage.proto.AppStatsProto;
 
@@ -65,6 +65,7 @@ class AppStatsProtoImpl implements AppStats {
     return proto.externalObbSize;
   }
 
+  @NonNull
   static AppStatsProto makeProto(
       AppStats appStats, boolean isSucceeded, int androidVersion) {
     AppStatsProto proto = new AppStatsProto();

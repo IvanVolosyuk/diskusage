@@ -19,6 +19,7 @@
 
 package com.google.android.diskusage;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.AppOpsManager;
@@ -32,6 +33,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.widget.Toast;
+import com.google.android.diskusage.databinding.ActivityCommonBinding;
 import com.google.android.diskusage.datasource.DataSource;
 
 public class PermissionRequestActivity extends Activity {
@@ -43,6 +45,8 @@ public class PermissionRequestActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ActivityCommonBinding binding = ActivityCommonBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
         Intent i = getIntent();
 
         final String key = i.getStringExtra(DiskUsage.KEY_KEY);
@@ -112,16 +116,13 @@ public class PermissionRequestActivity extends Activity {
                 startActivityForResult(i, PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE);
             }
         } else if (dataSource.getAndroidVersion() >= Build.VERSION_CODES.M) {
-            if (ActivityCompat.checkSelfPermission(
-                    this, Manifest.permission.READ_EXTERNAL_STORAGE
+            if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE
                 ) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(
-                        this, Manifest.permission.WRITE_EXTERNAL_STORAGE
+                checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE
                 ) == PackageManager.PERMISSION_GRANTED) {
                 forwardToDiskUsage();
             } else {
-                ActivityCompat.requestPermissions(
-                        this,
+                requestPermissions(
                         new String[] {
                                 Manifest.permission.READ_EXTERNAL_STORAGE,
                                 Manifest.permission.WRITE_EXTERNAL_STORAGE

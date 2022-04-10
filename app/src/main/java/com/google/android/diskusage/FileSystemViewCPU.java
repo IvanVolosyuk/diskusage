@@ -1,20 +1,22 @@
 package com.google.android.diskusage;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
-
+import android.support.annotation.NonNull;
 import com.google.android.diskusage.FileSystemState.FileSystemView;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
 public final class FileSystemViewCPU extends View implements FileSystemView {
   private final FileSystemState eventHandler;
   
-  public FileSystemViewCPU(DiskUsage context,
-      FileSystemState eventHandler) {
+  public FileSystemViewCPU(Context context,
+                           @NonNull FileSystemState eventHandler) {
     super(context);
     this.eventHandler = eventHandler;
     setFocusable(true);
@@ -23,8 +25,9 @@ public final class FileSystemViewCPU extends View implements FileSystemView {
     eventHandler.setView(this);
   }
 
+  @SuppressLint("ClickableViewAccessibility")
   @Override
-  public final boolean onTouchEvent(MotionEvent ev) {
+  public final boolean onTouchEvent(@NonNull MotionEvent ev) {
     Log.d("diskusage", "touch = " + ev.getX() + ":" + ev.getY());
     eventHandler.onTouchEvent(
         eventHandler.multitouchHandler.newMyMotionEvent(ev));
@@ -64,7 +67,7 @@ public final class FileSystemViewCPU extends View implements FileSystemView {
   public void onResume() {}
 
   @Override
-  public void runInRenderThread(Runnable r) {
+  public void runInRenderThread(@NonNull Runnable r) {
     r.run();
   }
 

@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008-2011 Ivan Volosyuk
  *
@@ -21,9 +21,9 @@ package com.google.android.diskusage.entity;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-
 import android.content.pm.ApplicationInfo;
 import android.util.Log;
+import android.support.annotation.NonNull;
 
 public class FileSystemPackage extends FileSystemEntry {
   public final String pkg;
@@ -37,7 +37,7 @@ public class FileSystemPackage extends FileSystemEntry {
     CODE,
     DATA,
     CACHE
-  };
+  }
 
   public FileSystemPackage(
       String name, String pkg, long codeSize, long dataSize, long cacheSize, int flags) {
@@ -58,11 +58,10 @@ public class FileSystemPackage extends FileSystemEntry {
     this.codeSize = codeSize;
   }
 
-  public void applyFilter(int blockSize) {
+  public void applyFilter(long blockSize) {
     clearDrawingCache();
     long blocks = 0;
-    ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
-    entries.addAll(publicChildren);
+    ArrayList<FileSystemEntry> entries = new ArrayList<>(publicChildren);
     entries.add(FileSystemEntry.makeNode(null, "apk")
             .initSizeInBytes(codeSize, blockSize));
     entries.add(FileSystemEntry.makeNode(null, "data")
@@ -88,7 +87,7 @@ public class FileSystemPackage extends FileSystemEntry {
                                  this.flags);
   }
 
-  public void addPublicChild(FileSystemRoot child, ChildType type, int blockSize) {
+  public void addPublicChild(FileSystemRoot child, @NonNull ChildType type, long blockSize) {
     publicChildren.add(child);
     switch (type) {
       case CODE: codeSize -= child.getSizeInBlocks() * blockSize;

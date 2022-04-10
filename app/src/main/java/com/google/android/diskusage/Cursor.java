@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008 Ivan Volosyuk
  *
@@ -19,6 +19,7 @@
 
 package com.google.android.diskusage;
 
+import android.support.annotation.NonNull;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
 public class Cursor {
@@ -28,7 +29,7 @@ public class Cursor {
   public int depth;
 
   Cursor(FileSystemState state,
-      FileSystemEntry root) {
+         @NonNull FileSystemEntry root) {
     this.root = root;
 
     if (root.children == null || root.children.length == 0) {
@@ -40,7 +41,7 @@ public class Cursor {
     updateTitle(state);
   }
 
-  public void updateTitle(FileSystemState state) {
+  public void updateTitle(@NonNull FileSystemState state) {
     state.mainThreadAction.updateTitle(position);
   }
 
@@ -76,8 +77,8 @@ public class Cursor {
     updateTitle(state);
   }
 
-  boolean left(FileSystemState state) {
-    if (position.parent == root) return false;
+  void left(FileSystemState state) {
+    if (position.parent == root) return;
     state.invalidate(this);
     position = position.parent;
     top = root.getOffset(position);
@@ -85,7 +86,6 @@ public class Cursor {
     // Log.d("Sample", "position depth = " + depth);
     state.invalidate(this);
     updateTitle(state);
-    return true;
   }
 
   void set(FileSystemState state, FileSystemEntry newpos) {

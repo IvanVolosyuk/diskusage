@@ -3,7 +3,6 @@ package com.google.android.diskusage.datasource.debug;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
 import com.google.android.diskusage.proto.PortableStreamProto;
 
 public class PortableStreamProtoWriterImpl extends InputStream {

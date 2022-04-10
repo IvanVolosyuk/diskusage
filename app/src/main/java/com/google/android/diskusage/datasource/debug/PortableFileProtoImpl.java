@@ -2,7 +2,8 @@ package com.google.android.diskusage.datasource.debug;
 
 import android.annotation.TargetApi;
 import android.os.Build;
-
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import com.google.android.diskusage.datasource.PortableFile;
 import com.google.android.diskusage.proto.BooleanValueProto;
 import com.google.android.diskusage.proto.PortableFileProto;
@@ -16,8 +17,9 @@ public class PortableFileProtoImpl implements PortableFile {
     this.androidVersion = androidVersion;
   }
 
-  public static PortableFileProtoImpl make(PortableFileProto proto, int androidVersion) {
-    if (proto.absolutePath != "" && proto.absolutePath != null) {
+  @Nullable
+  public static PortableFileProtoImpl make(@NonNull PortableFileProto proto, int androidVersion) {
+    if (!proto.absolutePath.equals("")) {
       return new PortableFileProtoImpl(proto, androidVersion);
     } else {
       return null;

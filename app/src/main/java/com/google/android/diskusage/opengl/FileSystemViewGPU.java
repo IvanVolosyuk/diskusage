@@ -1,13 +1,14 @@
 package com.google.android.diskusage.opengl;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.graphics.Canvas;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-
-import com.google.android.diskusage.DiskUsage;
+import android.support.annotation.NonNull;
 import com.google.android.diskusage.FileSystemState;
 import com.google.android.diskusage.FileSystemState.FileSystemView;
 import com.google.android.diskusage.FileSystemState.MyMotionEvent;
@@ -15,10 +16,10 @@ import com.google.android.diskusage.FileSystemState.MyMotionEvent;
 public final class FileSystemViewGPU extends SurfaceView
                                      implements FileSystemView, SurfaceHolder.Callback {
   FileSystemState eventHandler;
-  private AbstractRenderingThread thread;
+  private final AbstractRenderingThread thread;
 
   
-  public FileSystemViewGPU(DiskUsage context, FileSystemState eventHandler) {
+  public FileSystemViewGPU(Context context, @NonNull FileSystemState eventHandler) {
     super(context);
     this.eventHandler = eventHandler;
     setFocusable(true);
@@ -27,7 +28,6 @@ public final class FileSystemViewGPU extends SurfaceView
 
 //    setBackgroundColor(Color.GRAY);
     SurfaceHolder holder = getHolder();
-    holder.setType(SurfaceHolder.SURFACE_TYPE_GPU);
     holder.setSizeFromLayout();
     holder.addCallback(this);
     eventHandler.setView(this);
@@ -35,18 +35,12 @@ public final class FileSystemViewGPU extends SurfaceView
     thread.start();
   }
 
+  @SuppressLint("ClickableViewAccessibility")
   @Override
   public final boolean onTouchEvent(final MotionEvent ev) {
     final MyMotionEvent myev = 
       eventHandler.multitouchHandler.newMyMotionEvent(ev);
-;
-    thread.addEvent(new Runnable() {
-      @Override
-      public void run() {
-        eventHandler.onTouchEvent(myev);
-      }
-    });
-
+    thread.addEvent(() -> eventHandler.onTouchEvent(myev));
     return true;
   }
   
@@ -68,12 +62,7 @@ public final class FileSystemViewGPU extends SurfaceView
   
   @Override
   public final boolean onKeyDown(final int keyCode, final KeyEvent event) {
-    thread.addEvent(new Runnable() {
-      @Override
-      public void run() {
-        eventHandler.onKeyDown(keyCode, event);
-      }
-    });
+    thread.addEvent(() -> eventHandler.onKeyDown(keyCode, event));
     switch (keyCode) {
       case KeyEvent.KEYCODE_BACK:
       case KeyEvent.KEYCODE_DPAD_CENTER:
@@ -83,7 +72,7 @@ public final class FileSystemViewGPU extends SurfaceView
       case KeyEvent.KEYCODE_DPAD_DOWN:
       case KeyEvent.KEYCODE_SEARCH:
         return true;
-    };
+    }
 
     return super.onKeyDown(keyCode, event);
   }
@@ -108,7 +97,7 @@ public final class FileSystemViewGPU extends SurfaceView
   }
 
   @Override
-  public void surfaceDestroyed(SurfaceHolder holder) {
+  public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
     holder.removeCallback(this);
     thread.addEvent(thread.new SurfaceAvailableEvent(holder, false));
   }

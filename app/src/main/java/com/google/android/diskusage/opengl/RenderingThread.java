@@ -5,9 +5,7 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
-
 import javax.microedition.khronos.opengles.GL10;
-
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -18,19 +16,18 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.opengl.GLUtils;
-import android.os.SystemClock;
 import android.util.Log;
-
+import android.support.annotation.NonNull;
 import com.google.android.diskusage.FileSystemState;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
 
 public class RenderingThread extends AbstractRenderingThread {
-  private Context context;
-  private FileSystemState eventHandler;
+  private final Context context;
+  private final FileSystemState eventHandler;
   
-  private static final float vertexData[][] = {
+  private static final float[][] vertexData = {
     { 0.1f,  0.2f, 0},
     { 0.9f,  0.2f, 0},
     { 0.9f,  0.9f, 0},
@@ -66,7 +63,7 @@ public class RenderingThread extends AbstractRenderingThread {
   
 //  private float[] dirVertexes = new float[MAX_VERTEX * 3];
 //private float[] fileVertexes = new float[MAX_VERTEX * 3];
-  private float[] textureVertexes = new float[4 * 3];
+  private final float[] textureVertexes = new float[4 * 3];
   
   
   private BitmapMap currentBitmapMap;
@@ -77,7 +74,7 @@ public class RenderingThread extends AbstractRenderingThread {
   private int textHeight;
   private float textBaseline;
   private static final int padding = FileSystemEntry.padding;
-  ArrayList<BitmapMap> bitmaps = new ArrayList<BitmapMap>();
+  ArrayList<BitmapMap> bitmaps = new ArrayList<>();
   
   private static final float divTexSize = 1.f / TEXTURE_SIZE;
   private float max_usage;
@@ -92,9 +89,9 @@ public class RenderingThread extends AbstractRenderingThread {
 //    textBgPaint.setFlags(textPaint.getFlags() | Paint.ANTI_ALIAS_FLAG);
   }
   
-  public void updateFonts(Context context) {
+  public void updateFonts(@NonNull Context context) {
     float scaledDensity = context.getResources().getDisplayMetrics().scaledDensity;
-    float density = context.getResources().getDisplayMetrics().density;
+    // float density = context.getResources().getDisplayMetrics().density;
     float dpi = 160 * scaledDensity;
     int width = context.getResources().getDisplayMetrics().widthPixels;
     int height = context.getResources().getDisplayMetrics().heightPixels;
@@ -132,7 +129,7 @@ public class RenderingThread extends AbstractRenderingThread {
     textPaint.setTextSize(textSize);
     textBaseline = - textPaint.ascent() + FileSystemEntry.padding;
     textHeight = (int)(textPaint.descent() - textPaint.ascent() + 1 + 2 * FileSystemEntry.padding);
-    max_usage = (int)((TEXTURE_SIZE - 1) / textHeight) * (TEXTURE_SIZE - 2);
+    max_usage = ((TEXTURE_SIZE - 1f) / textHeight) * (TEXTURE_SIZE - 2);
     FileSystemEntry.updateFonts(textSize);
   }
   
@@ -164,8 +161,8 @@ public class RenderingThread extends AbstractRenderingThread {
     
     for (int i = 0; i < MAX_RECTS; i++) {
       indicies.put(new short[] {
-          (short)(0 + vertex), (short)(1 + vertex), (short)(2 + vertex),
-          (short)(0 + vertex), (short)(2 + vertex), (short)(3 + vertex)});
+          (short)(vertex), (short)(1 + vertex), (short)(2 + vertex),
+          (short)(vertex), (short)(2 + vertex), (short)(3 + vertex)});
       
       for (int x = 0; x < 4; x++) {
         texCoords.put(vertexData[x][0]);
@@ -179,8 +176,8 @@ public class RenderingThread extends AbstractRenderingThread {
   }
   
   public void drawVertexes(
-      float[] out, int pos, float x0, float y0, float x1, float y1) {
-    out[pos + 0] = x0;
+          @NonNull float[] out, int pos, float x0, float y0, float x1, float y1) {
+    out[pos] = x0;
     out[pos + 1] = y0;
     
     out[pos + 3] = x1;
@@ -222,7 +219,7 @@ public class RenderingThread extends AbstractRenderingThread {
           GL10.GL_UNSIGNED_SHORT, indicies);
       nrects = 0;
     }
-  };
+  }
   
   public class SmallSquare {
     private int nrects = 0;
@@ -286,7 +283,7 @@ public class RenderingThread extends AbstractRenderingThread {
     
     public final void drawVertexes(int pos, float x0, float y0,
         float xoff1, float yoff1, float xoff2, float yoff2) {
-      vertexes[pos + 0] = x0;
+      vertexes[pos] = x0;
       vertexes[pos + 1] = y0;
       vertexes[pos + 3] = x0 + xoff1;
       vertexes[pos + 4] = y0 + yoff1;
@@ -324,7 +321,7 @@ public class RenderingThread extends AbstractRenderingThread {
           GL10.GL_UNSIGNED_SHORT, indicies);
       gl.glDisable(GL10.GL_BLEND);
     }
-  };
+  }
 
   public int newTextureId() {
     int[] ids = new int[1];
@@ -333,10 +330,10 @@ public class RenderingThread extends AbstractRenderingThread {
   }
   
   private class BitmapMap implements Comparable<BitmapMap> {
-    ArrayList<TextPixels> textPixelsArray = new ArrayList<TextPixels>();
+    ArrayList<TextPixels> textPixelsArray = new ArrayList<>();
     int textureid;
     int usage;
-    int last_usage;
+    // int last_usage;
     int y;
     int x;
     int build_x;
@@ -445,12 +442,10 @@ public class RenderingThread extends AbstractRenderingThread {
     }
 
     @Override
-    public int compareTo(BitmapMap another) {
+    public int compareTo(@NonNull BitmapMap another) {
       int score = score();
       int another_score = another.score();
-      if (score < another_score) return -1;
-      if (score > another_score) return 1;
-      return 0;
+      return Integer.compare(score, another_score);
     }
 
     public void destroy() {
@@ -533,7 +528,7 @@ public class RenderingThread extends AbstractRenderingThread {
       
     }
 
-    public void draw(RenderingThread rt, float x0, float y0, int elementWidth) {
+    public void draw(@NonNull RenderingThread rt, float x0, float y0, int elementWidth) {
       int textHeight = rt.textHeight;
       float textBaseline = rt.textBaseline;
       if (size == 0) {
@@ -572,7 +567,7 @@ public class RenderingThread extends AbstractRenderingThread {
       int nrect = bitmapMap.nrect;
       int off = nrect * 8;
       float[] texCoordsArray = bitmapMap.texCoords;
-      texCoordsArray[off + 0] = tex_x0; texCoordsArray[off + 1] = tex_y0;
+      texCoordsArray[off] = tex_x0; texCoordsArray[off + 1] = tex_y0;
       texCoordsArray[off + 2] = tex_x1; texCoordsArray[off + 3] = tex_y0;
       texCoordsArray[off + 4] = tex_x1; texCoordsArray[off + 5] = tex_y1;
       texCoordsArray[off + 6] = tex_x0; texCoordsArray[off + 7] = tex_y1;
@@ -647,7 +642,7 @@ public class RenderingThread extends AbstractRenderingThread {
   }
   
   @Override
-  public boolean renderFrame(GL10 gl) {
+  public boolean renderFrame(@NonNull GL10 gl) {
 //    renderFrameStart();
     int color = Color.GRAY; // context.getResources().getColor(android.R.color.background_light);
     float r = ((color >> 16) & 255) / 255.f;
@@ -686,7 +681,7 @@ public class RenderingThread extends AbstractRenderingThread {
   }
   
   @Override
-  public void sizeChanged(GL10 gl, int width, int height) {
+  public void sizeChanged(@NonNull GL10 gl, int width, int height) {
     Log.d("diskusage", "***** surface size changed       *****");
 //    FileSystemEntry.elementWidth = 100;// FIXME??;
 //    FileSystemEntry.fontSize = 20; // FIXME

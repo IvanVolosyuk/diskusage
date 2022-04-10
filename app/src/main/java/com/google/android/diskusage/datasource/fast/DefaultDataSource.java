@@ -6,7 +6,6 @@ import com.google.android.diskusage.datasource.LegacyFile;
 import com.google.android.diskusage.datasource.PkgInfo;
 import com.google.android.diskusage.datasource.PortableFile;
 import com.google.android.diskusage.datasource.StatFsSource;
-
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.pm.IPackageStatsObserver;
@@ -15,7 +14,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageStats;
 import android.os.Build;
 import android.os.Environment;
-
+import android.support.annotation.NonNull;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -28,19 +27,19 @@ public class DefaultDataSource extends DataSource {
 
   @Override
   public InputStream getProc() throws IOException {
-    return new FileInputStream(new File("/proc/mounts"));
+    return new FileInputStream("/proc/mounts");
   }
 
   @Override
   public int getAndroidVersion() {
-    return Integer.parseInt(Build.VERSION.SDK);
+    return Build.VERSION.SDK_INT;
   }
 
   @Override
-  public List<PkgInfo> getInstalledPackages(PackageManager pm) {
+  public List<PkgInfo> getInstalledPackages(@NonNull PackageManager pm) {
     final List<PackageInfo> installedPackages = pm.getInstalledPackages(
         PackageManager.GET_META_DATA | PackageManager.GET_UNINSTALLED_PACKAGES);
-    List<PkgInfo> packageInfos = new ArrayList<PkgInfo>();
+    List<PkgInfo> packageInfos = new ArrayList<>();
     for (PackageInfo info : installedPackages) {
       packageInfos.add(new PkgInfoImpl(info, pm));
     }

@@ -1,5 +1,6 @@
 package com.google.android.diskusage.datasource.debug;
 
+import android.support.annotation.NonNull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -8,7 +9,8 @@ import java.lang.reflect.Constructor;
 import com.google.android.diskusage.proto.PortableExceptionProto;
 
 public class PortableExceptionProtoImpl {
-  public static PortableExceptionProto makeProto(Exception e) {
+  @NonNull
+  public static PortableExceptionProto makeProto(@NonNull Exception e) {
     PortableExceptionProto ex = new PortableExceptionProto();
     ex.class_ = e.getClass().getName();
     ex.msg = e.getMessage();

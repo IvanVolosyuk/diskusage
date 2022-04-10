@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008-2011 Ivan Volosyuk
  *
@@ -22,12 +22,7 @@ package com.google.android.diskusage;
 import android.app.Activity;
 import android.content.Intent;
 import android.util.Log;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.Button;
-import android.widget.ListView;
-import android.widget.TextView;
-
+import com.google.android.diskusage.databinding.DeleteViewBinding;
 import com.google.android.diskusage.delete.FileInfoAdapter;
 import com.google.android.diskusage.entity.FileSystemEntry;
 
@@ -40,41 +35,34 @@ public class DeleteActivity extends Activity {
     super.onResume();
 //    Debug.startMethodTracing("diskusage");
     FileSystemEntry.setupStrings(this);
-    
+
     final String path = getIntent().getStringExtra(
         DiskUsage.DELETE_PATH_KEY);
     final String absolutePath = getIntent().getStringExtra(
         DiskUsage.DELETE_ABSOLUTE_PATH_KEY);
     Log.d("diskusage", "DeleteActivity: " + path + " -> " + absolutePath);
 
-    setContentView(R.layout.delete_view);
-    ListView lv = (ListView) findViewById(R.id.list);
-    TextView summary = (TextView) findViewById(R.id.summary);
+    DeleteViewBinding binding = DeleteViewBinding.inflate(getLayoutInflater());
+    setContentView(binding.getRoot());
     String sizeString = getIntent().getStringExtra(SIZE_KEY);
     int count = getIntent().getIntExtra(NUM_FILES_KEY, 0);
     FileInfoAdapter.setMessage(
-        this, summary, count, sizeString);
+        this, binding.summary, count, sizeString);
 
     final Intent responseIntent = new Intent();
     responseIntent.putExtra(DiskUsage.DELETE_PATH_KEY, path);
-    lv.setAdapter(new FileInfoAdapter(
+    binding.list.setAdapter(new FileInfoAdapter(
         this,
         absolutePath,
         count,
-        summary));
-    Button ok = (Button) findViewById(R.id.ok_button);
-    ok.setOnClickListener(new OnClickListener() {
-      public void onClick(View arg0) {
-        setResult(DiskUsage.RESULT_DELETE_CONFIRMED, responseIntent);
-        finish();
-      }
+        binding.summary));
+    binding.okButton.setOnClickListener(view -> {
+      setResult(DiskUsage.RESULT_DELETE_CONFIRMED, responseIntent);
+      finish();
     });
-    Button cancel = (Button) findViewById(R.id.cancel_button);
-    cancel.setOnClickListener(new OnClickListener() {
-      public void onClick(View arg0) {
-        setResult(DiskUsage.RESULT_DELETE_CANCELED);
-        finish();
-      }
+    binding.cancelButton.setOnClickListener(view -> {
+      setResult(DiskUsage.RESULT_DELETE_CANCELED);
+      finish();
     });
   }
   

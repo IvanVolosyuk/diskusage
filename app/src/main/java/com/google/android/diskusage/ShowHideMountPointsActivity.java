@@ -1,19 +1,16 @@
 package com.google.android.diskusage;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
-
 import com.google.android.diskusage.DiskUsage.FileSystemStats;
 import com.google.android.diskusage.entity.FileSystemEntry;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class ShowHideMountPointsActivity extends PreferenceActivity {
   @Override
@@ -49,7 +46,7 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
     super.onPause();
     PreferenceScreen prefs = getPreferenceScreen();
     SharedPreferences shprefs =  getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
-    Editor editor = shprefs.edit();
+    SharedPreferences.Editor editor = shprefs.edit();
     editor.clear();
 
     for (int i = 0; i < prefs.getPreferenceCount(); i++) {
@@ -59,6 +56,6 @@ public class ShowHideMountPointsActivity extends PreferenceActivity {
         editor.putBoolean(root, true);
       }
     }
-    editor.commit();
+    editor.apply();
   }
 }

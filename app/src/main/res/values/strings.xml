@@ -78,7 +78,13 @@
 <string name="dialog_usage_access_title">Usage Access Permission Needed</string>
 <string name="dialog_usage_access_desc">Allow DiskUsage to get list of installed apps?</string>
 <string name="dialog_external_storage_access_error">Access to external storage has been denied.</string>
-<string-array name="select_apps">
+    <string name="dialog_ask_filemanager_title">Missing compatible file manager</string>
+    <string name="dialog_ask_filemanager_desc">No compatible filemanager found.\n\nAsk you favorite file manager developer for integration with DiskUsage or install:\n * Solid Explorer\n * OI File Manager</string>
+    <string name="button_install_filemanager">Install Solid Explorer</string>
+    <string name="graph_media">Media</string>
+    <string name="graph_apps">Apps</string>
+    <string name="warn_on_file_select">Press menu to preview or delete</string>
+    <string-array name="select_apps">
   <item>On device.</item>
   <item>On SD card.</item>
   <item>Both.</item>

@@ -31,6 +31,6 @@ android {
 }
 
 dependencies {
-    implementation files('src/main/extra/system.jar')
+    implementation fileTree(dir: 'extra', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008-2011 Ivan Volosyuk
  *
@@ -19,19 +19,21 @@
 
 package com.google.android.diskusage.entity;
 
+import android.support.annotation.NonNull;
+
 /**
  * Non displayed entry which contains just one entry which is
  * displayed root of filesystem.
  */
 public class FileSystemSuperRoot extends FileSystemSpecial {
-  final int blockSize;
+  final long blockSize;
 
-  public FileSystemSuperRoot(int blockSize) {
+  public FileSystemSuperRoot(long blockSize) {
     super(null, 0, blockSize);
     this.blockSize = blockSize;
   }
 
-  public int getDisplayBlockSize() {
+  public long getDisplayBlockSize() {
     return blockSize;
   }
 
@@ -41,7 +43,7 @@ public class FileSystemSuperRoot extends FileSystemSpecial {
   }
 
   @Override
-  public FileSystemEntry filter(CharSequence pattern, int blockSize) {
+  public FileSystemEntry filter(CharSequence pattern, long blockSize) {
     // don't match name
     return filterChildren(pattern, blockSize);
   }
@@ -60,7 +62,7 @@ public class FileSystemSuperRoot extends FileSystemSpecial {
     return null;
   }
   
-  public FileSystemEntry getEntryByName(String path, boolean exactMatch) {
+  public FileSystemEntry getEntryByName(@NonNull String path, boolean exactMatch) {
     return children[0].getEntryByName(path, exactMatch);
   }
 
