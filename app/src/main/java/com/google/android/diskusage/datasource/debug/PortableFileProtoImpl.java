@@ -2,8 +2,8 @@ package com.google.android.diskusage.datasource.debug;
 
 import android.annotation.TargetApi;
 import android.os.Build;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import com.google.android.diskusage.datasource.PortableFile;
 import com.google.android.diskusage.proto.BooleanValueProto;
 import com.google.android.diskusage.proto.PortableFileProto;

@@ -19,7 +19,7 @@
 
 package com.google.android.diskusage.filesystem.entity;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * Non displayed entry which contains just one entry which is

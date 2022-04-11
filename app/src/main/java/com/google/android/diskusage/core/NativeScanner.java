@@ -26,7 +26,7 @@ import java.util.PriorityQueue;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.util.Log;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.ui.DiskUsage.ProgressGenerator;
 import com.google.android.diskusage.datasource.DataSource;

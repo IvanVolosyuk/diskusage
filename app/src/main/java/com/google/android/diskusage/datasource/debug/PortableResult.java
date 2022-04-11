@@ -1,6 +1,6 @@
 package com.google.android.diskusage.datasource.debug;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.proto.PortableResultProto;
 
 public abstract class PortableResult {

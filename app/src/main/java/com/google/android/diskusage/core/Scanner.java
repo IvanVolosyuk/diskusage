@@ -27,7 +27,7 @@ import android.system.ErrnoException;
 import android.system.Os;
 import android.system.StructStat;
 import android.util.Log;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.google.android.diskusage.datasource.LegacyFile;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;

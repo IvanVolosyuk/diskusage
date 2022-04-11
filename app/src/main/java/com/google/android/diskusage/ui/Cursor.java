@@ -19,7 +19,7 @@
 
 package com.google.android.diskusage.ui;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 
 public class Cursor {

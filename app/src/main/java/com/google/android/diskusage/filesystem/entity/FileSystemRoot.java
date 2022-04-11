@@ -1,6 +1,6 @@
 package com.google.android.diskusage.filesystem.entity;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import org.jetbrains.annotations.Contract;
 
 public class FileSystemRoot extends FileSystemEntry {

@@ -20,7 +20,6 @@
 package com.google.android.diskusage.ui;
 
 import com.google.android.diskusage.R;
-import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemFreeSpace;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
@@ -29,7 +28,6 @@ import com.google.android.diskusage.opengl.FileSystemViewGPU;
 import com.google.android.diskusage.opengl.RenderingThread;
 import android.graphics.Canvas;
 import android.graphics.Rect;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
@@ -38,7 +36,7 @@ import android.view.MotionEvent;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.Toast;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;

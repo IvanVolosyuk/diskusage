@@ -19,7 +19,7 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.datasource.AppStatsCallback;
 import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.datasource.LegacyFile;

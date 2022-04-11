@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import android.content.pm.ApplicationInfo;
 import android.util.Log;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 public class FileSystemPackage extends FileSystemEntry {
   public final String pkg;

@@ -1,6 +1,6 @@
 package com.google.android.diskusage.datasource.fast;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import java.io.File;
 import java.io.IOException;
 

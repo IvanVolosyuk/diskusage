@@ -1,7 +1,7 @@
 package com.google.android.diskusage.datasource.debug;
 
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import org.jetbrains.annotations.Contract;
 
 public class Precondition {

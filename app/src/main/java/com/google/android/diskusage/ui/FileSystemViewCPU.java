@@ -8,7 +8,7 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.ui.FileSystemState.FileSystemView;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 

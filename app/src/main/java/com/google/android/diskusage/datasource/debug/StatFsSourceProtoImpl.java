@@ -1,7 +1,7 @@
 package com.google.android.diskusage.datasource.debug;
 
 import android.os.Build;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.datasource.StatFsSource;
 import com.google.android.diskusage.proto.StatFsProto;
 

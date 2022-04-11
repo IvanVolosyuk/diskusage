@@ -8,7 +8,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.ui.FileSystemState;
 import com.google.android.diskusage.ui.FileSystemState.FileSystemView;
 import com.google.android.diskusage.ui.FileSystemState.MyMotionEvent;

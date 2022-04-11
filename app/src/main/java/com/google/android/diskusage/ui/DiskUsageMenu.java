@@ -9,7 +9,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.app.AlertDialog;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.AboutDialogBinding;

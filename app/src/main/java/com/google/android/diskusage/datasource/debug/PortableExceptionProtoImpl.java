@@ -1,6 +1,6 @@
 package com.google.android.diskusage.datasource.debug;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;

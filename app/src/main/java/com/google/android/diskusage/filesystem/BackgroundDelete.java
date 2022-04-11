@@ -36,7 +36,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 public class BackgroundDelete extends Thread {
   ProgressDialog dialog;

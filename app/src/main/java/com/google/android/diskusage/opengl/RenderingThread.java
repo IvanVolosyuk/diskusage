@@ -17,7 +17,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.opengl.GLUtils;
 import android.util.Log;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.ui.FileSystemState;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
