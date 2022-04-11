@@ -22,71 +22,71 @@ class AppStatsProtoImpl implements AppStats {
 
   @Override
   public long getCacheSize() {
-    return proto.cacheSize;
+    return proto.getCacheSize();
   }
 
   @Override
   public long getDataSize() {
-    return proto.dataSize;
+    return proto.getDataSize();
   }
 
   @Override
   public long getCodeSize() {
-    return proto.codeSize;
+    return proto.getCodeSize();
   }
 
   @Override
   public long getExternalCacheSize() {
     versionCheck(Build.VERSION_CODES.HONEYCOMB);
-    return proto.externalCacheSize;
+    return proto.getExternalCacheSize();
   }
 
   @Override
   public long getExternalCodeSize() {
     versionCheck(Build.VERSION_CODES.ICE_CREAM_SANDWICH);
-    return proto.externalCodeSize;
+    return proto.getExternalCodeSize();
   }
 
   @Override
   public long getExternalDataSize() {
     versionCheck(Build.VERSION_CODES.HONEYCOMB);
-    return proto.externalDataSize;
+    return proto.getExternalDataSize();
   }
 
   @Override
   public long getExternalMediaSize() {
     versionCheck(Build.VERSION_CODES.HONEYCOMB);
-    return proto.externalMediaSize;
+    return proto.getExternalMediaSize();
   }
 
   @Override
   public long getExternalObbSize() {
     versionCheck(Build.VERSION_CODES.HONEYCOMB);
-    return proto.externalObbSize;
+    return proto.getExternalObbSize();
   }
 
   @NonNull
   static AppStatsProto makeProto(
       AppStats appStats, boolean isSucceeded, int androidVersion) {
-    AppStatsProto proto = new AppStatsProto();
-    proto.callbackReceived = true;
-    proto.succeeded = isSucceeded;
+    AppStatsProto.Builder proto = AppStatsProto.newBuilder()
+            .setCallbackReceived(true)
+            .setSucceeded(isSucceeded);
     if (appStats != null) {
-      proto.hasAppStats = true;
-      proto.cacheSize = appStats.getCacheSize();
-      proto.codeSize = appStats.getCodeSize();
-      proto.dataSize = appStats.getDataSize();
+      proto.setHasAppStats(true)
+          .setCacheSize(appStats.getCacheSize())
+          .setCodeSize(appStats.getCodeSize())
+          .setDataSize(appStats.getDataSize());
       if (androidVersion >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-        proto.externalCodeSize = appStats.getExternalCodeSize();
+        proto.setExternalCodeSize(appStats.getExternalCodeSize());
       }
       if (androidVersion >= Build.VERSION_CODES.HONEYCOMB) {
-        proto.externalCacheSize = appStats.getExternalCacheSize();
-        proto.externalDataSize = appStats.getExternalDataSize();
-        proto.externalMediaSize = appStats.getExternalMediaSize();
-        proto.externalObbSize = appStats.getExternalObbSize();
+        proto.setExternalCacheSize(appStats.getExternalCacheSize())
+            .setExternalDataSize(appStats.getExternalDataSize())
+            .setExternalMediaSize(appStats.getExternalMediaSize())
+            .setExternalObbSize(appStats.getExternalObbSize());
       }
     }
-    proto.callbackParseDone = true;
-    return proto;
+    proto.setCallbackParseDone(true);
+    return proto.build();
   }
 }

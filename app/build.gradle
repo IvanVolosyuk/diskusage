@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'com.google.protobuf'
 android {
     compileSdkVersion 31
     buildToolsVersion "31"
@@ -16,6 +17,16 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    sourceSets {
+        main {
+            java {
+                srcDir 'src/main/java'
+            }
+            proto {
+                srcDir 'src/main/resources'
+            }
+        }
+    }
 
     buildTypes {
         release {
@@ -30,9 +41,27 @@ android {
     }
 }
 
+protobuf {
+    protoc {
+        // Use pre-compile artifact from repository as upstream recommendation
+        artifact = 'com.google.protobuf:protoc:3.20.0'
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins {
+                java {
+                    option "lite"
+                }
+            }
+
+        }
+    }
+}
+
 dependencies {
     implementation files('src/main/extra/system.jar')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'com.google.protobuf:protobuf-javalite:3.20.0'
 
     testImplementation 'junit:junit:4.13.1'
 }

@@ -9,14 +9,14 @@ public abstract class PortableResult {
 
 
   public static PortableResultProto eval(PortableResult r) {
-    PortableResultProto proto = new PortableResultProto();
+    PortableResultProto.Builder proto = PortableResultProto.newBuilder();
     try {
       r.run();
-      proto.evaluated = true;
+      proto.setEvaluated(true);
     } catch (Exception e) {
-      proto.exception = PortableExceptionProtoImpl.makeProto(e);
+      proto.setException(PortableExceptionProtoImpl.makeProto(e));
     }
-    return proto;
+    return proto.build();
   }
 
   private static void replayException(
@@ -24,9 +24,9 @@ public abstract class PortableResult {
     if (status == null) {
       throw new RuntimeException("cannot replay - no data");
     }
-    if (status.exception != null) {
-      throw PortableExceptionProtoImpl.create(status.exception);
-    } else if (status.evaluated) {
+    if (status.getException() != null) {
+      throw PortableExceptionProtoImpl.create(status.getException());
+    } else if (status.getEvaluated()) {
       // all good
     } else {
       throw new RuntimeException("cannot replay, no data");

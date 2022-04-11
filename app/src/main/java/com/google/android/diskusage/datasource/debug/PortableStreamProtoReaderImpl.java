@@ -15,7 +15,7 @@ public class PortableStreamProtoReaderImpl extends InputStream {
 
   public PortableStreamProtoReaderImpl(@NonNull PortableStreamProto proto) {
     this.proto = proto;
-    this.is = new ByteArrayInputStream(proto.data);
+    this.is = new ByteArrayInputStream(proto.getData().toByteArray());
   }
 
   @NonNull
@@ -29,7 +29,7 @@ public class PortableStreamProtoReaderImpl extends InputStream {
   public int read() throws IOException {
     int res = is.read();
     if (res == -1) {
-      PortableExceptionProtoImpl.throwIOException(proto.readException);
+      PortableExceptionProtoImpl.throwIOException(proto.getReadException());
     }
     return res;
   }
@@ -39,7 +39,7 @@ public class PortableStreamProtoReaderImpl extends InputStream {
       throws IOException {
     int res = is.read(buffer, byteOffset, byteCount);
     if (res == -1) {
-      PortableExceptionProtoImpl.throwIOException(proto.readException);
+      PortableExceptionProtoImpl.throwIOException(proto.getReadException());
     }
     return res;
   }
@@ -47,6 +47,6 @@ public class PortableStreamProtoReaderImpl extends InputStream {
   @Override
   public void close() throws IOException {
     is.close();
-    PortableExceptionProtoImpl.throwIOException(proto.closeException);
+    PortableExceptionProtoImpl.throwIOException(proto.getCloseException());
   }
 }

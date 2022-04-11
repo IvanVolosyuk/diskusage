@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import android.annotation.TargetApi;
 import android.content.Context;
@@ -33,7 +34,6 @@ import com.google.android.diskusage.proto.Dump;
 import com.google.android.diskusage.proto.NativeScanProto;
 import com.google.android.diskusage.proto.PortableFileProto;
 import com.google.android.diskusage.proto.StatFsProto;
-import com.google.protobuf.nano.MessageNano;
 import org.jetbrains.annotations.Contract;
 
 public class DebugDataSource extends DataSource {
@@ -61,20 +61,19 @@ public class DebugDataSource extends DataSource {
   @Contract("_ -> new")
   public static DebugDataSource initNewDump(@NonNull Context c) throws IOException {
     PackageInfo info;
-    Dump dump = new Dump();
+    Dump.Builder dump = Dump.newBuilder();
     try {
       info = c.getPackageManager().getPackageInfo(c.getPackageName(), 0);
     } catch (NameNotFoundException e) {
       throw new RuntimeException(e);
     }
-    dump.version = info.versionName;
-    dump.versionInt = info.versionCode;
-
     DefaultDataSource delegate = new DefaultDataSource();
-    dump.isDeviceRooted = delegate.isDeviceRooted();
-    dump.androidVersion = delegate.getAndroidVersion();
-    return new DebugDataSource(dump, delegate);
+    dump.setVersion(info.versionName)
+            .setVersionInt(info.versionCode)
+            .setIsDeviceRooted(delegate.isDeviceRooted())
+            .setAndroidVersion(delegate.getAndroidVersion());
 
+    return new DebugDataSource(dump.build(), delegate);
   }
 
   @NonNull
@@ -90,24 +89,24 @@ public class DebugDataSource extends DataSource {
 
   @Override
   public int getAndroidVersion() {
-    return dump.androidVersion;
+    return dump.getAndroidVersion();
   }
 
   @Override
   public synchronized List<PkgInfo> getInstalledPackages(PackageManager pm) {
-    if (dump.appInfo == null || dump.appInfo.length == 0) {
+    if (dump.getAppInfoList() == null || dump.getAppInfoList().size() == 0) {
       List<PkgInfo> packages = delegate.getInstalledPackages(pm);
-      dump.appInfo = new AppInfoProto[packages.size()];
+      dump.toBuilder().addAllAppInfo(Arrays.asList(new AppInfoProto[packages.size()]));
       int i = 0;
       for (PkgInfo pkgInfo : packages) {
-        AppInfoProto proto = AppInfoProtoImpl.makeProto(pkgInfo, dump.androidVersion);
-        dump.appInfo[i++] = proto;
+        AppInfoProto proto = AppInfoProtoImpl.makeProto(pkgInfo, dump.getAndroidVersion());
+        dump.toBuilder().setAppInfo(i++, proto);
       }
     }
     List<PkgInfo> result = new ArrayList<>();
 
-    for (int i = 0; i < dump.appInfo.length; i++) {
-      result.add(new AppInfoProtoImpl(dump.appInfo[i], dump.androidVersion));
+    for (final AppInfoProto appInfoProto : dump.getAppInfoList()) {
+      result.add(new AppInfoProtoImpl(appInfoProto, dump.getAndroidVersion()));
     }
     return result;
   }
@@ -119,125 +118,127 @@ public class DebugDataSource extends DataSource {
     AppInfoProtoImpl appInfoImpl = (AppInfoProtoImpl) pkgInfo;
     final AppInfoProto proto = appInfoImpl.proto;
 
-    if (proto.stats != null) {
-      AppStatsProto stats = proto.stats;
+    if (proto.getStats() != null) {
+      AppStatsProto stats = proto.getStats();
       callback.onGetStatsCompleted(
-          stats.hasAppStats
-          ? new AppStatsProtoImpl(stats, dump.androidVersion)
+          stats.getHasAppStats()
+          ? new AppStatsProtoImpl(stats, dump.getAndroidVersion())
           : null,
-              stats.succeeded);
+              stats.getSucceeded());
       return;
     }
 
     delegate.getPackageSizeInfo(
         pkgInfo, getPackageSizeInfo, pm, (appStats, succeeded) -> {
           AppStatsProto stats = AppStatsProtoImpl.makeProto(
-              appStats, succeeded, dump.androidVersion);
-          proto.stats = stats;
+              appStats, succeeded, dump.getAndroidVersion());
+          proto.toBuilder().setStats(stats);
           callback.onGetStatsCompleted(
-              stats.hasAppStats ? new AppStatsProtoImpl(
-                  stats, dump.androidVersion) : null,
-                  stats.succeeded);
-          stats.callbackChildFinished = true;
+              stats.getHasAppStats() ? new AppStatsProtoImpl(
+                  stats, dump.getAndroidVersion()) : null,
+                  stats.getSucceeded());
+          stats.toBuilder().setCallbackChildFinished(true);
         });
   }
 
   @Override
   public synchronized StatFsSource statFs(String mountPoint) {
     int emptyPos = -1;
-    for (int i = 0; i < dump.statFs.length; i++) {
-      if (dump.statFs[i] == null) {
+    for (int i = 0; i < dump.getStatFsList().size(); i++) {
+      if (dump.getStatFs(i) == null) {
         emptyPos = i;
-      } else if (mountPoint.equals(dump.statFs[i].mountPoint)) {
-        return new StatFsSourceProtoImpl(dump.statFs[i], dump.androidVersion);
+      } else if (mountPoint.equals(dump.getStatFs(i).getMountPoint())) {
+        return new StatFsSourceProtoImpl(dump.getStatFs(i), dump.getAndroidVersion());
       }
     }
     if (emptyPos == -1) {
-      StatFsProto[] old = dump.statFs;
-      dump.statFs = new StatFsProto[old.length * 2 + 3];
-      System.arraycopy(old,  0, dump.statFs, 0, old.length);
+      StatFsProto[] old = dump.getStatFsList().toArray(new StatFsProto[0]);
+      dump.toBuilder().addAllStatFs(Arrays.asList(new StatFsProto[old.length * 2 + 3]));
+      System.arraycopy(old,  0, dump.getStatFsList().toArray(), 0, old.length);
       emptyPos = old.length;
     }
-    StatFsProto proto = dump.statFs[emptyPos] = StatFsSourceProtoImpl.makeProto(
-            mountPoint, delegate.statFs(mountPoint), dump.androidVersion);
-    return new StatFsSourceProtoImpl(proto, dump.androidVersion);
+    dump.toBuilder().setStatFs(emptyPos, StatFsSourceProtoImpl.makeProto(
+            mountPoint, delegate.statFs(mountPoint), dump.getAndroidVersion()));
+    StatFsProto proto = dump.getStatFs(emptyPos);
+    return new StatFsSourceProtoImpl(proto, dump.getAndroidVersion());
   }
 
   @TargetApi(Build.VERSION_CODES.FROYO)
   @Override
   public PortableFile getExternalFilesDir(Context context) {
-    if (dump.androidVersion < Build.VERSION_CODES.FROYO) {
+    if (dump.getAndroidVersion() < Build.VERSION_CODES.FROYO) {
       throw new NoClassDefFoundError("Undefined before FROYO");
     }
-    if (dump.externalFilesDir == null) {
-      dump.externalFilesDir = PortableFileProtoImpl.makeProto(
-          delegate.getExternalFilesDir(context), dump.androidVersion);
+    if (dump.getExternalFilesDir() == null) {
+      dump.toBuilder().setExternalFilesDir(PortableFileProtoImpl.makeProto(
+          delegate.getExternalFilesDir(context), dump.getAndroidVersion()));
     }
 
-    return PortableFileProtoImpl.make(dump.externalFilesDir, dump.androidVersion);
+    return PortableFileProtoImpl.make(dump.getExternalFilesDir(), dump.getAndroidVersion());
   }
 
   @TargetApi(Build.VERSION_CODES.KITKAT)
   @Override
   public PortableFile[] getExternalFilesDirs(Context context) {
-    if (dump.androidVersion < Build.VERSION_CODES.KITKAT) {
+    if (dump.getAndroidVersion() < Build.VERSION_CODES.KITKAT) {
       throw new NoClassDefFoundError("Undefined before KITKAT");
     }
 
-    if (dump.externalFilesDirs == null || dump.externalFilesDirs.length == 0) {
+    if (dump.getExternalFilesDirsList() == null || dump.getExternalFilesDirsList().size() == 0) {
       PortableFile[] externalFilesDirs = delegate.getExternalFilesDirs(context);
       PortableFileProto[] protos = new PortableFileProto[externalFilesDirs.length];
       for (int i = 0; i < protos.length; i++) {
-        protos[i] = PortableFileProtoImpl.makeProto(externalFilesDirs[i], dump.androidVersion);
+        protos[i] = PortableFileProtoImpl.makeProto(externalFilesDirs[i], dump.getAndroidVersion());
       }
-      dump.externalFilesDirs = protos;
+      dump.toBuilder().addAllExternalFilesDirs(Arrays.asList(protos));
     }
 
-    PortableFile[] result = new PortableFile[dump.externalFilesDirs.length];
+    PortableFile[] result = new PortableFile[dump.getExternalFilesDirsList().size()];
     for (int i = 0; i < result.length; i++) {
-      result[i] = PortableFileProtoImpl.make(dump.externalFilesDirs[i], dump.androidVersion);
+      result[i] = PortableFileProtoImpl.make(dump.getExternalFilesDirs(i), dump.getAndroidVersion());
     }
     return result;
   }
 
   @Override
   public PortableFile getExternalStorageDirectory() {
-    if (dump.externalStorageDirectory == null) {
-      dump.externalStorageDirectory = PortableFileProtoImpl.makeProto(
-          delegate.getExternalStorageDirectory(), dump.androidVersion);
+    if (dump.getExternalStorageDirectory() == null) {
+      dump.toBuilder().setExternalFilesDir(PortableFileProtoImpl.makeProto(
+          delegate.getExternalStorageDirectory(), dump.getAndroidVersion()));
     }
 
-    return PortableFileProtoImpl.make(dump.externalStorageDirectory, dump.androidVersion);
+    return PortableFileProtoImpl.make(dump.getExternalStorageDirectory(), dump.getAndroidVersion());
   }
 
   @Override
   public boolean isDeviceRooted() {
-    return dump.isDeviceRooted;
+    return dump.getIsDeviceRooted();
   }
 
   @Override
   public InputStream createNativeScanner(Context context, String path,
       boolean rootRequired) throws IOException, InterruptedException {
     int emptyPos = -1;
-    for (int i = 0; i < dump.nativeScan.length; i++) {
-      if (dump.nativeScan[i] == null) {
+    for (int i = 0; i < dump.getNativeScanList().size(); i++) {
+      if (dump.getNativeScan(i) == null) {
         emptyPos = i;
-      } else if (path.equals(dump.nativeScan[i].path)
-          && rootRequired == dump.nativeScan[i].rootRequired) {
-        return PortableStreamProtoReaderImpl.create(dump.nativeScan[i].stream);
+      } else if (path.equals(dump.getNativeScan(i).getPath())
+          && rootRequired == dump.getNativeScan(i).getRootRequired()) {
+        return PortableStreamProtoReaderImpl.create(dump.getNativeScan(i).getStream());
       }
     }
     if (emptyPos == -1) {
-      NativeScanProto[] old = dump.nativeScan;
-      dump.nativeScan = new NativeScanProto[old.length * 2 + 3];
-      System.arraycopy(old,  0, dump.nativeScan, 0, old.length);
+      NativeScanProto[] old = dump.getNativeScanList().toArray(new NativeScanProto[0]);
+      dump.toBuilder().addAllNativeScan(Arrays.asList(new NativeScanProto[old.length * 2 + 3]));
+      System.arraycopy(old,  0, dump.getNativeScanList().toArray(), 0, old.length);
       emptyPos = old.length;
     }
-    final NativeScanProto proto = dump.nativeScan[emptyPos] = new NativeScanProto();
-    proto.path = path;
-    proto.rootRequired = rootRequired;
+    dump.toBuilder().setNativeScan(emptyPos, NativeScanProto.newBuilder());
+    final NativeScanProto.Builder proto = dump.getNativeScan(emptyPos).toBuilder();
+    proto.setPath(path);
+    proto.setRootRequired(rootRequired);
     return PortableStreamProtoWriterImpl.create(
-        delegate.createNativeScanner(context, path, rootRequired), stream -> proto.stream = stream);
+        delegate.createNativeScanner(context, path, rootRequired), proto::setStream);
   }
 
   @Override
@@ -247,28 +248,26 @@ public class DebugDataSource extends DataSource {
 
   @Override
   public InputStream getProc() throws IOException {
-    if (dump.proc != null) {
-      return PortableStreamProtoReaderImpl.create(dump.proc);
+    if (dump.getProc() != null) {
+      return PortableStreamProtoReaderImpl.create(dump.getProc());
     }
-
-
-    return PortableStreamProtoWriterImpl.create(delegate.getProc(), proto -> dump.proc = proto);
+    return PortableStreamProtoWriterImpl.create(delegate.getProc(), dump.toBuilder()::setProc);
   }
 
   @Override
   public PortableFile getParentFile(PortableFile in) {
     PortableFileProtoImpl file = (PortableFileProtoImpl) in;
-    if (file.proto.parent != null) {
-      return PortableFileProtoImpl.make(file.proto.parent, dump.androidVersion);
+    if (file.proto.getParent() != null) {
+      return PortableFileProtoImpl.make(file.proto.getParent(), dump.getAndroidVersion());
     }
 
-    file.proto.parent = PortableFileProtoImpl.makeProto(
-        delegate.getParentFile(in), dump.androidVersion);
-    return PortableFileProtoImpl.make(file.proto.parent, dump.androidVersion);
+    file.proto.toBuilder().setParent(PortableFileProtoImpl.makeProto(
+        delegate.getParentFile(in), dump.getAndroidVersion()));
+    return PortableFileProtoImpl.make(file.proto.getParent(), dump.getAndroidVersion());
   }
 
   public void saveDumpAndSendReport(@NonNull Context context) throws IOException {
-    byte[] dumpBytes = MessageNano.toByteArray(dump);
+    byte[] dumpBytes = dump.toByteArray();
     InputStream is = new ByteArrayInputStream(dumpBytes);
     File dumpFile = dumpFile();
     OutputStream os = new FileOutputStream(dumpFile);
