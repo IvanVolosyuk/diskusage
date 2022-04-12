@@ -41,6 +41,12 @@ android {
     }
 }
 
+android.applicationVariants.all { variant ->
+    variant.outputs.all {
+        outputFileName = "diskusage-v${variant.versionName}-${variant.name}.apk"
+    }
+}
+
 protobuf {
     protoc {
         // Use pre-compile artifact from repository as upstream recommendation
