@@ -8,7 +8,7 @@ android {
     defaultConfig {
         applicationId "com.google.android.diskusage"
         targetSdkVersion 30
-        minSdk 16
+        minSdk 21
     }
     buildFeatures {
         viewBinding true
