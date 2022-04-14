@@ -1,11 +1,5 @@
 package com.google.android.diskusage.opengl;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
-import java.nio.ShortBuffer;
-import java.util.ArrayList;
-import javax.microedition.khronos.opengles.GL10;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -16,11 +10,17 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.opengl.GLUtils;
-import android.util.Log;
 import androidx.annotation.NonNull;
-import com.google.android.diskusage.ui.FileSystemState;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
+import com.google.android.diskusage.ui.FileSystemState;
+import com.google.android.diskusage.utils.Logger;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
+import java.nio.ShortBuffer;
+import java.util.ArrayList;
+import javax.microedition.khronos.opengles.GL10;
 
 
 public class RenderingThread extends AbstractRenderingThread {
@@ -98,7 +98,7 @@ public class RenderingThread extends AbstractRenderingThread {
     int min = Math.min(width, height);
     float minInch = min / dpi; // my tablet: 5 inch height
                                // my phone: 2 inc width
-    Log.d("diskusage", "screen inch = " + minInch);
+    Logger.getLOGGER().d("RenderingThread.updateFonts(): Screen inch = %s", minInch);
     
     float defaultSize = textPaint.getTextSize();
     textPaint.setTextSize(20);
@@ -666,13 +666,13 @@ public class RenderingThread extends AbstractRenderingThread {
 
   @Override
   public void createResources(GL10 gl) {
-    Log.d("diskusage", "***** surface created *****");
+    Logger.getLOGGER().d("***** Surface Created *****");
     // Load textures
     LoadTextures(gl);
   }
   
   public void releaseResources(GL10 gl) {
-    Log.d("diskusage", "***** surface destroyed *****");
+    Logger.getLOGGER().d("***** Surface Destroyed *****");
     for (BitmapMap bitmap : bitmaps) {
       bitmap.destroy();
     }
@@ -682,7 +682,7 @@ public class RenderingThread extends AbstractRenderingThread {
   
   @Override
   public void sizeChanged(@NonNull GL10 gl, int width, int height) {
-    Log.d("diskusage", "***** surface size changed       *****");
+    Logger.getLOGGER().d("***** Surface Size Changed *****");
 //    FileSystemEntry.elementWidth = 100;// FIXME??;
 //    FileSystemEntry.fontSize = 20; // FIXME
     eventHandler.layout(true, 0, 0, width, height, width, height);
@@ -691,7 +691,7 @@ public class RenderingThread extends AbstractRenderingThread {
     gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT,
         GL10.GL_FASTEST);
     gl.glViewport(0, 0, width, height);
-    Log.d("diskusage", "updated viewport = " + width + "x" + height);
+    Logger.getLOGGER().d("RenderingThread.sizeChanged(): Updated viewport = %s x %s", width, height);
     
     
     gl.glMatrixMode(GL10.GL_PROJECTION);

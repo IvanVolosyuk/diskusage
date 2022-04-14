@@ -1,16 +1,14 @@
 package com.google.android.diskusage.opengl;
 
+import android.view.SurfaceHolder;
+import com.google.android.diskusage.utils.Logger;
 import java.util.ArrayList;
-
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLContext;
 import javax.microedition.khronos.egl.EGLDisplay;
 import javax.microedition.khronos.egl.EGLSurface;
 import javax.microedition.khronos.opengles.GL10;
-
-import android.util.Log;
-import android.view.SurfaceHolder;
 
 public abstract class AbstractRenderingThread extends Thread {
   public abstract boolean renderFrame(GL10 gl);
@@ -66,9 +64,9 @@ public abstract class AbstractRenderingThread extends Thread {
       }
       
     } catch (ExitException e) {
-      Log.d("diskusage", "rendering thread exited cleanly");
+      Logger.getLOGGER().e("AbstractRenderingThread.run(): Rendering thread exited cleanly", e);
     } catch (InterruptedException e) {
-      Log.d("diskusage", "rendering thread was interrupted");
+      Logger.getLOGGER().e("AbstractRenderingThread.run(): Rendering thread was interrupted", e);
 
     }
   }
@@ -80,7 +78,7 @@ public abstract class AbstractRenderingThread extends Thread {
       synchronized (events) {
         if (events.isEmpty()) {
           if (stopRenderingThread && !surfaceAvailable) {
-            Log.d("diskusage", "*** Rendering thread is about to finish. ***");
+            Logger.getLOGGER().d("*** Rendering thread is about to finish. ***");
             throw new ExitException();
           }
           if (surfaceAvailable  && sizeInitialized && !stopRenderingThread
@@ -185,7 +183,7 @@ public abstract class AbstractRenderingThread extends Thread {
     }
     
     public void initSurface(SurfaceHolder holder) {
-      Log.d("diskusage", "*** init surface ****");
+      Logger.getLOGGER().d("*** Init Surface ****");
       
       // Note: I haven't found how to avoid race condition with surfaceCreated
       // and surfaceDestroyed in SurfaceHolder.Callback and the renderer thread.
@@ -193,12 +191,12 @@ public abstract class AbstractRenderingThread extends Thread {
         surface = egl.eglCreateWindowSurface(eglDisplay, eglConfig, holder, null);
         egl.eglMakeCurrent(eglDisplay, surface, surface, eglContext);
       } catch (Exception e) {
-        Log.e("diskusage", "initSurface", e);
+        Logger.getLOGGER().e("AbstractRenderingThread.initSurface()", e);
       }
     }
     
     public void destroySurface(SurfaceHolder holder) {
-      Log.d("diskusage", "*** destroy surface ***");
+      Logger.getLOGGER().d("*** Destroy Surface ***");
       try {
         egl.eglMakeCurrent(eglDisplay, EGL10.EGL_NO_SURFACE,
             EGL10.EGL_NO_SURFACE,
@@ -207,7 +205,7 @@ public abstract class AbstractRenderingThread extends Thread {
         egl.eglDestroyContext(eglDisplay, eglContext);
         egl.eglTerminate(eglDisplay);
       } catch (Exception e) {
-        Log.e("diskusage", "destroySurface", e);
+        Logger.getLOGGER().e("AbstractRenderingThread.destroySurface()", e);
       }
     }
     

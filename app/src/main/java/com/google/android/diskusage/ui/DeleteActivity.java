@@ -21,14 +21,14 @@ package com.google.android.diskusage.ui;
 
 import android.app.Activity;
 import android.content.Intent;
-import androidx.annotation.NonNull;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.DeleteViewBinding;
-import com.google.android.diskusage.ui.delete.FileInfoAdapter;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
+import com.google.android.diskusage.ui.delete.FileInfoAdapter;
+import com.google.android.diskusage.utils.Logger;
 
 public class DeleteActivity extends Activity {
   public static final String NUM_FILES_KEY = "numFiles";
@@ -45,7 +45,7 @@ public class DeleteActivity extends Activity {
         DiskUsage.DELETE_PATH_KEY);
     final String absolutePath = getIntent().getStringExtra(
             DiskUsage.DELETE_ABSOLUTE_PATH_KEY);
-    Log.d("diskusage", "DeleteActivity: " + path + " -> " + absolutePath);
+    Logger.getLOGGER().d("DeleteActivity.onResume(): %s -> %s", path, absolutePath);
 
     DeleteViewBinding binding = DeleteViewBinding.inflate(getLayoutInflater());
     setContentView(binding.getRoot());

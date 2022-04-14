@@ -19,14 +19,14 @@
 
 package com.google.android.diskusage.filesystem.mnt;
 
+import android.content.Context;
+import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.utils.Logger;
 import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import android.content.Context;
-import android.util.Log;
-import com.google.android.diskusage.datasource.DataSource;
 
 public class RootMountPoint extends MountPoint {
   // private final String fsType;
@@ -82,11 +82,11 @@ public class RootMountPoint extends MountPoint {
       String line;
       while ((line = reader.readLine()) != null) {
         checksum += line.length();
-        Log.d("diskusage", "line: " + line);
+        Logger.getLOGGER().d("RootMountPoint.initMountPoints(): Line: %s", line);
         String[] parts = line.split(" +");
         if (parts.length < 3) continue;
         String mountPoint = parts[1];
-        Log.d("diskusage", "Mount point: " + mountPoint);
+        Logger.getLOGGER().d("RootMountPoint.initMountPoints(): Mount point: " + mountPoint);
         String fsType = parts[2];
 
         if (!mountPoint.startsWith("/mnt/asec/")) {
@@ -97,7 +97,7 @@ public class RootMountPoint extends MountPoint {
       }
       reader.close();
     } catch (Exception e) {
-      Log.e("diskusage", "Failed to get mount points", e);
+      Logger.getLOGGER().e("RootMountPoint.initMountPoints(): Failed to get mount points", e);
     }
   }
 

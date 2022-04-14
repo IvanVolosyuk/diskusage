@@ -19,9 +19,12 @@
 
 package com.google.android.diskusage.filesystem;
 
-import java.io.File;
-import java.io.IOException;
-
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.net.Uri;
+import android.widget.Toast;
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.core.Scanner;
 import com.google.android.diskusage.datasource.DataSource;
@@ -29,14 +32,9 @@ import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.ui.DiskUsage;
-
-import android.app.ProgressDialog;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.net.Uri;
-import android.util.Log;
-import android.widget.Toast;
-import androidx.annotation.NonNull;
+import com.google.android.diskusage.utils.Logger;
+import java.io.File;
+import java.io.IOException;
 
 public class BackgroundDelete extends Thread {
   ProgressDialog dialog;
@@ -142,7 +140,7 @@ public class BackgroundDelete extends Thread {
   }
 
   public void restore() {
-    Log.d("DiskUsage", "restore started for " + path);
+    Logger.getLOGGER().d("restore started for " + path);
     MountPoint mountPoint = MountPoint.getForKey(diskUsage, diskUsage.getKey());
     long displayBlockSize = diskUsage.fileSystemState.masterRoot.getDisplayBlockSize();
     try {
@@ -153,17 +151,16 @@ public class BackgroundDelete extends Thread {
       // FIXME: may be problems in case of two deletions
       entry.parent.insert(newEntry, displayBlockSize);
       diskUsage.fileSystemState.restore(newEntry);
-      Log.d("DiskUsage", "restoring undeleted: "
-              + newEntry.name + " " + newEntry.sizeString());
+      Logger.getLOGGER().d("BackgroundDelete.restore(): Restoring undeleted: %s %s",
+              newEntry.name, newEntry.sizeString());
     } catch (IOException e) {
-      Log.d("diskusage", "Failed to restore");
+      Logger.getLOGGER().d("Failed to restore");
     }
   }
 
   public void notifyUser() {
-    Log.d("DiskUsage", "Delete: status = " + deletionStatus
-        + " directories " + numDeletedDirectories
-        + " files " + numDeletedFiles);
+    Logger.getLOGGER().d("BackgroundDelete.notifyUser(): Delete: status = %s directories %s files %s",
+            deletionStatus, numDeletedDirectories, numDeletedFiles);
 
     if (deletionStatus == DELETION_SUCCESS) {
       Toast.makeText(diskUsage,

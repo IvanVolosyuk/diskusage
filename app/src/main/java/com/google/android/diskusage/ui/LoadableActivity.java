@@ -23,13 +23,13 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.widget.Toast;
-import com.google.android.diskusage.ui.DiskUsage.AfterLoad;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
+import com.google.android.diskusage.ui.DiskUsage.AfterLoad;
+import com.google.android.diskusage.utils.Logger;
 import java.io.IOException;
 import java.util.Map;
 import java.util.TreeMap;
@@ -87,7 +87,7 @@ public abstract class LoadableActivity extends Activity {
       final AfterLoad runAfterLoad, boolean force) {
     boolean scanRunning;
     final PersistantActivityState state = getPersistantState();
-    Log.d("diskusage", "LoadFiles, afterLoad = " + runAfterLoad);
+    Logger.getLOGGER().d("LoadableActivity.LoadFiles(), afterLoad = %s", runAfterLoad);
 
     if (force) {
       state.root = null;
@@ -100,7 +100,7 @@ public abstract class LoadableActivity extends Activity {
 
     scanRunning = state.afterLoad != null;
     state.afterLoad = runAfterLoad;
-    Log.d("diskusage", "created new progress dialog");
+    Logger.getLOGGER().d("LoadableActivity.LoadFiles(): Created new progress dialog");
     state.loading = new MyProgressDialog(activity);
 
     final MyProgressDialog thisLoading = state.loading;
@@ -122,15 +122,15 @@ public abstract class LoadableActivity extends Activity {
       public void run() {
         String error;
         try {
-          Log.d("diskusage", "running scan for " + getKey());
+          Logger.getLOGGER().d("LoadableActivity.LoadFiles(): Running scan for %s", getKey());
           final FileSystemSuperRoot newRoot = scan();
 
           handler.post(() -> {
             if (state.loading == null) {
-              Log.d("diskusage", "no dialog, doesn't run afterLoad");
+              Logger.getLOGGER().d("LoadableActivity.LoadFiles(): No dialog, doesn't run afterLoad");
               state.afterLoad = null;
               if (newRoot.children[0].children != null) {
-                Log.d("diskusage", "no dialog, updating root still");
+                Logger.getLOGGER().d("LoadableActivity.LoadFiles(): No dialog, updating root still");
                 state.root = newRoot;
               }
               return;
@@ -139,45 +139,39 @@ public abstract class LoadableActivity extends Activity {
             state.loading = null;
             AfterLoad afterLoadCopy = state.afterLoad;
             state.afterLoad = null;
-            Log.d("diskusage", "dismissed dialog");
+            Logger.getLOGGER().d("LoadableActivity.LoadFiles(): Dismissed dialog");
 
             if (newRoot.children[0].children == null) {
-              Log.d("diskusage", "empty card");
+              Logger.getLOGGER().d("LoadableActivity.LoadFiles(): Empty card");
               handleEmptySDCard(activity, runAfterLoad);
               return;
             }
             state.root = newRoot;
             pkg_removed = null;
-            Log.d("diskusage", "run afterLoad = " + afterLoadCopy);
+            Logger.getLOGGER().d("LoadableActivity.LoadFiles(): Run afterLoad = %s", afterLoadCopy);
             afterLoadCopy.run(state.root, false);
           });
           return;
         } catch (final OutOfMemoryError e) {
           state.root = null;
           state.afterLoad = null;
-          Log.d("DiskUsage", "out of memory!");
+          Logger.getLOGGER().d("LoadableActivity.LoadFiles(): Out of memory!");
           handler.post(() -> {
             if (state.loading == null) return;
             state.loading.dismiss();
             handleOutOfMemory(activity);
           });
           return;
-        } catch (InterruptedException e) {
+        } catch (InterruptedException | IOException | RuntimeException e) {
           error = e.getClass().getName() + ":" + e.getMessage();
-          Log.e("diskusage", "native error", e);
-        } catch (IOException e) {
-          error = e.getClass().getName() + ":" + e.getMessage();
-          Log.e("diskusage", "native error", e);
-        } catch (final RuntimeException e) {
-          error = e.getClass().getName() + ":" + e.getMessage();
-          Log.e("diskusage", "native error", e);
+          Logger.getLOGGER().e("LoadableActivity.LoadFiles(): Native error", e);
         } catch (final StackOverflowError e) {
           error = "Filesystem is damaged.";
         }
         final String finalError = error;
         state.root = null;
         state.afterLoad = null;
-        Log.d("DiskUsage", "exception in scan!");
+        Logger.getLOGGER().d("LoadableActivity.LoadFiles(): Exception in scan!");
         handler.post(() -> {
           if (state.loading == null) return;
           state.loading.dismiss();
@@ -195,7 +189,7 @@ public abstract class LoadableActivity extends Activity {
     PersistantActivityState state = getPersistantState();
     if (state.loading != null) {
       if (state.loading.isShowing()) state.loading.dismiss();
-      Log.d("diskusage", "removed progress dialog");
+      Logger.getLOGGER().d("LoadableActivity.onPause(): Removed progress dialog");
       state.loading = null;
     }
     super.onPause();
@@ -207,7 +201,7 @@ public abstract class LoadableActivity extends Activity {
     .setTitle(activity.getString(R.string.empty_or_missing_sdcard))
     .setPositiveButton(activity.getString(R.string.button_rescan), (dialog, which) -> {
       if (afterLoad == null)
-        throw new RuntimeException("afterLoad is empty");
+        throw new RuntimeException("LoadableActivity.handleEmptySDCard(): afterLoad is empty");
       LoadFiles(activity, afterLoad, true);
     })
     .setOnCancelListener(dialog -> activity.finish()).create().show();

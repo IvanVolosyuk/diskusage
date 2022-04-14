@@ -19,23 +19,23 @@
 
 package com.google.android.diskusage.filesystem.entity;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.Map.Entry;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.util.Log;
 import androidx.annotation.NonNull;
-import com.google.android.diskusage.ui.Cursor;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.opengl.DrawingCache;
 import com.google.android.diskusage.opengl.RenderingThread;
+import com.google.android.diskusage.ui.Cursor;
+import com.google.android.diskusage.utils.Logger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 public class FileSystemEntry {
   private static final Paint bg = new Paint();
@@ -1119,7 +1119,7 @@ public class FileSystemEntry {
    * @param exactMatch TODO
    */
   public FileSystemEntry getEntryByName(@NonNull String path, boolean exactMatch) {
-    Log.d("diskusage", "getEntryForName = " + path);
+    Logger.getLOGGER().d("FileSystemEntry.getEntryByName(): getEntryForName = %s", path);
     String[] pathElements = path.split("/");
     FileSystemEntry entry = this;
 

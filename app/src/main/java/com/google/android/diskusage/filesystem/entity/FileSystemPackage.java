@@ -19,11 +19,11 @@
 
 package com.google.android.diskusage.filesystem.entity;
 
+import android.content.pm.ApplicationInfo;
+import androidx.annotation.NonNull;
+import com.google.android.diskusage.utils.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
-import android.content.pm.ApplicationInfo;
-import android.util.Log;
-import androidx.annotation.NonNull;
 
 public class FileSystemPackage extends FileSystemEntry {
   public final String pkg;
@@ -92,19 +92,19 @@ public class FileSystemPackage extends FileSystemEntry {
     switch (type) {
       case CODE: codeSize -= child.getSizeInBlocks() * blockSize;
         if (codeSize < 0) {
-          Log.d("diskusage", "code size negative " + codeSize + " for " + pkg);
+          Logger.getLOGGER().d("FileSystemPackage.addPublicChild(): Code size negative %s for %s", codeSize, pkg);
           codeSize = 0;
         }
         break;
       case DATA: dataSize -= child.getSizeInBlocks() * blockSize;
         if (dataSize < 0) {
-          Log.d("diskusage", "data size negative " + dataSize + " for " + pkg);
+          Logger.getLOGGER().d("FileSystemPackage.addPublicChild(): Data size negative %s for %s", dataSize, pkg);
           dataSize = 0;
         }
         break;
       case CACHE: cacheSize -= child.getSizeInBlocks() * blockSize;
         if (cacheSize < 0) {
-          Log.d("diskusage", "cache size negative " + cacheSize + " for " + pkg);
+          Logger.getLOGGER().d("FileSystemPackage.addPublicChild(): Cache size negative %s for %s", cacheSize, pkg);
           cacheSize = 0;
         }
         break;

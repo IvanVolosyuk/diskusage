@@ -13,6 +13,7 @@ import android.widget.SearchView.OnCloseListener;
 import android.widget.SearchView.OnQueryTextListener;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
+import com.google.android.diskusage.utils.Logger;
 
 public class DiskUsageMenuHoneycomb extends DiskUsageMenu {
   private SearchView searchView;
@@ -71,7 +72,7 @@ public class DiskUsageMenuHoneycomb extends DiskUsageMenu {
     searchView.setOnCloseListener(new OnCloseListener() {
       @Override
       public boolean onClose() {
-        Log.d("diskusage", "search closed");
+        Logger.getLOGGER().d("Search process closed");
         searchPattern = null;
         diskusage.applyPatternNewRoot(masterRoot, null);
         return false;
@@ -86,7 +87,7 @@ public class DiskUsageMenuHoneycomb extends DiskUsageMenu {
 
       @Override
       public boolean onQueryTextChange(String newText) {
-        Log.d("diskusage", "search query changed to: " + newText);
+        Logger.getLOGGER().d("Search query changed to: %s", newText);
         searchPattern = newText;
         applyPattern(searchPattern);
         return true;

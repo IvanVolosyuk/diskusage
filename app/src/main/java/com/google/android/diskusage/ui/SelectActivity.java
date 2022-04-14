@@ -26,18 +26,17 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
-import androidx.annotation.NonNull;
-import android.util.Log;
 import android.widget.Toast;
-
-import com.google.android.diskusage.filesystem.mnt.MountPoint;
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.R;
-import com.google.android.diskusage.filesystem.mnt.RootMountPoint;
 import com.google.android.diskusage.databinding.ActivityCommonBinding;
 import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.datasource.DebugDataSourceBridge;
 import com.google.android.diskusage.datasource.fast.DefaultDataSource;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
+import com.google.android.diskusage.filesystem.mnt.MountPoint;
+import com.google.android.diskusage.filesystem.mnt.RootMountPoint;
+import com.google.android.diskusage.utils.Logger;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -62,7 +61,7 @@ public class SelectActivity extends Activity {
           "com.google.android.diskusage.datasource.debug.DebugDataSourceBridgeImpl");
       debugDataSourceBridge = (DebugDataSourceBridge) clazz.newInstance();
     } catch (Throwable t) {
-      Log.d("diskusage", "Debug is disabled");
+      Logger.getLOGGER().d("Debug is disabled", t);
     }
   }
 
@@ -108,7 +107,7 @@ public class SelectActivity extends Activity {
         MountPoint.reset();
         makeDialog();
       } catch (IOException e) {
-        Log.d("diskusage", "Failed to enable debug", e);
+        Logger.getLOGGER().d("Failed to enable debug", e);
         Toast.makeText(
             SelectActivity.this,
             "Failed to enable debug " + e.getMessage(),
@@ -140,7 +139,7 @@ public class SelectActivity extends Activity {
         MountPoint.reset();
         makeDialog();
       } catch (IOException e) {
-        Log.d("diskusage", "Failed to enable debug", e);
+        Logger.getLOGGER().d("Failed to enable debug", e);
         Toast.makeText(
             SelectActivity.this,
             "Failed to enable debug " + e.getMessage(),
@@ -156,7 +155,7 @@ public class SelectActivity extends Activity {
         debugDataSourceBridge.saveDumpAndSendReport(
             debugDataSource, SelectActivity.this);
       } catch (IOException e) {
-        Log.d("diskusage", "Failed to send bugreport", e);
+        Logger.getLOGGER().d("Failed to send bug report", e);
         Toast.makeText(
             SelectActivity.this,
             "Failed to send bugreport: " + e.getMessage(),
@@ -179,7 +178,7 @@ public class SelectActivity extends Activity {
         }
         reader.close();
         if (checksum != RootMountPoint.checksum) {
-            Log.d("diskusage", checksum + " vs " + RootMountPoint.checksum);
+          Logger.getLOGGER().d("%s vs %s", checksum, RootMountPoint.checksum);
           reload = true;
         }
       } catch (Throwable ignored) {}

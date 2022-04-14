@@ -28,13 +28,11 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.storage.StorageManager;
-import android.util.Log;
-
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.ui.DiskUsage;
 import com.google.android.diskusage.ui.MyProgressDialog;
-
+import com.google.android.diskusage.utils.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -59,7 +57,7 @@ public class Apps2SDLoader {
 
     final List<UsageStats> queryUsageStats=usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_YEARLY, 0 ,System.currentTimeMillis());
-    Log.d("diskusage", "stats size = " + queryUsageStats.size());
+    Logger.getLOGGER().d("Apps2SDLoader.load(): Stats size = %s", queryUsageStats.size());
     StorageStatsManager storageStatsManager = (StorageStatsManager) diskUsage.getSystemService(Context.STORAGE_STATS_SERVICE);
     final ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
     PackageManager packageManager = diskUsage.getApplicationContext().getPackageManager();
@@ -92,14 +90,14 @@ public class Apps2SDLoader {
 
 
     for (String pkg : packages) {
-      Log.d("diskusage", "app: " + pkg);
+      Logger.getLOGGER().d("app: " + pkg);
       try {
         ApplicationInfo metadata = packageManager.getApplicationInfo(pkg, PackageManager.GET_META_DATA);
         String appName = metadata.loadLabel(packageManager).toString();
         lastAppName = appName;
         StorageStats stats = storageStatsManager.queryStatsForPackage(
                 StorageManager.UUID_DEFAULT, pkg, android.os.Process.myUserHandle());
-        Log.d("diskusage", "stats: " + stats.getAppBytes() + " " + stats.getDataBytes());
+        Logger.getLOGGER().d("stats: " + stats.getAppBytes() + " " + stats.getDataBytes());
         FileSystemPackage p = new FileSystemPackage(
                 appName,
                 pkg,
@@ -111,7 +109,7 @@ public class Apps2SDLoader {
         entries.add(p);
         numLoadedPackages++;
       } catch (PackageManager.NameNotFoundException e) {
-        Log.d("diskusage", "Failed to get package", e);
+        Logger.getLOGGER().d("Failed to get package", e);
       }
     }
 

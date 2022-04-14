@@ -19,23 +19,20 @@
 
 package com.google.android.diskusage.core;
 
-import java.util.ArrayList;
-import java.util.PriorityQueue;
-
 import android.annotation.SuppressLint;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.StructStat;
-import android.util.Log;
 import androidx.annotation.NonNull;
-
 import com.google.android.diskusage.datasource.LegacyFile;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntrySmall;
 import com.google.android.diskusage.filesystem.entity.FileSystemFile;
 import com.google.android.diskusage.ui.DiskUsage;
-
+import com.google.android.diskusage.utils.Logger;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.PriorityQueue;
 
 public class Scanner implements DiskUsage.ProgressGenerator {
   private final int maxDepth;
@@ -89,9 +86,9 @@ public class Scanner implements DiskUsage.ProgressGenerator {
     this.maxHeapSize = maxHeap;
 //    this.blockAllowance = (allocatedBlocks << FileSystemEntry.blockOffset) / 2;
 //    this.blockAllowance = (maxHeap / 2) * sizeThreshold;
-    Log.d("diskusage", "allocatedBlocks " + allocatedBlocks);
-    Log.d("diskusage", "maxHeap " + maxHeap);
-    Log.d("diskusage", "sizeThreshold = " + sizeThreshold / (float) (1 << FileSystemEntry.blockOffset));
+    Logger.getLOGGER().d("Scanner: allocatedBlocks %s", allocatedBlocks);
+    Logger.getLOGGER().d("Scanner: maxHeap %s", maxHeap);
+    Logger.getLOGGER().d("Scanner: sizeThreshold = %s", sizeThreshold / (float) (1 << FileSystemEntry.blockOffset));
   }
 
   public FileSystemEntry scan(LegacyFile file) throws IOException {
@@ -125,8 +122,8 @@ public class Scanner implements DiskUsage.ProgressGenerator {
       list.parent.children = newChildren;
       extraHeap += list.heapSize;
     }
-    Log.d("diskusage", "allocated " + extraHeap + " B of extra heap");
-    Log.d("diskusage", "allocated " + (extraHeap + createdNodeSize) + " B total");
+    Logger.getLOGGER().d("allocated " + extraHeap + " B of extra heap");
+    Logger.getLOGGER().d("allocated " + (extraHeap + createdNodeSize) + " B total");
     return createdNode;
   }
 
@@ -140,7 +137,7 @@ public class Scanner implements DiskUsage.ProgressGenerator {
    * @param depth current directory tree depth
    */
   @SuppressLint("DefaultLocale")
-  private void scanDirectory(FileSystemEntry parent, LegacyFile file, int depth, long self_blocks) {
+  private void scanDirectory(FileSystemEntry parent, @NonNull LegacyFile file, int depth, long self_blocks) {
     String name = file.getName();
     makeNode(parent, name);
     createdNodeNumDirs = 1;
@@ -157,7 +154,7 @@ public class Scanner implements DiskUsage.ProgressGenerator {
     try {
       listNames = file.list();
     } catch (SecurityException io) {
-      Log.d("diskusage", "list files", io);
+      Logger.getLOGGER().d("list files", io);
     }
 
     if (listNames == null) return;
@@ -325,7 +322,7 @@ public class Scanner implements DiskUsage.ProgressGenerator {
     try {
       list = file.listFiles();
     } catch (SecurityException io) {
-      Log.e("diskusage", "list files", io);
+      Logger.getLOGGER().e("Scanner.calculateSize(): list files", io);
     }
     if (list == null) return 0;
     long size = 1;

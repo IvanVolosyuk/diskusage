@@ -56,6 +56,7 @@ import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.filesystem.entity.FileSystemRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSystemSpace;
+import com.google.android.diskusage.utils.Logger;
 import com.google.android.diskusage.utils.MimeTypes;
 import org.jetbrains.annotations.Contract;
 import java.io.File;
@@ -88,7 +89,7 @@ public class DiskUsage extends LoadableActivity {
   @Override
   protected void onCreate(Bundle icicle) {
     super.onCreate(icicle);
-    Log.d("diskusage", "onCreate()");
+    Logger.getLOGGER().d("DiskUsage.onCreate()");
     ActivityCommonBinding binding = ActivityCommonBinding.inflate(getLayoutInflater());
     setContentView(binding.getRoot());
     menu.onCreate();
@@ -108,7 +109,8 @@ public class DiskUsage extends LoadableActivity {
       finish();
       return;
     }
-    Log.d("diskusage", "onCreate, rootPath = " + mountPoint.getRoot() + " receivedState = " + receivedState);
+    Logger.getLOGGER().d("DiskUsage.onCreate(), rootPath = %s, receivedState = %s",
+            mountPoint.getRoot(), receivedState);
     if (receivedState != null) onRestoreInstanceState(receivedState);
   }
 
@@ -197,7 +199,7 @@ public class DiskUsage extends LoadableActivity {
       try {
         final String APP_PKG_PREFIX = "com.android.settings.";
         final String APP_PKG_NAME = APP_PKG_PREFIX+"ApplicationPkgName";
-        Log.d("diskusage", "show package = " + pkg);
+        Logger.getLOGGER().d("Show package = %s", pkg);
         Intent viewIntent = new Intent(Intent.ACTION_VIEW);
         viewIntent.setComponent(new ComponentName(
             "com.android.settings", "com.android.settings.InstalledAppDetails"));
@@ -215,7 +217,7 @@ public class DiskUsage extends LoadableActivity {
   private final class GingerbreadPackageViewer extends VersionedPackageViewer {
     @Override
     void viewPackage(String pkg) {
-      Log.d("diskusage", "show package = " + pkg);
+      Logger.getLOGGER().d("Show package = %s", pkg);
       Intent viewIntent = new Intent(
           Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
           Uri.parse("package:" + pkg));
@@ -245,7 +247,7 @@ public class DiskUsage extends LoadableActivity {
   public void askForDeletion(@NonNull final FileSystemEntry entry) {
     final String path = entry.path2();
     final String fullPath = entry.absolutePath();
-    Log.d("DiskUsage", "Deletion requested for " + path);
+    Logger.getLOGGER().d("Deletion requested for %s", path);
 
     if (entry instanceof FileSystemEntrySmall) {
       Toast.makeText(this,
@@ -443,7 +445,7 @@ public class DiskUsage extends LoadableActivity {
 
   @Override
   protected void onRestoreInstanceState(@NonNull final Bundle inState) {
-    Log.d("diskusage", "onRestoreInstanceState, rootPath = " + inState.getString(KEY_KEY));
+    Logger.getLOGGER().d("DiskUsage.onRestoreInstanceState(), rootPath = %s", inState.getString(KEY_KEY));
 
     if (fileSystemState != null)
       fileSystemState.restoreStateInRenderThread(inState);
@@ -626,7 +628,7 @@ public class DiskUsage extends LoadableActivity {
     try {
       return (new Apps2SDLoader(this).load(blockSize));
     } catch (Throwable t) {
-      Log.e("diskusage", "problem loading apps2sd info", t);
+      Logger.getLOGGER().e("DiskUsage.loadApps2SD(): Problem loading apps2sd info", t);
       return null;
     }
   }

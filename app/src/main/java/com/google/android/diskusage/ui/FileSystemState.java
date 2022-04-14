@@ -26,6 +26,7 @@ import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSystemSpace;
 import com.google.android.diskusage.opengl.FileSystemViewGPU;
 import com.google.android.diskusage.opengl.RenderingThread;
+import com.google.android.diskusage.utils.Logger;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.os.Bundle;
@@ -37,7 +38,6 @@ import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -480,7 +480,7 @@ public class FileSystemState {
       touchEntry = masterRoot.findEntry((int)touchDepth + 1, touchPoint);
       if (touchEntry == masterRoot) {
         touchEntry = null;
-        Log.d("diskusage", "warning: masterRoot selected in onTouchEvent");
+        Logger.getLOGGER().d("warning: masterRoot selected in onTouchEvent");
       }
       speedX = 0;
       speedY = 0;
@@ -500,7 +500,7 @@ public class FileSystemState {
 
       if (!touchMovement) {
         if (touchEntry == null) {
-          Log.d("diskusage", "touchEntry == null");
+          Logger.getLOGGER().d("touchEntry == null");
           return true;
         }
         if (masterRoot.depth(touchEntry) > (int)touchDepth + 1) return true;
@@ -751,7 +751,7 @@ public class FileSystemState {
       paintSlowGPU(rt, displayTop, displayBottom, viewDepth, screenWidth, screenHeight);
       return postDraw(animation);
     } catch (Throwable t) {
-      Log.d("DiskUsage", "Got exception", t);
+      Logger.getLOGGER().d("FileSystemState.onDrawGPU(): Got exception", t);
     }
     return false;
   }
@@ -776,7 +776,7 @@ public class FileSystemState {
         requestRepaint();
       }
     } catch (Throwable t) {
-      Log.d("DiskUsage", "Got exception", t);
+      Logger.getLOGGER().d("FileSystemState.onDraw2(): Got exception", t);
     }
   }
 
@@ -1278,7 +1278,7 @@ public class FileSystemState {
     MotionFilter.dx = (screenHeight + screenWidth) / 50f;
 
     minDistance = screenHeight > screenWidth ? screenHeight /  10f : screenWidth / 10f;
-    Log.d("diskusage", "screen = " + screenWidth + "x" + screenHeight);
+    Logger.getLOGGER().d("FileSystemState: Screen = %s x %s", screenWidth, screenHeight);
     FileSystemEntry.elementWidth = targetElementWidth = (int) (screenWidth / maxLevels);
     setZoomState();
   }

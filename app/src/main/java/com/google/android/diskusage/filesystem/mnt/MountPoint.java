@@ -20,10 +20,10 @@
 package com.google.android.diskusage.filesystem.mnt;
 
 import android.content.Context;
-import android.util.Log;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.datasource.PortableFile;
+import com.google.android.diskusage.utils.Logger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -94,7 +94,7 @@ public class MountPoint {
 
     for (PortableFile dir : DataSource.get().getExternalFilesDirs(context)) {
       String path = dir.getAbsolutePath().replaceFirst("/Android/data/com.google.android.diskusage/files", "");
-      Log.d("diskusage", "mountpoint " + path);
+      Logger.getLOGGER().d("MountPoint.initMountPoints: mountpoint %s", path);
       boolean internal = !dir.isExternalStorageRemovable();
       String title =  internal ? context.getString(R.string.storage_card) : path;
       MountPoint mountPoint = new MountPoint(title, path, internal);

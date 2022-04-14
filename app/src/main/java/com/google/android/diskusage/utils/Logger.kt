@@ -5,6 +5,7 @@ import java.util.Locale
 
 class Logger(val TAG: String) {
     companion object {
+        @JvmStatic
         val LOGGER: Logger = Logger("DiskUsage")
     }
 
@@ -20,7 +21,7 @@ class Logger(val TAG: String) {
 
     fun v(fmt: String, vararg args: Any?) {
         if (isLoggable(TAG, Log.VERBOSE)) {
-            Log.v(TAG, String.format(Locale.ENGLISH, fmt, args))
+            Log.v(TAG, String.format(Locale.ENGLISH, fmt, *args))
         }
     }
 
@@ -38,7 +39,7 @@ class Logger(val TAG: String) {
 
     fun d(fmt: String, vararg args: Any?) {
         if (isLoggable(TAG, Log.DEBUG)) {
-            Log.d(TAG, String.format(Locale.ENGLISH, fmt, args))
+            Log.d(TAG, String.format(Locale.ENGLISH, fmt, *args))
         }
     }
 
@@ -56,7 +57,7 @@ class Logger(val TAG: String) {
 
     fun i(fmt: String, vararg args: Any?) {
         if (isLoggable(TAG, Log.INFO)) {
-            Log.i(TAG, String.format(Locale.ENGLISH, fmt, args))
+            Log.i(TAG, String.format(Locale.ENGLISH, fmt, *args))
         }
     }
 
@@ -74,13 +75,13 @@ class Logger(val TAG: String) {
 
     fun w(fmt: String, vararg args: Any?) {
         if (isLoggable(TAG, Log.WARN)) {
-            Log.w(TAG, String.format(Locale.ENGLISH, fmt, args))
+            Log.w(TAG, String.format(Locale.ENGLISH, fmt, *args))
         }
     }
 
     fun w(tr: Throwable, fmt: String, vararg args: Any?) {
         if (isLoggable(TAG, Log.WARN)) {
-            Log.w(TAG, String.format(Locale.ENGLISH, fmt, args), tr)
+            Log.w(TAG, String.format(Locale.ENGLISH, fmt, *args), tr)
         }
     }
 
@@ -98,13 +99,13 @@ class Logger(val TAG: String) {
 
     fun e(fmt: String, vararg args: Any?) {
         if (isLoggable(TAG, Log.ERROR)) {
-            Log.e(TAG, String.format(Locale.ENGLISH, fmt, args))
+            Log.e(TAG, String.format(Locale.ENGLISH, fmt, *args))
         }
     }
 
     fun e(tr: Throwable, fmt: String, vararg args: Any?) {
         if (isLoggable(TAG, Log.ERROR)) {
-            Log.e(TAG, String.format(Locale.ENGLISH, fmt, args), tr)
+            Log.e(TAG, String.format(Locale.ENGLISH, fmt, *args), tr)
         }
     }
 
