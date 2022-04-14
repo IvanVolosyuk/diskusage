@@ -3,6 +3,7 @@ package com.google.android.diskusage.ui;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Process;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.view.LayoutInflater;
@@ -18,6 +19,8 @@ import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemSpecial;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
+import com.google.android.diskusage.utils.AppIconCache;
+
 import org.jetbrains.annotations.Contract;
 
 public abstract class DiskUsageMenu {
@@ -139,7 +142,12 @@ public abstract class DiskUsageMenu {
               ))
       );
       binding.icon.setImageBitmap(
-              BitmapFactory.decodeResource(diskusage.getResources(), R.drawable.icon)
+              AppIconCache.getOrLoadBitmap(
+                      diskusage,
+                      diskusage.getApplicationInfo(),
+                      Process.myUid() / 100000,
+                      diskusage.getResources().getDimensionPixelSize(R.dimen.default_app_icon_size)
+              )
       );
       try {
         binding.versionName.setText(diskusage.getPackageManager().getPackageInfo(
