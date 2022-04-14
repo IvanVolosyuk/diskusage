@@ -99,14 +99,14 @@ public class DebugDataSource extends DataSource {
       dump.toBuilder().addAllAppInfo(Arrays.asList(new AppInfoProto[packages.size()]));
       int i = 0;
       for (PkgInfo pkgInfo : packages) {
-        AppInfoProto proto = AppInfoProtoImpl.makeProto(pkgInfo, dump.getAndroidVersion());
+        AppInfoProto proto = AppInfoProtoImpl.makeProto(pkgInfo);
         dump.toBuilder().setAppInfo(i++, proto);
       }
     }
     List<PkgInfo> result = new ArrayList<>();
 
     for (final AppInfoProto appInfoProto : dump.getAppInfoList()) {
-      result.add(new AppInfoProtoImpl(appInfoProto, dump.getAndroidVersion()));
+      result.add(new AppInfoProtoImpl(appInfoProto));
     }
     return result;
   }
@@ -130,8 +130,7 @@ public class DebugDataSource extends DataSource {
 
     delegate.getPackageSizeInfo(
         pkgInfo, getPackageSizeInfo, pm, (appStats, succeeded) -> {
-          AppStatsProto stats = AppStatsProtoImpl.makeProto(
-              appStats, succeeded, dump.getAndroidVersion());
+          AppStatsProto stats = AppStatsProtoImpl.makeProto(appStats, succeeded);
           proto.toBuilder().setStats(stats);
           callback.onGetStatsCompleted(
               stats.getHasAppStats() ? new AppStatsProtoImpl(
@@ -148,7 +147,7 @@ public class DebugDataSource extends DataSource {
       if (dump.getStatFs(i) == null) {
         emptyPos = i;
       } else if (mountPoint.equals(dump.getStatFs(i).getMountPoint())) {
-        return new StatFsSourceProtoImpl(dump.getStatFs(i), dump.getAndroidVersion());
+        return new StatFsSourceProtoImpl(dump.getStatFs(i));
       }
     }
     if (emptyPos == -1) {
@@ -158,20 +157,17 @@ public class DebugDataSource extends DataSource {
       emptyPos = old.length;
     }
     dump.toBuilder().setStatFs(emptyPos, StatFsSourceProtoImpl.makeProto(
-            mountPoint, delegate.statFs(mountPoint), dump.getAndroidVersion()));
+            mountPoint, delegate.statFs(mountPoint)));
     StatFsProto proto = dump.getStatFs(emptyPos);
-    return new StatFsSourceProtoImpl(proto, dump.getAndroidVersion());
+    return new StatFsSourceProtoImpl(proto);
   }
 
   @TargetApi(Build.VERSION_CODES.FROYO)
   @Override
   public PortableFile getExternalFilesDir(Context context) {
-    if (dump.getAndroidVersion() < Build.VERSION_CODES.FROYO) {
-      throw new NoClassDefFoundError("Undefined before FROYO");
-    }
     if (dump.getExternalFilesDir() == null) {
       dump.toBuilder().setExternalFilesDir(PortableFileProtoImpl.makeProto(
-          delegate.getExternalFilesDir(context), dump.getAndroidVersion()));
+          delegate.getExternalFilesDir(context)));
     }
 
     return PortableFileProtoImpl.make(dump.getExternalFilesDir(), dump.getAndroidVersion());
@@ -180,15 +176,11 @@ public class DebugDataSource extends DataSource {
   @TargetApi(Build.VERSION_CODES.KITKAT)
   @Override
   public PortableFile[] getExternalFilesDirs(Context context) {
-    if (dump.getAndroidVersion() < Build.VERSION_CODES.KITKAT) {
-      throw new NoClassDefFoundError("Undefined before KITKAT");
-    }
-
     if (dump.getExternalFilesDirsList() == null || dump.getExternalFilesDirsList().size() == 0) {
       PortableFile[] externalFilesDirs = delegate.getExternalFilesDirs(context);
       PortableFileProto[] protos = new PortableFileProto[externalFilesDirs.length];
       for (int i = 0; i < protos.length; i++) {
-        protos[i] = PortableFileProtoImpl.makeProto(externalFilesDirs[i], dump.getAndroidVersion());
+        protos[i] = PortableFileProtoImpl.makeProto(externalFilesDirs[i]);
       }
       dump.toBuilder().addAllExternalFilesDirs(Arrays.asList(protos));
     }
@@ -204,7 +196,7 @@ public class DebugDataSource extends DataSource {
   public PortableFile getExternalStorageDirectory() {
     if (dump.getExternalStorageDirectory() == null) {
       dump.toBuilder().setExternalFilesDir(PortableFileProtoImpl.makeProto(
-          delegate.getExternalStorageDirectory(), dump.getAndroidVersion()));
+          delegate.getExternalStorageDirectory()));
     }
 
     return PortableFileProtoImpl.make(dump.getExternalStorageDirectory(), dump.getAndroidVersion());
@@ -261,8 +253,7 @@ public class DebugDataSource extends DataSource {
       return PortableFileProtoImpl.make(file.proto.getParent(), dump.getAndroidVersion());
     }
 
-    file.proto.toBuilder().setParent(PortableFileProtoImpl.makeProto(
-        delegate.getParentFile(in), dump.getAndroidVersion()));
+    file.proto.toBuilder().setParent(PortableFileProtoImpl.makeProto(delegate.getParentFile(in)));
     return PortableFileProtoImpl.make(file.proto.getParent(), dump.getAndroidVersion());
   }
 

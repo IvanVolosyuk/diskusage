@@ -182,35 +182,7 @@ public class DiskUsage extends LoadableActivity {
 
     @NonNull
     public static VersionedPackageViewer newInstance(DiskUsage context) {
-      final int sdkVersion = DataSource.get().getAndroidVersion();
-      VersionedPackageViewer viewer;
-      if (sdkVersion < Build.VERSION_CODES.GINGERBREAD) {
-        viewer = context.new EclairPackageViewer();
-      } else {
-        viewer = context.new GingerbreadPackageViewer();
-      }
-      return viewer;
-    }
-  }
-
-  private final class EclairPackageViewer extends VersionedPackageViewer {
-    @Override
-    void viewPackage(String pkg) {
-      try {
-        final String APP_PKG_PREFIX = "com.android.settings.";
-        final String APP_PKG_NAME = APP_PKG_PREFIX+"ApplicationPkgName";
-        Logger.getLOGGER().d("Show package = %s", pkg);
-        Intent viewIntent = new Intent(Intent.ACTION_VIEW);
-        viewIntent.setComponent(new ComponentName(
-            "com.android.settings", "com.android.settings.InstalledAppDetails"));
-        viewIntent.putExtra(APP_PKG_NAME, pkg);
-        viewIntent.putExtra("pkg", pkg);
-        startActivity(viewIntent);
-      } catch (RuntimeException e) {
-        Toast.makeText(DiskUsage.this,
-            "Sorry, failed to view the installed app. " +
-            "Please contact app developer.", Toast.LENGTH_SHORT).show();
-      }
+      return context.new GingerbreadPackageViewer();
     }
   }
 
@@ -465,22 +437,10 @@ public class DiskUsage extends LoadableActivity {
   static abstract class MemoryClass {
     abstract int maxHeap();
 
-    static class MemoryClassDefault extends MemoryClass {
-      @Override
-      int maxHeap() {
-        return 16 * 1024 * 1024;
-      }
-    }
-
     @NonNull
     @Contract("_ -> new")
     static MemoryClass getInstance(DiskUsage diskUsage) {
-      final int sdkVersion = DataSource.get().getAndroidVersion();
-      if (sdkVersion < Build.VERSION_CODES.ECLAIR) {
-        return new MemoryClassDefault();
-      } else {
-        return diskUsage.new MemoryClassDetected();
-      }
+      return diskUsage.new MemoryClassDetected();
     }
   }
 

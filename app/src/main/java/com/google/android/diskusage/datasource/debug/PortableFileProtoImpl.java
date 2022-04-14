@@ -29,9 +29,6 @@ public class PortableFileProtoImpl implements PortableFile {
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   @Override
   public boolean isExternalStorageEmulated() {
-    if (androidVersion < Build.VERSION_CODES.LOLLIPOP) {
-      throw new NoClassDefFoundError("unavailable before L");
-    }
     PortableExceptionProtoImpl.throwRuntimeException(
         proto.getIsExternalStorageEmulated().getException());
     return proto.getIsExternalStorageEmulated().getValue();
@@ -40,9 +37,6 @@ public class PortableFileProtoImpl implements PortableFile {
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   @Override
   public boolean isExternalStorageRemovable() {
-    if (androidVersion < Build.VERSION_CODES.LOLLIPOP) {
-      throw new NoClassDefFoundError("unavailable before L");
-    }
     PortableExceptionProtoImpl.throwRuntimeException(
         proto.getIsExternalStorageRemovable().getException());
     return proto.getIsExternalStorageRemovable().getValue();
@@ -64,35 +58,30 @@ public class PortableFileProtoImpl implements PortableFile {
   }
 
   @NonNull
-  public static PortableFileProto makeProto(
-      PortableFile file, int androidVersion) {
+  public static PortableFileProto makeProto(PortableFile file) {
     PortableFileProto.Builder p = PortableFileProto.newBuilder();
 
     if (file == null) {
       return p.build();
     }
     p.setAbsolutePath(file.getAbsolutePath())
-            .setCanonicalPath(file.getCanonicalPath());
-    if (androidVersion >= Build.VERSION_CODES.GINGERBREAD) {
-      p.setTotalSpace(file.getTotalSpace());
-      if (androidVersion >= Build.VERSION_CODES.LOLLIPOP) {
-        p.setIsExternalStorageEmulated(BooleanValueProto.newBuilder());
-        try {
+            .setCanonicalPath(file.getCanonicalPath())
+            .setTotalSpace(file.getTotalSpace())
+            .setIsExternalStorageEmulated(BooleanValueProto.newBuilder());
+    try {
           p.getIsExternalStorageEmulated().toBuilder()
                   .setValue(file.isExternalStorageEmulated());
-        } catch (RuntimeException e) {
-          p.getIsExternalStorageEmulated().toBuilder()
-                  .setException(PortableExceptionProtoImpl.makeProto(e));
-        }
-        p.setIsExternalStorageRemovable(BooleanValueProto.newBuilder());
-        try {
+    } catch (RuntimeException e) {
+      p.getIsExternalStorageEmulated().toBuilder()
+              .setException(PortableExceptionProtoImpl.makeProto(e));
+    }
+    p.setIsExternalStorageRemovable(BooleanValueProto.newBuilder());
+    try {
           p.getIsExternalStorageRemovable().toBuilder()
                   .setValue(file.isExternalStorageRemovable());
-        } catch (RuntimeException e) {
-          p.getIsExternalStorageRemovable().toBuilder()
-                  .setException(PortableExceptionProtoImpl.makeProto(e));
-        }
-      }
+    } catch (RuntimeException e) {
+      p.getIsExternalStorageRemovable().toBuilder()
+              .setException(PortableExceptionProtoImpl.makeProto(e));
     }
     return p.build();
   }

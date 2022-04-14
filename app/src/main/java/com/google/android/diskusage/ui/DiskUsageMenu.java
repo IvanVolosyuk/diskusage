@@ -124,8 +124,7 @@ public abstract class DiskUsageMenu {
     });
 
     rendererMenuItem = menu.add("Renderer");
-    rendererMenuItem.setVisible(
-        diskusage.rendererManager.isHardwareRendererSupported());
+    rendererMenuItem.setVisible(true);
     rendererMenuItem.setOnMenuItemClickListener(item -> {
       diskusage.rendererManager.switchRenderer(masterRoot);
       return true;

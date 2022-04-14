@@ -1,12 +1,9 @@
 package com.google.android.diskusage.opengl;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.view.View;
 import com.google.android.diskusage.ui.FileSystemState;
-import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.ui.DiskUsage;
 import com.google.android.diskusage.ui.FileSystemViewCPU;
@@ -26,43 +23,8 @@ public class RendererManager {
     this.diskusage = diskusage;
   }
 
-  public boolean hardwareRendererByDefault() {
-    final int sdkVersion = DataSource.get().getAndroidVersion();
-    return sdkVersion >= Build.VERSION_CODES.GINGERBREAD;
-  }
-
-  public boolean isHardwareRendererSupported() {
-    final int sdkVersion = DataSource.get().getAndroidVersion();
-    if (android.os.Build.DEVICE.equals("bravo")) {
-      return sdkVersion < Build.VERSION_CODES.ECLAIR
-              || sdkVersion > Build.VERSION_CODES.GINGERBREAD;
-    }
-    return true;
-  }
-
-  public boolean warnAboutIncompatibility() {
-    final int sdkVersion = DataSource.get().getAndroidVersion();
-    return sdkVersion <= Build.VERSION_CODES.GINGERBREAD;
-  }
-
   public void switchRenderer(final FileSystemSuperRoot root) {
     diskusage.fileSystemState.killRenderThread();
-    if (hwRenderer) {
-      finishRendererSwitch(root);
-      return;
-    }
-
-    if (warnAboutIncompatibility()) {
-      new AlertDialog.Builder(diskusage)
-      .setCancelable(true)
-      .setIcon(android.R.drawable.ic_dialog_alert)
-      .setTitle("WARNING!")
-      .setMessage("Hardware renderer may CRASH your PHONE.\n\n" +
-      "There is a firmware bug in a number of HTC phones with Android 2.2 (Froyo).")
-      .setPositiveButton("Proceeed", (dialog, which) -> finishRendererSwitch(root))
-      .setNegativeButton(android.R.string.cancel, null).create().show();
-      return;
-    }
     finishRendererSwitch(root);
   }
 
@@ -86,10 +48,7 @@ public class RendererManager {
 
 
   public void onResume() {
-    if (isHardwareRendererSupported()) {
-      hwRenderer = getPrefs().getBoolean(HW_RENDERER,
-          hardwareRendererByDefault());
-    }
+    hwRenderer = getPrefs().getBoolean(HW_RENDERER, true);
   }
 
   public void onPause() {
