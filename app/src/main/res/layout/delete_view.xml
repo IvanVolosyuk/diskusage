@@ -27,50 +27,60 @@
 </LinearLayout> -->
 
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-  android:orientation="vertical"
-  android:layout_width="fill_parent"
-  android:layout_height="fill_parent">
-  <LinearLayout
-    android:orientation="horizontal"
-    android:layout_width="fill_parent"
-    android:layout_height="wrap_content"
-    android:layout_alignParentTop="true"
-    android:layout_alignParentLeft="true"
-    android:layout_alignParentRight="true"
-    android:id="@+id/buttons">
-    <TextView
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <!-- <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
+        android:id="@+id/buttons" >
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="4"/>
-    <Button android:id="@+id/ok_button" android:text="@string/button_delete"
+        <Button android:id="@+id/ok_button"
+            android:text="@string/button_delete"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"/>
-    <Button android:id="@+id/cancel_button" android:text="@string/button_cancel"
+            android:layout_weight="1"
+            style="?android:attr/buttonBarButtonStyle" />
+        <Button
+            android:id="@+id/cancel_button"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"/>
-  </LinearLayout>
-  <com.google.android.diskusage.MyTextView
-    android:layout_width="fill_parent"
-    android:layout_height="wrap_content"
-    android:layout_alignParentBottom="true"
-    android:layout_alignParentLeft="true"
-    android:layout_alignParentRight="true"
-    android:maxLines="1"
-    android:inputType="text"
-    android:gravity="left"
-    android:ellipsize="marquee"
-    android:id="@+id/summary"
-    android:text="Test"
-    style="?android:attr/textAppearanceLarge"/>
-  <ListView  
-    android:layout_width="fill_parent" 
-    android:layout_height="wrap_content"
-    android:layout_below="@id/buttons"
-    android:layout_above="@id/summary"
-    android:layout_alignParentLeft="true"
-    android:layout_alignParentRight="true"
-    android:id="@+id/list"/>
+            android:layout_weight="1"
+            android:text="@android:string/cancel" />
+    </LinearLayout> -->
+    <ListView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/summary"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
+        android:id="@+id/list" />
+    <com.google.android.diskusage.ui.MyTextView
+        android:id="@+id/summary"
+        style="?android:attr/textAppearanceLarge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true"
+        android:ellipsize="marquee"
+        android:gravity="start"
+        android:inputType="text"
+        android:singleLine="true"
+        android:text="Test" />
 </RelativeLayout>
-

@@ -13,7 +13,7 @@ public final class MimeTypes {
   private HashMap<String, String> extensionToMime;
   
   private void initExtensions(Context context) {
-    extensionToMime = new HashMap<String, String>();
+    extensionToMime = new HashMap<>();
     try {
       InputStream is = new GZIPInputStream(
           context.getResources().openRawResource(R.raw.mimes));
@@ -26,8 +26,7 @@ public final class MimeTypes {
       }
       String[] lines = os.toString().split("\n");
       String mime = null;
-      for (int i = 0; i < lines.length; i++) {
-        String val = lines[i];
+      for (String val : lines) {
         if (val.length() == 0) mime = null;
         else if (mime == null) mime = val;
         else extensionToMime.put(val, mime);

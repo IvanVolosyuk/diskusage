@@ -1,8 +1,6 @@
 package com.google.android.diskusage.datasource.fast;
 
 import java.io.File;
-import java.io.IOException;
-
 import android.annotation.TargetApi;
 import android.os.Build;
 import android.os.Environment;

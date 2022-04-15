@@ -1,5 +1,6 @@
 package com.google.android.diskusage.datasource.debug;
 
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.proto.PortableResultProto;
 
 public abstract class PortableResult {
@@ -8,14 +9,14 @@ public abstract class PortableResult {
 
 
   public static PortableResultProto eval(PortableResult r) {
-    PortableResultProto proto = new PortableResultProto();
+    PortableResultProto.Builder proto = PortableResultProto.newBuilder();
     try {
       r.run();
-      proto.evaluated = true;
+      proto.setEvaluated(true);
     } catch (Exception e) {
-      proto.exception = PortableExceptionProtoImpl.makeProto(e);
+      proto.setException(PortableExceptionProtoImpl.makeProto(e));
     }
-    return proto;
+    return proto.build();
   }
 
   private static void replayException(
@@ -23,10 +24,9 @@ public abstract class PortableResult {
     if (status == null) {
       throw new RuntimeException("cannot replay - no data");
     }
-    if (status.exception != null) {
-      Exception e = PortableExceptionProtoImpl.create(status.exception);
-      throw e;
-    } else if (status.evaluated) {
+    if (status.getException() != null) {
+      throw PortableExceptionProtoImpl.create(status.getException());
+    } else if (status.getEvaluated()) {
       // all good
     } else {
       throw new RuntimeException("cannot replay, no data");
@@ -34,7 +34,7 @@ public abstract class PortableResult {
   }
 
   public static void replayWithException(
-      PortableResultProto status, Runnable runnable) throws Exception {
+          PortableResultProto status, @NonNull Runnable runnable) throws Exception {
     replayException(status);
     runnable.run();
   }

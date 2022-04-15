@@ -12,7 +12,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 
-import com.google.android.diskusage.LoadableActivity;
+import com.google.android.diskusage.ui.LoadableActivity;
 import com.google.android.diskusage.datasource.fast.DefaultDataSource;
 
 public abstract class DataSource {

@@ -5,13 +5,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
-import android.os.Build.VERSION_CODES;
-
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.datasource.DataSource;
+
+import org.jetbrains.annotations.Contract;
 
 public class NativeScannerStream extends InputStream {
 
@@ -51,7 +51,7 @@ public class NativeScannerStream extends InputStream {
 
   static class Factory {
     private final Context context;
-    private static boolean remove = true;
+    // private static final boolean remove = true;
 
     Factory(Context context) {
       this.context = context;
@@ -62,14 +62,12 @@ public class NativeScannerStream extends InputStream {
       return runScanner(path, rootRequired);
     }
 
+    @NonNull
+    @Contract("_, _ -> new")
     private NativeScannerStream runScanner(String root,
-        boolean rootRequired) throws IOException, InterruptedException {
-      String binaryName = "scan";
-      final int sdkVersion = DataSource.get().getAndroidVersion();
-      if (sdkVersion >= 21 /* Lollipop */) {
-        binaryName = "scan5";
-      }
-      setupBinary(binaryName);
+                                           boolean rootRequired) throws IOException, InterruptedException {
+      String binaryName = "libscan.so";
+      // setupBinary(binaryName);
       boolean deviceIsRooted = DataSource.get().isDeviceRooted();
       Process process = null;
 
@@ -83,7 +81,7 @@ public class NativeScannerStream extends InputStream {
           try {
             process = Runtime.getRuntime().exec(new String[] { su });
             break;
-          } catch(IOException newe) {
+          } catch (IOException newe) {
             e = newe;
           }
         }
@@ -115,20 +113,19 @@ public class NativeScannerStream extends InputStream {
       runChmod(binaryName);
     }
 
+    @NonNull
     private String getScanBinaryPath(String binaryName) {
-      return context.getDir("binary", Context.MODE_PRIVATE).getAbsolutePath()
+      return context.getApplicationInfo().nativeLibraryDir
           + "/" + binaryName;
     }
 
     private void runChmod(String binaryName)
         throws IOException, InterruptedException {
-      if (Integer.parseInt(Build.VERSION.SDK) >= VERSION_CODES.GINGERBREAD) {
-        try {
-          setExecutable(binaryName);
-          return;
-        } catch (Exception e) {
-          // fall back to legacy way
-        }
+      try {
+        setExecutable(binaryName);
+        return;
+      } catch (Exception e) {
+        // fall back to legacy way
       }
       Process process;
       try {
@@ -147,7 +144,7 @@ public class NativeScannerStream extends InputStream {
 
     @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     private void setExecutable(String binaryName) {
-      if (new File(binaryName).setExecutable(true, true) == false) {
+      if (!new File(binaryName).setExecutable(true, true)) {
         throw new RuntimeException("Failed to setExecutable");
       }
     }

@@ -1,5 +1,6 @@
 package com.google.android.diskusage.datasource.debug;
 
+import androidx.annotation.NonNull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -8,21 +9,22 @@ import java.lang.reflect.Constructor;
 import com.google.android.diskusage.proto.PortableExceptionProto;
 
 public class PortableExceptionProtoImpl {
-  public static PortableExceptionProto makeProto(Exception e) {
-    PortableExceptionProto ex = new PortableExceptionProto();
-    ex.class_ = e.getClass().getName();
-    ex.msg = e.getMessage();
+  @NonNull
+  public static PortableExceptionProto makeProto(@NonNull Exception e) {
+    PortableExceptionProto.Builder ex = PortableExceptionProto.newBuilder()
+            .setClass_(e.getClass().getName())
+            .setMsg(e.getMessage());
     try {
       ByteArrayOutputStream os = new ByteArrayOutputStream();
       PrintStream printStream = new PrintStream(os);
       e.printStackTrace(printStream);
       printStream.close();
       os.close();
-      ex.stack = os.toString();
+      ex.setStack(os.toString());
     } catch (IOException ee) {
-      ex.stack = "Failed to obtain";
+      ex.setStack("Failed to obtain");
     }
-    return ex;
+    return ex.build();
   }
 
   @SuppressWarnings("unchecked")
@@ -32,13 +34,13 @@ public class PortableExceptionProtoImpl {
     }
     Exception e;
     try {
-      Class<? extends Exception> clazz = (Class<? extends Exception>) Class.forName(ex.class_);
+      Class<? extends Exception> clazz = (Class<? extends Exception>) Class.forName(ex.getClass_());
       Constructor<? extends Exception> c = clazz.getDeclaredConstructor(String.class);
-      e = c.newInstance(ex.msg);
+      e = c.newInstance(ex.getMsg());
       return e;
     } catch (Throwable t) {
       return new RuntimeException(String.format(
-          "Failed to restore exception: %s: %s", ex.class_, ex.msg));
+          "Failed to restore exception: %s: %s", ex.getClass_(), ex.getMsg()));
     }
   }
 

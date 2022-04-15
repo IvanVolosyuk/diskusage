@@ -1,5 +1,6 @@
 package com.google.android.diskusage.datasource.fast;
 
+import androidx.annotation.NonNull;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -8,7 +9,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public class StreamCopy {
-  public static void copyStream(InputStream is, OutputStream os)
+  public static void copyStream(@NonNull InputStream is, OutputStream os)
       throws IOException {
     int len;
     byte[] buffer = new byte[32768];
@@ -19,6 +20,7 @@ public class StreamCopy {
     is.close();
   }
 
+  @NonNull
   public static byte[] copyToArray(InputStream is) throws IOException {
     ByteArrayOutputStream os = new ByteArrayOutputStream();
     copyStream(is, os);
@@ -26,6 +28,7 @@ public class StreamCopy {
     return os.toByteArray();
   }
 
+  @NonNull
   public static byte[] readFully(File file) throws IOException {
     return copyToArray(new FileInputStream(file));
   }

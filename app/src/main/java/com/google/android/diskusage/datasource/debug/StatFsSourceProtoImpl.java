@@ -1,104 +1,83 @@
 package com.google.android.diskusage.datasource.debug;
 
-import android.os.Build;
-
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.datasource.StatFsSource;
 import com.google.android.diskusage.proto.StatFsProto;
 
 public class StatFsSourceProtoImpl implements StatFsSource {
   private final StatFsProto proto;
-  private final int androidVersion;
 
-  StatFsSourceProtoImpl(StatFsProto proto, int androidVersion) {
+  StatFsSourceProtoImpl(StatFsProto proto) {
     this.proto = proto;
-    this.androidVersion = androidVersion;
   }
 
   @Override
   public int getAvailableBlocks() {
-    return proto.availableBlocks;
-  }
-
-  private void jellyBeanMR2AndAbove() {
-    if (androidVersion < Build.VERSION_CODES.JELLY_BEAN_MR2) {
-      throw new NoClassDefFoundError("Unavailable before JELLY_BEAN_MR2");
-    }
+    return proto.getAvailableBlocks();
   }
 
   @Override
   public long getAvailableBlocksLong() {
-    jellyBeanMR2AndAbove();
-    return proto.availableBlocksLong;
+    return proto.getAvailableBlocksLong();
   }
 
   @Override
   public long getAvailableBytes() {
-    jellyBeanMR2AndAbove();
-    return proto.availableBytes;
+    return proto.getAvailableBytes();
   }
 
   @Override
   public int getBlockCount() {
-    return proto.blockCount;
+    return proto.getBlockCount();
   }
 
   @Override
   public long getBlockCountLong() {
-    jellyBeanMR2AndAbove();
-    return proto.blockCountLong;
+    return proto.getBlockCountLong();
   }
 
   @Override
   public int getBlockSize() {
-    return proto.blockSize;
+    return proto.getBlockSize();
   }
 
   @Override
   public long getBlockSizeLong() {
-    jellyBeanMR2AndAbove();
-    return proto.blockSizeLong;
+    return proto.getBlockSizeLong();
   }
 
   @Override
   public long getFreeBytes() {
-    jellyBeanMR2AndAbove();
-    return proto.freeBytes;
+    return proto.getFreeBytes();
   }
 
   @Override
   public int getFreeBlocks() {
-    return proto.freeBlocks;
+    return proto.getFreeBlocks();
   }
 
   @Override
   public long getFreeBlocksLong() {
-    jellyBeanMR2AndAbove();
-    return proto.freeBlocksLong;
+    return proto.getFreeBlocksLong();
   }
 
   @Override
   public long getTotalBytes() {
-    jellyBeanMR2AndAbove();
-    return proto.totalBytes;
+    return proto.getTotalBytes();
   }
 
-  static StatFsProto makeProto(String mountPoint, StatFsSource s, int androidVersion) {
-    StatFsProto p = new StatFsProto();
-    p.mountPoint = mountPoint;
-    p.availableBlocks = s.getAvailableBlocks();
-    p.blockSize = s.getBlockSize();
-    p.freeBlocks = s.getFreeBlocks();
-    p.blockCount = s.getBlockCount();
-    if (androidVersion >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-      p.availableBlocksLong = s.getAvailableBlocksLong();
-      p.availableBytes = s.getAvailableBytes();
-      p.blockCountLong = s.getBlockCountLong();
-      p.blockSizeLong = s.getBlockSizeLong();
-      p.freeBlocksLong = s.getFreeBlocksLong();
-      p.freeBytes = s.getFreeBytes();
-      p.totalBytes = s.getTotalBytes();
-    }
-    return p;
+  @NonNull
+  static StatFsProto makeProto(String mountPoint, @NonNull StatFsSource s) {
+    StatFsProto.Builder p = StatFsProto.newBuilder();
+    p.setMountPoint(mountPoint)
+            .setAvailableBlocksLong(s.getAvailableBlocksLong())
+            .setAvailableBytes(s.getAvailableBytes())
+            .setBlockCountLong(s.getBlockCountLong())
+            .setBlockSizeLong(s.getBlockSizeLong())
+            .setFreeBlocksLong(s.getFreeBlocksLong())
+            .setFreeBytes(s.getFreeBytes())
+            .setTotalBytes(s.getTotalBytes());
+    return p.build();
   }
 
 }
