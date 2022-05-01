@@ -32,11 +32,11 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
-import android.widget.Toast;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.ActivityCommonBinding;
 import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
+import splitties.toast.ToastKt;
 
 public class PermissionRequestActivity extends Activity {
     private final static int DISKUSAGE_REQUEST_CODE = 10;
@@ -102,7 +102,7 @@ public class PermissionRequestActivity extends Activity {
                 if (Environment.isExternalStorageManager()) {
                     forwardToDiskUsage();
                 } else {
-                    Toast.makeText(this, R.string.dialog_external_storage_access_error, Toast.LENGTH_SHORT).show();
+                    ToastKt.toast(R.string.dialog_external_storage_access_error);
                 }
             }
         }

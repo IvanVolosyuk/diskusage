@@ -23,7 +23,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.os.Handler;
-import android.widget.Toast;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
@@ -33,6 +32,7 @@ import com.google.android.diskusage.utils.Logger;
 import java.io.IOException;
 import java.util.Map;
 import java.util.TreeMap;
+import splitties.toast.ToastKt;
 
 public abstract class LoadableActivity extends Activity {
   FileSystemPackage pkg_removed;
@@ -214,8 +214,7 @@ public abstract class LoadableActivity extends Activity {
       .setTitle(activity.getString(R.string.out_of_memory))
       .setOnCancelListener(dialog -> activity.finish()).create().show();
     } catch (Throwable t) {
-      Toast.makeText(
-          activity, "DiskUsage is out of memory. Sorry.", Toast.LENGTH_SHORT).show();
+      ToastKt.toast("DiskUsage is out of memory. Sorry.");
     }
   }
 }

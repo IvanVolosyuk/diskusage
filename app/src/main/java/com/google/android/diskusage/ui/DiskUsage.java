@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008 Ivan Volosyuk
  *
@@ -22,14 +22,12 @@ package com.google.android.diskusage.ui;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.FileUriExposedException;
 import android.os.Handler;
@@ -38,7 +36,6 @@ import androidx.annotation.NonNull;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 import com.google.android.diskusage.filesystem.Apps2SDLoader;
 import com.google.android.diskusage.filesystem.BackgroundDelete;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
@@ -65,6 +62,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import splitties.toast.ToastKt;
 
 public class DiskUsage extends LoadableActivity {
 
@@ -211,8 +209,7 @@ public class DiskUsage extends LoadableActivity {
     if (entry != null) {
       BackgroundDelete.startDelete(this, entry);
     } else {
-      Toast.makeText(this,
-          "Oops. Can't find directory to be deleted.", Toast.LENGTH_SHORT).show();
+      ToastKt.toast("Oops. Can't find directory to be deleted.");
     }
   }
 
@@ -222,9 +219,7 @@ public class DiskUsage extends LoadableActivity {
     Logger.getLOGGER().d("Deletion requested for %s", path);
 
     if (entry instanceof FileSystemEntrySmall) {
-      Toast.makeText(this,
-          "Delete directory instead", Toast.LENGTH_SHORT).show();
-
+      ToastKt.toast("Delete directory instead");
       return;
     }
     if (entry.children == null || entry.children.length == 0) {
@@ -349,8 +344,7 @@ public class DiskUsage extends LoadableActivity {
             .setNegativeButton(android.R.string.cancel, null)
             .create().show();
       } else {
-      Toast.makeText(this, str(R.string.install_oi_file_manager),
-          Toast.LENGTH_SHORT).show();
+        ToastKt.toast(R.string.install_oi_file_manager);
       }
       return;
     }
@@ -371,8 +365,7 @@ public class DiskUsage extends LoadableActivity {
       } catch (ActivityNotFoundException|FileUriExposedException ignored) {
       }
     }
-    Toast.makeText(this, str(R.string.no_viewer_found),
-        Toast.LENGTH_SHORT).show();
+    ToastKt.toast(R.string.no_viewer_found);
   }
 
   public void rescan() {

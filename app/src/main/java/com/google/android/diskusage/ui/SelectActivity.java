@@ -26,7 +26,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.ActivityCommonBinding;
@@ -44,6 +43,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import splitties.toast.ToastKt;
 
 public class SelectActivity extends Activity {
   private AlertDialog dialog;
@@ -108,10 +108,7 @@ public class SelectActivity extends Activity {
         makeDialog();
       } catch (IOException e) {
         Logger.getLOGGER().d("Failed to enable debug", e);
-        Toast.makeText(
-            SelectActivity.this,
-            "Failed to enable debug " + e.getMessage(),
-            Toast.LENGTH_LONG).show();
+        ToastKt.longToast("Failed to enable debug " + e.getMessage());
       }
     }
   }
@@ -140,10 +137,7 @@ public class SelectActivity extends Activity {
         makeDialog();
       } catch (IOException e) {
         Logger.getLOGGER().d("Failed to enable debug", e);
-        Toast.makeText(
-            SelectActivity.this,
-            "Failed to enable debug " + e.getMessage(),
-            Toast.LENGTH_LONG).show();
+        ToastKt.longToast("Failed to enable debug: " + e.getMessage());
       }
     }
   }
@@ -156,10 +150,7 @@ public class SelectActivity extends Activity {
             debugDataSource, SelectActivity.this);
       } catch (IOException e) {
         Logger.getLOGGER().d("Failed to send bug report", e);
-        Toast.makeText(
-            SelectActivity.this,
-            "Failed to send bugreport: " + e.getMessage(),
-            Toast.LENGTH_LONG).show();
+        ToastKt.longToast("Failed to send bugreport: " + e.getMessage());
       }
     }
   }
