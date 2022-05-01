@@ -10,6 +10,7 @@ import android.content.Context;
 import android.os.Build;
 import androidx.annotation.NonNull;
 import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.utils.DeviceHelper;
 
 import org.jetbrains.annotations.Contract;
 
@@ -67,12 +68,10 @@ public class NativeScannerStream extends InputStream {
     private NativeScannerStream runScanner(String root,
                                            boolean rootRequired) throws IOException, InterruptedException {
       String binaryName = "libscan.so";
-      // setupBinary(binaryName);
-      boolean deviceIsRooted = DataSource.get().isDeviceRooted();
       Process process = null;
 
 
-      if (!(rootRequired && deviceIsRooted)) {
+      if (!(rootRequired && DeviceHelper.isDeviceRooted())) {
         process = Runtime.getRuntime().exec(new String[] {
             getScanBinaryPath(binaryName), root});
       } else {

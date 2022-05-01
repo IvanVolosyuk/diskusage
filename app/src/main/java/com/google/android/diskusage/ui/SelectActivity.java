@@ -35,6 +35,7 @@ import com.google.android.diskusage.datasource.fast.DefaultDataSource;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.filesystem.mnt.RootMountPoint;
+import com.google.android.diskusage.utils.DeviceHelper;
 import com.google.android.diskusage.utils.Logger;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -213,7 +214,7 @@ public class SelectActivity extends Activity {
       actionList.add(new DisableDebug());
     }
 
-    if (DataSource.get().isDeviceRooted()) {
+    if (DeviceHelper.isDeviceRooted()) {
       SharedPreferences prefs =  getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
       Map<String, ?> ignoreList = prefs.getAll();
       if (!ignoreList.keySet().isEmpty()) {
