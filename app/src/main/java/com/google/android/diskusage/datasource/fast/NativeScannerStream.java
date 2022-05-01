@@ -99,60 +99,10 @@ public class NativeScannerStream extends InputStream {
       return new NativeScannerStream(is, process);
     }
 
-    public void setupBinary(String binaryName)
-        throws IOException, InterruptedException {
-      // Remove 'scan' binary every run. TODO: do clean update on package update
-//      if (remove) {
-        new File(getScanBinaryPath(binaryName)).delete();
-//        remove = false;
-//      }
-
-      File binary = new File(getScanBinaryPath(binaryName));
-      if (binary.isFile()) return;
-      unpackScanBinary(binaryName);
-      runChmod(binaryName);
-    }
-
     @NonNull
     private String getScanBinaryPath(String binaryName) {
       return context.getApplicationInfo().nativeLibraryDir
           + "/" + binaryName;
-    }
-
-    private void runChmod(String binaryName)
-        throws IOException, InterruptedException {
-      try {
-        setExecutable(binaryName);
-        return;
-      } catch (Exception e) {
-        // fall back to legacy way
-      }
-      Process process;
-      try {
-        process = Runtime.getRuntime().exec(
-            "chmod 0555 " + getScanBinaryPath(binaryName));
-      } catch (IOException e) {
-        try {
-          process = Runtime.getRuntime().exec(
-              "/system/bin/chmod 0555 " + getScanBinaryPath(binaryName));
-        } catch (IOException ee ) {
-          throw new RuntimeException("Failed to chmod", ee);
-        }
-      }
-      process.waitFor();
-    }
-
-    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
-    private void setExecutable(String binaryName) {
-      if (!new File(binaryName).setExecutable(true, true)) {
-        throw new RuntimeException("Failed to setExecutable");
-      }
-    }
-
-    private void unpackScanBinary(String binaryName) throws IOException {
-      InputStream is = context.getAssets().open(binaryName);
-      FileOutputStream os = new FileOutputStream(getScanBinaryPath(binaryName));
-      StreamCopy.copyStream(is, os);
     }
   }
 }
