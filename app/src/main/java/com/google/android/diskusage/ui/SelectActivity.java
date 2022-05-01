@@ -30,42 +30,25 @@ import androidx.annotation.NonNull;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.ActivityCommonBinding;
 import com.google.android.diskusage.datasource.DataSource;
-import com.google.android.diskusage.datasource.DebugDataSourceBridge;
-import com.google.android.diskusage.datasource.fast.DefaultDataSource;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.filesystem.mnt.RootMountPoint;
 import com.google.android.diskusage.utils.DeviceHelper;
+import com.google.android.diskusage.utils.IOHelpers;
 import com.google.android.diskusage.utils.Logger;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import splitties.toast.ToastKt;
 
 public class SelectActivity extends Activity {
+  private static final String BUNDLE_KEYS = "keys";
   private AlertDialog dialog;
   Map<String, Bundle> bundles = new TreeMap<>();
   ArrayList<Runnable> actionList = new ArrayList<>();
   private boolean expandRootMountPoints;
-//  private static boolean debugUnhidden = true;
-  private static boolean debugLoadedDump = false;
-  private DataSource debugDataSource;
-  private static DebugDataSourceBridge debugDataSourceBridge;
-
-  static {
-    try {
-      Class<?> clazz = Class.forName(
-          "com.google.android.diskusage.datasource.debug.DebugDataSourceBridgeImpl");
-      debugDataSourceBridge = (DebugDataSourceBridge) clazz.newInstance();
-    } catch (Throwable t) {
-      Logger.getLOGGER().d("Debug is disabled", t);
-    }
-  }
-
 
   private abstract class AbstractUsageAction implements Runnable {
     public void runAction(String key, Class<?> viewer) {
@@ -95,64 +78,6 @@ public class SelectActivity extends Activity {
     public void run() {
       Intent i = new Intent(SelectActivity.this, ShowHideMountPointsActivity.class);
       startActivity(i);
-    }
-  }
-
-  private class EnableDebugAction implements Runnable {
-    public void run() {
-      try {
-        debugLoadedDump = false;
-        debugDataSource = debugDataSourceBridge.initNewDump(SelectActivity.this);
-        DataSource.override(debugDataSource);
-        dialog.hide();
-        MountPoint.reset();
-        makeDialog();
-      } catch (IOException e) {
-        Logger.getLOGGER().d("Failed to enable debug", e);
-        ToastKt.longToast("Failed to enable debug " + e.getMessage());
-      }
-    }
-  }
-
-  private class DisableDebug implements Runnable {
-    @Override
-    public void run() {
-        DataSource.override(new DefaultDataSource());
-        debugDataSource = null;
-//        debugUnhidden = false;
-        dialog.hide();
-        MountPoint.reset();
-        makeDialog();
-    }
-
-  }
-
-  private class LoadDumpAction implements Runnable {
-    public void run() {
-      try {
-        debugDataSource = debugDataSourceBridge.loadDefaultDump();
-        debugLoadedDump = true;
-        DataSource.override(debugDataSource);
-        dialog.hide();
-        MountPoint.reset();
-        makeDialog();
-      } catch (IOException e) {
-        Logger.getLOGGER().d("Failed to enable debug", e);
-        ToastKt.longToast("Failed to enable debug: " + e.getMessage());
-      }
-    }
-  }
-
-  private class SendBugReportAction implements Runnable {
-    @Override
-    public void run() {
-      try {
-        debugDataSourceBridge.saveDumpAndSendReport(
-            debugDataSource, SelectActivity.this);
-      } catch (IOException e) {
-        Logger.getLOGGER().d("Failed to send bug report", e);
-        ToastKt.longToast("Failed to send bugreport: " + e.getMessage());
-      }
     }
   }
 
@@ -193,25 +118,6 @@ public class SelectActivity extends Activity {
     for (MountPoint mountPoint : MountPoint.getMountPoints(this)) {
       options.add(mountPoint.getTitle());
       actionList.add(new DiskUsageAction(mountPoint));
-    }
-
-    if (/*debugUnhidden && */debugDataSourceBridge != null) {
-      if (debugDataSource != null && !debugLoadedDump) {
-        options.add("* Send bug report");
-        actionList.add(new SendBugReportAction());
-      }
-
-      if (debugDataSource == null) {
-        options.add("* Enable debug dump");
-        actionList.add(new EnableDebugAction());
-
-        if (debugDataSourceBridge.dumpExist()) {
-          options.add("* Load dump");
-          actionList.add(new LoadDumpAction());
-        }
-      }
-      options.add("* Disable debug");
-      actionList.add(new DisableDebug());
     }
 
     if (DeviceHelper.isDeviceRooted()) {
@@ -322,6 +228,4 @@ public class SelectActivity extends Activity {
       bundles.put(key, savedInstanceState.getBundle(key));
     }
   }
-
-  private static final String BUNDLE_KEYS = "keys";
 }
