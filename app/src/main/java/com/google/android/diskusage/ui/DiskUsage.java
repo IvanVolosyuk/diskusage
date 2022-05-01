@@ -463,8 +463,7 @@ public class DiskUsage extends LoadableActivity {
       try {
         stats = DataSource.get().statFs(mountPoint.getRoot());
       } catch (IllegalArgumentException e) {
-        Log.e("diskusage",
-            "Failed to get filesystem stats for " + mountPoint.getRoot(), e);
+        Logger.getLOGGER().e(e, "Failed to get filesystem stats for " + mountPoint.getRoot());
       }
       if (stats != null) {
         blockSize = stats.getBlockSizeLong();
