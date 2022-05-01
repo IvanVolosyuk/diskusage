@@ -34,6 +34,7 @@ import com.google.android.diskusage.ui.DiskUsage;
 import com.google.android.diskusage.utils.Logger;
 import java.io.File;
 import java.io.IOException;
+import splitties.resources.TextResourcesKt;
 import splitties.toast.ToastKt;
 
 public class BackgroundDelete extends Thread {
@@ -69,7 +70,7 @@ public class BackgroundDelete extends Thread {
     }
 
     if (!file.exists()) {
-      ToastKt.longToast(format(R.string.path_doesnt_exist, path));
+      ToastKt.longToast(TextResourcesKt.appStr(R.string.path_doesnt_exist, path));
       diskUsage.fileSystemState.removeInRenderThread(entry);
       return;
     }
@@ -84,7 +85,7 @@ public class BackgroundDelete extends Thread {
       return;
     }
     dialog = new ProgressDialog(diskUsage);
-    dialog.setMessage(format(R.string.deleting_path, path));
+    dialog.setMessage(TextResourcesKt.appStr(R.string.deleting_path, path));
     dialog.setIndeterminate(true);
     dialog.setButton(DialogInterface.BUTTON_POSITIVE, diskUsage.getString(R.string.button_background),
             (dialog, which) -> {
@@ -159,13 +160,13 @@ public class BackgroundDelete extends Thread {
             deletionStatus, numDeletedDirectories, numDeletedFiles);
 
     if (deletionStatus == DELETION_SUCCESS) {
-      ToastKt.longToast(format(R.string.deleted_n_directories_and_n_files,
+      ToastKt.longToast(TextResourcesKt.appStr(R.string.deleted_n_directories_and_n_files,
               numDeletedDirectories, numDeletedFiles));
     } else if (deletionStatus == DELETION_CANCELED) {
-      ToastKt.longToast(format(R.string.deleted_n_directories_and_files_and_canceled,
+      ToastKt.longToast(TextResourcesKt.appStr(R.string.deleted_n_directories_and_files_and_canceled,
               numDeletedDirectories, numDeletedFiles));
     } else {
-      ToastKt.longToast(format(R.string.deleted_n_directories_and_n_files_and_failed,
+      ToastKt.longToast(TextResourcesKt.appStr(R.string.deleted_n_directories_and_n_files_and_failed,
               numDeletedDirectories, numDeletedFiles));
     }
 
@@ -201,10 +202,6 @@ public class BackgroundDelete extends Thread {
     } else {
       return DELETION_FAILED;
     }
-  }
-
-  private String format(int id, Object... args) {
-    return diskUsage.getString(id, args);
   }
 }
 

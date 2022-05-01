@@ -33,7 +33,6 @@ import android.os.FileUriExposedException;
 import android.os.Handler;
 import android.provider.Settings;
 import androidx.annotation.NonNull;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import com.google.android.diskusage.filesystem.Apps2SDLoader;
@@ -232,8 +231,8 @@ public class DiskUsage extends LoadableActivity {
       // Delete single file or directory
       new AlertDialog.Builder(this)
       .setTitle(new File(fullPath).isDirectory()
-          ? format(R.string.ask_to_delete_directory, path)
-          : format(R.string.ask_to_delete_file, path))
+          ? getString(R.string.ask_to_delete_directory, path)
+          : getString(R.string.ask_to_delete_file, path))
       .setPositiveButton(R.string.button_delete,
               (dialog, which) -> BackgroundDelete.startDelete(DiskUsage.this, entry))
       .setNegativeButton(android.R.string.cancel, null).create().show();
@@ -247,13 +246,6 @@ public class DiskUsage extends LoadableActivity {
       i.putExtra(DeleteActivity.SIZE_KEY, entry.sizeString());
       this.startActivityForResult(i, 0);
     }
-  }
-  private String format(int id, Object... args) {
-    return getString(id, args);
-  }
-
-  private String str(int id) {
-    return getString(id);
   }
 
   public boolean isIntentAvailable(Intent intent) {
@@ -310,9 +302,9 @@ public class DiskUsage extends LoadableActivity {
       intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
       intent.setData(uri);
       intent.putExtra("org.openintents.extra.TITLE",
-          str(R.string.title_in_oi_file_manager));
+          getString(R.string.title_in_oi_file_manager));
       intent.putExtra("org.openintents.extra.BUTTON_TEXT",
-          str(R.string.button_text_in_oi_file_manager));
+          getString(R.string.button_text_in_oi_file_manager));
 
       try {
         startActivity(intent);
@@ -387,7 +379,7 @@ public class DiskUsage extends LoadableActivity {
 
   public void setSelectedEntity(FileSystemEntry position) {
     menu.update(position);
-    setTitle(format(R.string.title_for_path, position.toTitleString()));
+    setTitle(getString(R.string.title_for_path, position.toTitleString()));
   }
 
   @Override
