@@ -28,6 +28,7 @@ import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.ui.DiskUsage.AfterLoad;
+import com.google.android.diskusage.ui.common.ScanProgressDialog;
 import com.google.android.diskusage.utils.Logger;
 import java.io.IOException;
 import java.util.Map;
@@ -50,7 +51,7 @@ public abstract class LoadableActivity extends Activity {
   public static class PersistantActivityState {
     FileSystemSuperRoot root;
     AfterLoad afterLoad;
-    public MyProgressDialog loading;
+    public ScanProgressDialog loading;
   }
 
   private static final Map<String, PersistantActivityState> persistantActivityState =
@@ -101,9 +102,9 @@ public abstract class LoadableActivity extends Activity {
     scanRunning = state.afterLoad != null;
     state.afterLoad = runAfterLoad;
     Logger.getLOGGER().d("LoadableActivity.LoadFiles(): Created new progress dialog");
-    state.loading = new MyProgressDialog(activity);
+    state.loading = new ScanProgressDialog(activity);
 
-    final MyProgressDialog thisLoading = state.loading;
+    final ScanProgressDialog thisLoading = state.loading;
     state.loading.setOnCancelListener(dialog -> {
       state.loading = null;
       activity.finish();

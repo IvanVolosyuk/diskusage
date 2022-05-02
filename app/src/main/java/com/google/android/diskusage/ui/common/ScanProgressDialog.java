@@ -17,10 +17,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-package com.google.android.diskusage.ui;
+package com.google.android.diskusage.ui.common;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Paint;
@@ -28,13 +29,12 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import android.text.Spannable;
 import android.text.SpannableString;
+import android.text.TextUtils;
 import android.text.style.StyleSpan;
-import android.view.LayoutInflater;
 import com.google.android.diskusage.databinding.ProgressBinding;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 
-public class MyProgressDialog extends AlertDialog {
-  private final Context context;
+public class ScanProgressDialog extends AlertDialog {
   private ProgressBinding binding;
   private CharSequence details;
 
@@ -42,9 +42,8 @@ public class MyProgressDialog extends AlertDialog {
   private long max;
   private NumberFormat progressPercentFormat;
 
-  public MyProgressDialog(Context context) {
+  public ScanProgressDialog(Context context) {
     super(context);
-    this.context = context;
   }
 
   public void setMax(long max) {
@@ -63,16 +62,11 @@ public class MyProgressDialog extends AlertDialog {
     }
 
     depth = pathElements.size();
-    if (pathElements.size() < 2) return "";
-    pathElements.remove(pathElements.size() - 1);
-    StringBuilder path = new StringBuilder();
-    String sep = "";
-    for (int i = pathElements.size() - 1; i >= 0; i--) {
-      path.append(sep);
-      path.append(pathElements.get(i));
-      sep = "/";
-    }
-    return path.toString();
+    if (depth < 2) return "";
+    pathElements.remove(depth - 1);
+    Collections.reverse(pathElements);
+
+    return TextUtils.join("/", pathElements);
   }
 
   char[] prevPathChars = new char[0];
@@ -204,7 +198,7 @@ public class MyProgressDialog extends AlertDialog {
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
-    binding = ProgressBinding.inflate(LayoutInflater.from(context));
+    binding = ProgressBinding.inflate(getLayoutInflater());
     progressPercentFormat = NumberFormat.getPercentInstance();
     progressPercentFormat.setMaximumFractionDigits(0);
     binding.progress.setMax(10000);

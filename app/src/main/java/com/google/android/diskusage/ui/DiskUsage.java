@@ -53,6 +53,7 @@ import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.filesystem.entity.FileSystemRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSystemSpace;
+import com.google.android.diskusage.ui.common.ScanProgressDialog;
 import com.google.android.diskusage.utils.Logger;
 import com.google.android.diskusage.utils.MimeTypes;
 import org.jetbrains.annotations.Contract;
@@ -487,7 +488,7 @@ public class DiskUsage extends LoadableActivity {
       private FileSystemEntry file;
       @Override
       public void run() {
-        MyProgressDialog dialog = getPersistantState().loading;
+        ScanProgressDialog dialog = getPersistantState().loading;
         if (dialog != null) {
           dialog.setMax(stats.busyBlocks);
           FileSystemEntry lastFile = scanner.lastCreatedFile();
