@@ -45,7 +45,7 @@ android.applicationVariants.all { variant ->
 }
 
 dependencies {
-    implementation files('src/main/extra/system.jar')
+    // implementation files('src/main/extra/system.jar')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation 'androidx.core:core-ktx:1.6.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2'
