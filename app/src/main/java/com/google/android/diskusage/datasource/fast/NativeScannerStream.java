@@ -1,17 +1,11 @@
 package com.google.android.diskusage.datasource.fast;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import android.annotation.TargetApi;
-import android.content.Context;
-import android.os.Build;
 import androidx.annotation.NonNull;
-import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.utils.AppHelper;
 import com.google.android.diskusage.utils.DeviceHelper;
-
 import org.jetbrains.annotations.Contract;
 
 public class NativeScannerStream extends InputStream {
@@ -50,30 +44,28 @@ public class NativeScannerStream extends InputStream {
     }
   }
 
-  static class Factory {
-    private final Context context;
+
+
+  public static class Factory {
     // private static final boolean remove = true;
 
-    Factory(Context context) {
-      this.context = context;
-    }
-
-    public NativeScannerStream create(String path, boolean rootRequired)
+    @NonNull
+    @Contract("_, _ -> new")
+    public static NativeScannerStream create(String path, boolean rootRequired)
         throws IOException, InterruptedException {
       return runScanner(path, rootRequired);
     }
 
     @NonNull
     @Contract("_, _ -> new")
-    private NativeScannerStream runScanner(String root,
-                                           boolean rootRequired) throws IOException, InterruptedException {
+    private static NativeScannerStream runScanner(String root, boolean rootRequired)
+            throws IOException, InterruptedException {
       String binaryName = "libscan.so";
       Process process = null;
 
-
       if (!(rootRequired && DeviceHelper.isDeviceRooted())) {
         process = Runtime.getRuntime().exec(new String[] {
-            getScanBinaryPath(binaryName), root});
+                getScanBinaryPath(binaryName), root});
       } else {
         IOException e = null;
         for (String su : new String[] { "su", "/system/bin/su", "/system/xbin/su" }) {
@@ -99,9 +91,9 @@ public class NativeScannerStream extends InputStream {
     }
 
     @NonNull
-    private String getScanBinaryPath(String binaryName) {
-      return context.getApplicationInfo().nativeLibraryDir
-          + "/" + binaryName;
+    private static String getScanBinaryPath(String binaryName) {
+      return AppHelper.getAppContext().getApplicationInfo().nativeLibraryDir
+              + "/" + binaryName;
     }
   }
 }

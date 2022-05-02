@@ -23,6 +23,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import androidx.annotation.NonNull;
 import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.datasource.fast.NativeScannerStream;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntrySmall;
 import com.google.android.diskusage.filesystem.entity.FileSystemFile;
@@ -185,8 +186,7 @@ public class NativeScanner implements ProgressGenerator {
   }
 
   public FileSystemEntry scan(@NonNull MountPoint mountPoint) throws IOException, InterruptedException {
-    is = DataSource.get().createNativeScanner(
-        context, mountPoint.getRoot(), mountPoint.isRootRequired());
+    is = NativeScannerStream.Factory.create(mountPoint.getRoot(), mountPoint.isRootRequired());
     // while (getByte() != 0);
 
     Type type = getType();
