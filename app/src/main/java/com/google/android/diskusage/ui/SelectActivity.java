@@ -29,12 +29,11 @@ import android.os.Handler;
 import androidx.annotation.NonNull;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.ActivityCommonBinding;
-import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.filesystem.mnt.RootMountPoint;
 import com.google.android.diskusage.utils.DeviceHelper;
-import com.google.android.diskusage.utils.IOHelpers;
+import com.google.android.diskusage.utils.IOHelper;
 import com.google.android.diskusage.utils.Logger;
 import java.io.BufferedReader;
 import java.util.ArrayList;
@@ -87,7 +86,7 @@ public class SelectActivity extends Activity {
     public void run() {
       boolean reload = false;
       try {
-        BufferedReader reader = DataSource.get().getProcReader();
+        BufferedReader reader = IOHelper.getProcMountsReader();
         String line;
         int checksum = 0;
         while ((line = reader.readLine()) != null) {

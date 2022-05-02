@@ -20,7 +20,7 @@
 package com.google.android.diskusage.filesystem.mnt;
 
 import android.content.Context;
-import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.utils.IOHelper;
 import com.google.android.diskusage.utils.Logger;
 import java.io.BufferedReader;
 import java.util.ArrayList;
@@ -78,7 +78,7 @@ public class RootMountPoint extends MountPoint {
 
     try {
       checksum = 0;
-      BufferedReader reader = DataSource.get().getProcReader();
+      BufferedReader reader = IOHelper.getProcMountsReader();
       String line;
       while ((line = reader.readLine()) != null) {
         checksum += line.length();
