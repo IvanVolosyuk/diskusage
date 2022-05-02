@@ -4,7 +4,7 @@ import java.io.IOException;
 
 public interface LegacyFile {
   String getName();
-  String getCannonicalPath() throws IOException;
+  String getCanonicalPath() throws IOException;
 
   boolean isLink();
   boolean isFile();

@@ -35,6 +35,8 @@ import android.provider.Settings;
 import androidx.annotation.NonNull;
 import android.view.Menu;
 import android.view.MenuItem;
+import com.google.android.diskusage.datasource.fast.LegacyFileImpl;
+import com.google.android.diskusage.datasource.fast.StatFsSourceImpl;
 import com.google.android.diskusage.filesystem.Apps2SDLoader;
 import com.google.android.diskusage.filesystem.BackgroundDelete;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
@@ -43,7 +45,6 @@ import com.google.android.diskusage.R;
 import com.google.android.diskusage.opengl.RendererManager;
 import com.google.android.diskusage.core.Scanner;
 import com.google.android.diskusage.databinding.ActivityCommonBinding;
-import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.datasource.StatFsSource;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntrySmall;
@@ -453,7 +454,7 @@ public class DiskUsage extends LoadableActivity {
     public FileSystemStats(@NonNull MountPoint mountPoint) {
       StatFsSource stats = null;
       try {
-        stats = DataSource.get().statFs(mountPoint.getRoot());
+        stats = new StatFsSourceImpl(mountPoint.getRoot());
       } catch (IllegalArgumentException e) {
         Logger.getLOGGER().e(e, "Failed to get filesystem stats for " + mountPoint.getRoot());
       }
@@ -519,7 +520,7 @@ public class DiskUsage extends LoadableActivity {
       final Scanner scanner = new Scanner(20, stats.blockSize, stats.busyBlocks, heap);
       progressUpdater = makeProgressUpdater(scanner, stats);
       handler.post(progressUpdater);
-      rootElement = scanner.scan(DataSource.get().createLegacyScanFile(mountPoint.getRoot()));
+      rootElement = scanner.scan(LegacyFileImpl.createRoot(mountPoint.getRoot()));
       handler.removeCallbacks(progressUpdater);
     }
 

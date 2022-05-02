@@ -4,8 +4,9 @@ import java.io.File;
 import android.annotation.TargetApi;
 import android.os.Build;
 import android.os.Environment;
-
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.datasource.PortableFile;
+import com.google.android.diskusage.utils.PathHelper;
 
 public class PortableFileImpl implements PortableFile {
   private final File file;
@@ -19,6 +20,17 @@ public class PortableFileImpl implements PortableFile {
       return null;
     }
     return new PortableFileImpl(file);
+  }
+
+  @NonNull
+  public static PortableFile[] getExternalAppFilesDirs() {
+    final File[] externalAppFilesPaths = PathHelper.getExternalAppFilesPaths();
+    final PortableFile[] result = new PortableFile[externalAppFilesPaths.length];
+    int i = 0;
+    for (final File dir : externalAppFilesPaths) {
+      result[i++] = make(dir);
+    }
+    return result;
   }
 
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)

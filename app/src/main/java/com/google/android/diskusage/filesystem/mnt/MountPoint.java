@@ -23,6 +23,7 @@ import android.content.Context;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.datasource.PortableFile;
+import com.google.android.diskusage.datasource.fast.PortableFileImpl;
 import com.google.android.diskusage.utils.Logger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -92,7 +93,7 @@ public class MountPoint {
     if (init) return;
     init = true;
 
-    for (PortableFile dir : DataSource.get().getExternalFilesDirs(context)) {
+    for (final PortableFile dir : PortableFileImpl.getExternalAppFilesDirs()) {
       String path = dir.getAbsolutePath().replaceFirst("/Android/data/com.google.android.diskusage/files", "");
       Logger.getLOGGER().d("MountPoint.initMountPoints: mountpoint %s", path);
       boolean internal = !dir.isExternalStorageRemovable();

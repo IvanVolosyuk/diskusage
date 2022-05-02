@@ -34,7 +34,6 @@ import android.os.Environment;
 import android.provider.Settings;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.ActivityCommonBinding;
-import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import splitties.toast.ToastKt;
 
@@ -43,7 +42,6 @@ public class PermissionRequestActivity extends Activity {
     private final static int PERMISSION_REQUEST_USAGE_ACCESS_CODE = 11;
     private final static int PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE = 12;
 
-    private final DataSource dataSource = DataSource.get();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

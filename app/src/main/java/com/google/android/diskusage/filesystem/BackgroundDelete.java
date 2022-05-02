@@ -27,6 +27,7 @@ import androidx.annotation.NonNull;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.core.Scanner;
 import com.google.android.diskusage.datasource.DataSource;
+import com.google.android.diskusage.datasource.fast.LegacyFileImpl;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
@@ -144,7 +145,8 @@ public class BackgroundDelete extends Thread {
       FileSystemEntry newEntry = new Scanner(
               // FIXME: hacked allocatedBlocks and heap size
               20, displayBlockSize, 0, 4).scan(
-              DataSource.get().createLegacyScanFile(mountPoint.getRoot() + "/" + path));
+                      // Original: DataSource.get().createLegacyScanFile
+              LegacyFileImpl.createRoot(mountPoint.getRoot() + "/" + path));
       // FIXME: may be problems in case of two deletions
       entry.parent.insert(newEntry, displayBlockSize);
       diskUsage.fileSystemState.restore(newEntry);
