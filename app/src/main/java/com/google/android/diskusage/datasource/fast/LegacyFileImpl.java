@@ -18,7 +18,7 @@ public class LegacyFileImpl implements LegacyFile {
 
   @NonNull
   @Contract("_ -> new")
-  static LegacyFile createRoot(String root) {
+  public static LegacyFile createRoot(String root) {
     return new LegacyFileImpl(new File(root));
   }
 
@@ -28,7 +28,7 @@ public class LegacyFileImpl implements LegacyFile {
   }
 
   @Override
-  public String getCannonicalPath() throws IOException {
+  public String getCanonicalPath() throws IOException {
     return file.getCanonicalPath();
   }
 

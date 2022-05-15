@@ -1,4 +1,4 @@
-/**
+/*
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008 Ivan Volosyuk
  *
@@ -22,23 +22,21 @@ package com.google.android.diskusage.ui;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.FileUriExposedException;
 import android.os.Handler;
 import android.provider.Settings;
 import androidx.annotation.NonNull;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
+import com.google.android.diskusage.datasource.fast.LegacyFileImpl;
+import com.google.android.diskusage.datasource.fast.StatFsSourceImpl;
 import com.google.android.diskusage.filesystem.Apps2SDLoader;
 import com.google.android.diskusage.filesystem.BackgroundDelete;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
@@ -47,7 +45,6 @@ import com.google.android.diskusage.R;
 import com.google.android.diskusage.opengl.RendererManager;
 import com.google.android.diskusage.core.Scanner;
 import com.google.android.diskusage.databinding.ActivityCommonBinding;
-import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.datasource.StatFsSource;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntrySmall;
@@ -56,6 +53,7 @@ import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.filesystem.entity.FileSystemRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSystemSpace;
+import com.google.android.diskusage.ui.common.ScanProgressDialog;
 import com.google.android.diskusage.utils.Logger;
 import com.google.android.diskusage.utils.MimeTypes;
 import org.jetbrains.annotations.Contract;
@@ -65,6 +63,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import splitties.toast.ToastKt;
 
 public class DiskUsage extends LoadableActivity {
 
@@ -211,8 +210,7 @@ public class DiskUsage extends LoadableActivity {
     if (entry != null) {
       BackgroundDelete.startDelete(this, entry);
     } else {
-      Toast.makeText(this,
-          "Oops. Can't find directory to be deleted.", Toast.LENGTH_SHORT).show();
+      ToastKt.toast("Oops. Can't find directory to be deleted.");
     }
   }
 
@@ -222,9 +220,7 @@ public class DiskUsage extends LoadableActivity {
     Logger.getLOGGER().d("Deletion requested for %s", path);
 
     if (entry instanceof FileSystemEntrySmall) {
-      Toast.makeText(this,
-          "Delete directory instead", Toast.LENGTH_SHORT).show();
-
+      ToastKt.toast("Delete directory instead");
       return;
     }
     if (entry.children == null || entry.children.length == 0) {
@@ -237,8 +233,8 @@ public class DiskUsage extends LoadableActivity {
       // Delete single file or directory
       new AlertDialog.Builder(this)
       .setTitle(new File(fullPath).isDirectory()
-          ? format(R.string.ask_to_delete_directory, path)
-          : format(R.string.ask_to_delete_file, path))
+          ? getString(R.string.ask_to_delete_directory, path)
+          : getString(R.string.ask_to_delete_file, path))
       .setPositiveButton(R.string.button_delete,
               (dialog, which) -> BackgroundDelete.startDelete(DiskUsage.this, entry))
       .setNegativeButton(android.R.string.cancel, null).create().show();
@@ -252,13 +248,6 @@ public class DiskUsage extends LoadableActivity {
       i.putExtra(DeleteActivity.SIZE_KEY, entry.sizeString());
       this.startActivityForResult(i, 0);
     }
-  }
-  private String format(int id, Object... args) {
-    return getString(id, args);
-  }
-
-  private String str(int id) {
-    return getString(id);
   }
 
   public boolean isIntentAvailable(Intent intent) {
@@ -315,9 +304,9 @@ public class DiskUsage extends LoadableActivity {
       intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
       intent.setData(uri);
       intent.putExtra("org.openintents.extra.TITLE",
-          str(R.string.title_in_oi_file_manager));
+          getString(R.string.title_in_oi_file_manager));
       intent.putExtra("org.openintents.extra.BUTTON_TEXT",
-          str(R.string.button_text_in_oi_file_manager));
+          getString(R.string.button_text_in_oi_file_manager));
 
       try {
         startActivity(intent);
@@ -349,8 +338,7 @@ public class DiskUsage extends LoadableActivity {
             .setNegativeButton(android.R.string.cancel, null)
             .create().show();
       } else {
-      Toast.makeText(this, str(R.string.install_oi_file_manager),
-          Toast.LENGTH_SHORT).show();
+        ToastKt.toast(R.string.install_oi_file_manager);
       }
       return;
     }
@@ -371,8 +359,7 @@ public class DiskUsage extends LoadableActivity {
       } catch (ActivityNotFoundException|FileUriExposedException ignored) {
       }
     }
-    Toast.makeText(this, str(R.string.no_viewer_found),
-        Toast.LENGTH_SHORT).show();
+    ToastKt.toast(R.string.no_viewer_found);
   }
 
   public void rescan() {
@@ -394,7 +381,7 @@ public class DiskUsage extends LoadableActivity {
 
   public void setSelectedEntity(FileSystemEntry position) {
     menu.update(position);
-    setTitle(format(R.string.title_for_path, position.toTitleString()));
+    setTitle(getString(R.string.title_for_path, position.toTitleString()));
   }
 
   @Override
@@ -468,10 +455,9 @@ public class DiskUsage extends LoadableActivity {
     public FileSystemStats(@NonNull MountPoint mountPoint) {
       StatFsSource stats = null;
       try {
-        stats = DataSource.get().statFs(mountPoint.getRoot());
+        stats = new StatFsSourceImpl(mountPoint.getRoot());
       } catch (IllegalArgumentException e) {
-        Log.e("diskusage",
-            "Failed to get filesystem stats for " + mountPoint.getRoot(), e);
+        Logger.getLOGGER().e(e, "Failed to get filesystem stats for " + mountPoint.getRoot());
       }
       if (stats != null) {
         blockSize = stats.getBlockSizeLong();
@@ -502,7 +488,7 @@ public class DiskUsage extends LoadableActivity {
       private FileSystemEntry file;
       @Override
       public void run() {
-        MyProgressDialog dialog = getPersistantState().loading;
+        ScanProgressDialog dialog = getPersistantState().loading;
         if (dialog != null) {
           dialog.setMax(stats.busyBlocks);
           FileSystemEntry lastFile = scanner.lastCreatedFile();
@@ -535,7 +521,7 @@ public class DiskUsage extends LoadableActivity {
       final Scanner scanner = new Scanner(20, stats.blockSize, stats.busyBlocks, heap);
       progressUpdater = makeProgressUpdater(scanner, stats);
       handler.post(progressUpdater);
-      rootElement = scanner.scan(DataSource.get().createLegacyScanFile(mountPoint.getRoot()));
+      rootElement = scanner.scan(LegacyFileImpl.createRoot(mountPoint.getRoot()));
       handler.removeCallbacks(progressUpdater);
     }
 

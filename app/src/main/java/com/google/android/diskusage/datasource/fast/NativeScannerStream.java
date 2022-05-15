@@ -1,16 +1,11 @@
 package com.google.android.diskusage.datasource.fast;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import android.annotation.TargetApi;
-import android.content.Context;
-import android.os.Build;
 import androidx.annotation.NonNull;
-import com.google.android.diskusage.datasource.DataSource;
-
+import com.google.android.diskusage.utils.AppHelper;
+import com.google.android.diskusage.utils.DeviceHelper;
 import org.jetbrains.annotations.Contract;
 
 public class NativeScannerStream extends InputStream {
@@ -49,32 +44,28 @@ public class NativeScannerStream extends InputStream {
     }
   }
 
-  static class Factory {
-    private final Context context;
+
+
+  public static class Factory {
     // private static final boolean remove = true;
 
-    Factory(Context context) {
-      this.context = context;
-    }
-
-    public NativeScannerStream create(String path, boolean rootRequired)
+    @NonNull
+    @Contract("_, _ -> new")
+    public static NativeScannerStream create(String path, boolean rootRequired)
         throws IOException, InterruptedException {
       return runScanner(path, rootRequired);
     }
 
     @NonNull
     @Contract("_, _ -> new")
-    private NativeScannerStream runScanner(String root,
-                                           boolean rootRequired) throws IOException, InterruptedException {
+    private static NativeScannerStream runScanner(String root, boolean rootRequired)
+            throws IOException, InterruptedException {
       String binaryName = "libscan.so";
-      // setupBinary(binaryName);
-      boolean deviceIsRooted = DataSource.get().isDeviceRooted();
       Process process = null;
 
-
-      if (!(rootRequired && deviceIsRooted)) {
+      if (!(rootRequired && DeviceHelper.isDeviceRooted())) {
         process = Runtime.getRuntime().exec(new String[] {
-            getScanBinaryPath(binaryName), root});
+                getScanBinaryPath(binaryName), root});
       } else {
         IOException e = null;
         for (String su : new String[] { "su", "/system/bin/su", "/system/xbin/su" }) {
@@ -99,60 +90,10 @@ public class NativeScannerStream extends InputStream {
       return new NativeScannerStream(is, process);
     }
 
-    public void setupBinary(String binaryName)
-        throws IOException, InterruptedException {
-      // Remove 'scan' binary every run. TODO: do clean update on package update
-//      if (remove) {
-        new File(getScanBinaryPath(binaryName)).delete();
-//        remove = false;
-//      }
-
-      File binary = new File(getScanBinaryPath(binaryName));
-      if (binary.isFile()) return;
-      unpackScanBinary(binaryName);
-      runChmod(binaryName);
-    }
-
     @NonNull
-    private String getScanBinaryPath(String binaryName) {
-      return context.getApplicationInfo().nativeLibraryDir
-          + "/" + binaryName;
-    }
-
-    private void runChmod(String binaryName)
-        throws IOException, InterruptedException {
-      try {
-        setExecutable(binaryName);
-        return;
-      } catch (Exception e) {
-        // fall back to legacy way
-      }
-      Process process;
-      try {
-        process = Runtime.getRuntime().exec(
-            "chmod 0555 " + getScanBinaryPath(binaryName));
-      } catch (IOException e) {
-        try {
-          process = Runtime.getRuntime().exec(
-              "/system/bin/chmod 0555 " + getScanBinaryPath(binaryName));
-        } catch (IOException ee ) {
-          throw new RuntimeException("Failed to chmod", ee);
-        }
-      }
-      process.waitFor();
-    }
-
-    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
-    private void setExecutable(String binaryName) {
-      if (!new File(binaryName).setExecutable(true, true)) {
-        throw new RuntimeException("Failed to setExecutable");
-      }
-    }
-
-    private void unpackScanBinary(String binaryName) throws IOException {
-      InputStream is = context.getAssets().open(binaryName);
-      FileOutputStream os = new FileOutputStream(getScanBinaryPath(binaryName));
-      StreamCopy.copyStream(is, os);
+    private static String getScanBinaryPath(String binaryName) {
+      return AppHelper.getAppContext().getApplicationInfo().nativeLibraryDir
+              + "/" + binaryName;
     }
   }
 }

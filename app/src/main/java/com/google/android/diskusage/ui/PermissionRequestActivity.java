@@ -32,18 +32,16 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
-import android.widget.Toast;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.ActivityCommonBinding;
-import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
+import splitties.toast.ToastKt;
 
 public class PermissionRequestActivity extends Activity {
     private final static int DISKUSAGE_REQUEST_CODE = 10;
     private final static int PERMISSION_REQUEST_USAGE_ACCESS_CODE = 11;
     private final static int PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE = 12;
 
-    private final DataSource dataSource = DataSource.get();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -98,18 +96,18 @@ public class PermissionRequestActivity extends Activity {
         } else if (requestCode == PERMISSION_REQUEST_USAGE_ACCESS_CODE) {
             forwardToDiskUsage();
         } else if (requestCode == PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE) {
-            if (dataSource.getAndroidVersion() >= Build.VERSION_CODES.R) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 if (Environment.isExternalStorageManager()) {
                     forwardToDiskUsage();
                 } else {
-                    Toast.makeText(this, R.string.dialog_external_storage_access_error, Toast.LENGTH_SHORT).show();
+                    ToastKt.toast(R.string.dialog_external_storage_access_error);
                 }
             }
         }
     }
 
     private void requestExternalStoragePermission() {
-        if (dataSource.getAndroidVersion() >= Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (Environment.isExternalStorageManager()) {
                 forwardToDiskUsage();
             } else {
@@ -117,7 +115,7 @@ public class PermissionRequestActivity extends Activity {
                 i.setData(Uri.parse("package:" + getPackageName()));
                 startActivityForResult(i, PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE);
             }
-        } else if (dataSource.getAndroidVersion() >= Build.VERSION_CODES.M) {
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE
                 ) == PackageManager.PERMISSION_GRANTED &&
                 checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -141,10 +139,8 @@ public class PermissionRequestActivity extends Activity {
             ApplicationInfo applicationInfo = packageManager.getApplicationInfo(getPackageName(), 0);
             AppOpsManager appOpsManager = (AppOpsManager) getSystemService(Context.APP_OPS_SERVICE);
             int mode = 0;
-            if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.KITKAT) {
-                mode = appOpsManager.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
-                        applicationInfo.uid, applicationInfo.packageName);
-            }
+            mode = appOpsManager.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
+                    applicationInfo.uid, applicationInfo.packageName);
             return (mode == AppOpsManager.MODE_ALLOWED);
 
         } catch (PackageManager.NameNotFoundException e) {

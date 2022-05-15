@@ -94,7 +94,7 @@ public class Scanner implements DiskUsage.ProgressGenerator {
   public FileSystemEntry scan(LegacyFile file) throws IOException {
     long st_blocks;
     try {
-      StructStat stat = Os.stat(file.getCannonicalPath());
+      StructStat stat = Os.stat(file.getCanonicalPath());
       dev = stat.st_dev;
       st_blocks = stat.st_blocks;
     } catch (ErrnoException e) {
@@ -182,7 +182,7 @@ public class Scanner implements DiskUsage.ProgressGenerator {
       long st_blocks;
       long st_size;
       try {
-        StructStat res = Os.stat(childFile.getCannonicalPath());
+        StructStat res = Os.stat(childFile.getCanonicalPath());
         // Not regular file and not folder
 //        if ((res.st_mode & 0x0100000) == 0 && (res.st_mode & 0x0040000) == 0) continue;
         st_blocks = res.st_blocks;
@@ -311,7 +311,7 @@ public class Scanner implements DiskUsage.ProgressGenerator {
 
     if (file.isFile()) {
       try {
-        StructStat res = Os.stat(file.getCannonicalPath());
+        StructStat res = Os.stat(file.getCanonicalPath());
         return res.st_blocks;
       } catch (ErrnoException|IOException e) {
         return 0;

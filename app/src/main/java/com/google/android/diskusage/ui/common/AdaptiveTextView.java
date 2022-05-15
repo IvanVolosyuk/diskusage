@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-package com.google.android.diskusage.ui;
+package com.google.android.diskusage.ui.common;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -29,8 +29,8 @@ import android.widget.TextView;
  * @author vol
  *
  */
-public class MyTextView extends TextView {
-  public MyTextView(Context context, AttributeSet attrs) {
+public class AdaptiveTextView extends TextView {
+  public AdaptiveTextView(Context context, AttributeSet attrs) {
     super(context, attrs);
   }
   

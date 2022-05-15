@@ -36,10 +36,10 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
 import java.util.ArrayList;
 import java.util.Arrays;
+import splitties.toast.ToastKt;
 
 public class FileSystemState {
 
@@ -100,8 +100,7 @@ public class FileSystemState {
 
     @Override
     public void warnOnFileSelect() {
-      context.handler.post(() -> Toast.makeText(context,
-          R.string.warn_on_file_select, Toast.LENGTH_SHORT).show());
+      context.handler.post(() -> ToastKt.toast(R.string.warn_on_file_select));
     }
 
     @Override

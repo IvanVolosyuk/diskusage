@@ -31,7 +31,7 @@ import android.os.storage.StorageManager;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.ui.DiskUsage;
-import com.google.android.diskusage.ui.MyProgressDialog;
+import com.google.android.diskusage.ui.common.ScanProgressDialog;
 import com.google.android.diskusage.utils.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,7 +70,7 @@ public class Apps2SDLoader {
     Runnable progressUpdater = new Runnable() {
       @Override
       public void run() {
-        MyProgressDialog dialog = diskUsage.getPersistantState().loading;
+        ScanProgressDialog dialog = diskUsage.getPersistantState().loading;
         if (dialog != null) {
           if (switchToSecondary) {
             dialog.switchToSecondary();

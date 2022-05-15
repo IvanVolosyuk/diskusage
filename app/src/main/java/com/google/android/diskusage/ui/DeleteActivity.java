@@ -27,7 +27,7 @@ import androidx.annotation.NonNull;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.DeleteViewBinding;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
-import com.google.android.diskusage.ui.delete.FileInfoAdapter;
+import com.google.android.diskusage.ui.common.FileInfoAdapter;
 import com.google.android.diskusage.utils.Logger;
 
 public class DeleteActivity extends Activity {

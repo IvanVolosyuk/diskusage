@@ -16,24 +16,11 @@ import android.os.Build;
 import android.os.Environment;
 import androidx.annotation.NonNull;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DefaultDataSource extends DataSource {
-
-  @Override
-  public InputStream getProc() throws IOException {
-    return new FileInputStream("/proc/mounts");
-  }
-
-  @Override
-  public int getAndroidVersion() {
-    return Build.VERSION.SDK_INT;
-  }
 
   @Override
   public List<PkgInfo> getInstalledPackages(@NonNull PackageManager pm) {
@@ -55,45 +42,6 @@ public class DefaultDataSource extends DataSource {
   @Override
   public PortableFile getExternalFilesDir(Context context) {
     return PortableFileImpl.make(context.getExternalFilesDir(null));
-  }
-
-  @TargetApi(Build.VERSION_CODES.KITKAT)
-  @Override
-  public PortableFile[] getExternalFilesDirs(Context context) {
-    File[] externalFilesDirs = context.getExternalFilesDirs(null);
-    PortableFile[] result = new PortableFileImpl[externalFilesDirs.length];
-    for (int i = 0; i < externalFilesDirs.length; i++) {
-      result[i] = PortableFileImpl.make(externalFilesDirs[i]);
-    }
-    return result;
-  }
-
-  @Override
-  public InputStream createNativeScanner(
-      Context context, String path, boolean rootRequired)
-          throws IOException, InterruptedException {
-    return new NativeScannerStream.Factory(context).create(path, rootRequired);
-  }
-
-  @Override
-  public boolean isDeviceRooted() {
-    String pathEnv = System.getenv("PATH");
-    if (pathEnv != null) {
-      String[] searchPaths = pathEnv.split(":");
-      for (String path : searchPaths) {
-        if (path.length() == 0) {
-          continue;
-        }
-        String suPath = path + "/su";
-        File suFile = new File(suPath);
-        if (suFile.exists() && !suFile.isDirectory()) {
-          return true;
-        }
-      }
-    }
-
-    return new File("/system/bin/su").isFile()
-        || new File("/system/xbin/su").isFile();
   }
 
   @Override
