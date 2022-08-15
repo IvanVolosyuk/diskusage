@@ -111,7 +111,7 @@ public class PermissionRequestActivity extends Activity {
             if (Environment.isExternalStorageManager()) {
                 forwardToDiskUsage();
             } else {
-                final Intent i = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                final Intent i = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                 i.setData(Uri.parse("package:" + getPackageName()));
                 startActivityForResult(i, PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE);
             }
