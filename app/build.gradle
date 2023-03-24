@@ -4,6 +4,7 @@ apply plugin: 'kotlin-android'
 android {
     compileSdkVersion 31
     buildToolsVersion "31"
+    ndkVersion "25.0.8775105"
 
     defaultConfig {
         applicationId "com.google.android.diskusage"
