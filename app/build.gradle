@@ -1,9 +1,11 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+}
 
 android {
-    compileSdkVersion 31
-    buildToolsVersion "31"
+    compileSdk 31
+    buildToolsVersion = "31"
     ndkVersion "25.0.8775105"
 
     defaultConfig {
@@ -18,6 +20,11 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
     sourceSets {
         main {
             java {
@@ -39,8 +46,8 @@ android {
     }
 }
 
-android.applicationVariants.all { variant ->
-    variant.outputs.all {
+android.applicationVariants.configureEach { variant ->
+    variant.outputs.configureEach {
         outputFileName = "diskusage-v${variant.versionName}-${variant.name}.apk"
     }
 }
