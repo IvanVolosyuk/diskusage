@@ -28,7 +28,7 @@ import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.DeleteViewBinding;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.ui.common.FileInfoAdapter;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 
 public class DeleteActivity extends Activity {
   public static final String NUM_FILES_KEY = "numFiles";
@@ -45,7 +45,7 @@ public class DeleteActivity extends Activity {
         DiskUsage.DELETE_PATH_KEY);
     final String absolutePath = getIntent().getStringExtra(
             DiskUsage.DELETE_ABSOLUTE_PATH_KEY);
-    Logger.getLOGGER().d("DeleteActivity.onResume(): %s -> %s", path, absolutePath);
+    Timber.d("DeleteActivity.onResume(): %s -> %s", path, absolutePath);
 
     DeleteViewBinding binding = DeleteViewBinding.inflate(getLayoutInflater());
     setContentView(binding.getRoot());

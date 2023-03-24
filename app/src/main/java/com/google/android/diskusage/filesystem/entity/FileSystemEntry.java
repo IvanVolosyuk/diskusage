@@ -29,7 +29,7 @@ import com.google.android.diskusage.R;
 import com.google.android.diskusage.opengl.DrawingCache;
 import com.google.android.diskusage.opengl.RenderingThread;
 import com.google.android.diskusage.ui.Cursor;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -1119,7 +1119,7 @@ public class FileSystemEntry {
    * @param exactMatch TODO
    */
   public FileSystemEntry getEntryByName(@NonNull String path, boolean exactMatch) {
-    Logger.getLOGGER().d("FileSystemEntry.getEntryByName(): getEntryForName = %s", path);
+    Timber.d("FileSystemEntry.getEntryByName(): getEntryForName = %s", path);
     String[] pathElements = path.split("/");
     FileSystemEntry entry = this;
 

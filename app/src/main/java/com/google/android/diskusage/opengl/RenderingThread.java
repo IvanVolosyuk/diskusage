@@ -14,7 +14,7 @@ import androidx.annotation.NonNull;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.ui.FileSystemState;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -98,7 +98,7 @@ public class RenderingThread extends AbstractRenderingThread {
     int min = Math.min(width, height);
     float minInch = min / dpi; // my tablet: 5 inch height
                                // my phone: 2 inc width
-    Logger.getLOGGER().d("RenderingThread.updateFonts(): Screen inch = %s", minInch);
+    Timber.d("RenderingThread.updateFonts(): Screen inch = %s", minInch);
     
     float defaultSize = textPaint.getTextSize();
     textPaint.setTextSize(20);
@@ -666,13 +666,13 @@ public class RenderingThread extends AbstractRenderingThread {
 
   @Override
   public void createResources(GL10 gl) {
-    Logger.getLOGGER().d("***** Surface Created *****");
+    Timber.d("***** Surface Created *****");
     // Load textures
     LoadTextures(gl);
   }
   
   public void releaseResources(GL10 gl) {
-    Logger.getLOGGER().d("***** Surface Destroyed *****");
+    Timber.d("***** Surface Destroyed *****");
     for (BitmapMap bitmap : bitmaps) {
       bitmap.destroy();
     }
@@ -682,7 +682,7 @@ public class RenderingThread extends AbstractRenderingThread {
   
   @Override
   public void sizeChanged(@NonNull GL10 gl, int width, int height) {
-    Logger.getLOGGER().d("***** Surface Size Changed *****");
+    Timber.d("***** Surface Size Changed *****");
 //    FileSystemEntry.elementWidth = 100;// FIXME??;
 //    FileSystemEntry.fontSize = 20; // FIXME
     eventHandler.layout(true, 0, 0, width, height, width, height);
@@ -691,7 +691,7 @@ public class RenderingThread extends AbstractRenderingThread {
     gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT,
         GL10.GL_FASTEST);
     gl.glViewport(0, 0, width, height);
-    Logger.getLOGGER().d("RenderingThread.sizeChanged(): Updated viewport = %s x %s", width, height);
+    Timber.d("RenderingThread.sizeChanged(): Updated viewport = %s x %s", width, height);
     
     
     gl.glMatrixMode(GL10.GL_PROJECTION);

@@ -32,7 +32,7 @@ import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.ui.DiskUsage;
 import com.google.android.diskusage.ui.common.ScanProgressDialog;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -57,7 +57,7 @@ public class Apps2SDLoader {
 
     final List<UsageStats> queryUsageStats=usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_YEARLY, 0 ,System.currentTimeMillis());
-    Logger.getLOGGER().d("Apps2SDLoader.load(): Stats size = %s", queryUsageStats.size());
+    Timber.d("Apps2SDLoader.load(): Stats size = %s", queryUsageStats.size());
     StorageStatsManager storageStatsManager = (StorageStatsManager) diskUsage.getSystemService(Context.STORAGE_STATS_SERVICE);
     final ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
     PackageManager packageManager = diskUsage.getApplicationContext().getPackageManager();
@@ -90,14 +90,14 @@ public class Apps2SDLoader {
 
 
     for (String pkg : packages) {
-      Logger.getLOGGER().d("app: " + pkg);
+      Timber.d("app: " + pkg);
       try {
         ApplicationInfo metadata = packageManager.getApplicationInfo(pkg, PackageManager.GET_META_DATA);
         String appName = metadata.loadLabel(packageManager).toString();
         lastAppName = appName;
         StorageStats stats = storageStatsManager.queryStatsForPackage(
                 StorageManager.UUID_DEFAULT, pkg, android.os.Process.myUserHandle());
-        Logger.getLOGGER().d("stats: " + stats.getAppBytes() + " " + stats.getDataBytes());
+        Timber.d("stats: " + stats.getAppBytes() + " " + stats.getDataBytes());
         FileSystemPackage p = new FileSystemPackage(
                 appName,
                 pkg,
@@ -109,7 +109,7 @@ public class Apps2SDLoader {
         entries.add(p);
         numLoadedPackages++;
       } catch (PackageManager.NameNotFoundException e) {
-        Logger.getLOGGER().d("Failed to get package", e);
+        Timber.d("Failed to get package", e);
       }
     }
 

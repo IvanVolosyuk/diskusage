@@ -34,7 +34,7 @@ import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.filesystem.mnt.RootMountPoint;
 import com.google.android.diskusage.utils.DeviceHelper;
 import com.google.android.diskusage.utils.IOHelper;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.Map;
@@ -94,7 +94,7 @@ public class SelectActivity extends Activity {
         }
         reader.close();
         if (checksum != RootMountPoint.checksum) {
-          Logger.getLOGGER().d("%s vs %s", checksum, RootMountPoint.checksum);
+          Timber.d("%s vs %s", checksum, RootMountPoint.checksum);
           reload = true;
         }
       } catch (Throwable ignored) {}
