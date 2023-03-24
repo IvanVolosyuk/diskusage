@@ -1,12 +1,10 @@
 package com.google.android.diskusage.datasource.fast;
 
-import java.io.File;
-import android.annotation.TargetApi;
-import android.os.Build;
 import android.os.Environment;
 import androidx.annotation.NonNull;
 import com.google.android.diskusage.datasource.PortableFile;
 import com.google.android.diskusage.utils.PathHelper;
+import java.io.File;
 
 public class PortableFileImpl implements PortableFile {
   private final File file;
@@ -33,7 +31,6 @@ public class PortableFileImpl implements PortableFile {
     return result;
   }
 
-  @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   @Override
   public boolean isExternalStorageEmulated() {
     try {
@@ -43,7 +40,6 @@ public class PortableFileImpl implements PortableFile {
     }
   }
 
-  @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   @Override
   public boolean isExternalStorageRemovable() {
     try {
@@ -68,7 +64,6 @@ public class PortableFileImpl implements PortableFile {
     return file.getAbsolutePath();
   }
 
-  @TargetApi(Build.VERSION_CODES.GINGERBREAD)
   @Override
   public long getTotalSpace() {
     return file.getTotalSpace();
