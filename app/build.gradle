@@ -4,8 +4,8 @@ plugins {
 }
 
 android {
-    compileSdk 31
-    buildToolsVersion = "31"
+    compileSdk 33
+    buildToolsVersion = "33.0.0"
     ndkVersion "25.0.8775105"
 
     defaultConfig {
