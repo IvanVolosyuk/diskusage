@@ -9,7 +9,7 @@ android {
     ndkVersion "25.0.8775105"
 
     defaultConfig {
-        applicationId "com.google.android.diskusage"
+        applicationId "com.volosyukivan.diskusage"
         targetSdkVersion 30
         minSdk 21
     }
