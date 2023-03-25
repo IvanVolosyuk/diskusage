@@ -64,9 +64,9 @@ public abstract class AbstractRenderingThread extends Thread {
       }
       
     } catch (ExitException e) {
-      Timber.e("AbstractRenderingThread.run(): Rendering thread exited cleanly", e);
+      Timber.e(e, "AbstractRenderingThread.run(): Rendering thread exited cleanly");
     } catch (InterruptedException e) {
-      Timber.e("AbstractRenderingThread.run(): Rendering thread was interrupted", e);
+      Timber.e(e, "AbstractRenderingThread.run(): Rendering thread was interrupted");
 
     }
   }
@@ -191,7 +191,7 @@ public abstract class AbstractRenderingThread extends Thread {
         surface = egl.eglCreateWindowSurface(eglDisplay, eglConfig, holder, null);
         egl.eglMakeCurrent(eglDisplay, surface, surface, eglContext);
       } catch (Exception e) {
-        Timber.e("AbstractRenderingThread.initSurface()", e);
+        Timber.e(e, "AbstractRenderingThread.initSurface()");
       }
     }
     
@@ -205,7 +205,7 @@ public abstract class AbstractRenderingThread extends Thread {
         egl.eglDestroyContext(eglDisplay, eglContext);
         egl.eglTerminate(eglDisplay);
       } catch (Exception e) {
-        Timber.e("AbstractRenderingThread.destroySurface()", e);
+        Timber.e(e, "AbstractRenderingThread.destroySurface()");
       }
     }
     

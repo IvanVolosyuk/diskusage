@@ -322,7 +322,7 @@ public class Scanner implements DiskUsage.ProgressGenerator {
     try {
       list = file.listFiles();
     } catch (SecurityException io) {
-      Timber.e("Scanner.calculateSize(): list files", io);
+      Timber.e(io, "Scanner.calculateSize(): list files");
     }
     if (list == null) return 0;
     long size = 1;

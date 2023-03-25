@@ -97,7 +97,7 @@ public class RootMountPoint extends MountPoint {
       }
       reader.close();
     } catch (Exception e) {
-      Timber.e("RootMountPoint.initMountPoints(): Failed to get mount points", e);
+      Timber.e(e, "RootMountPoint.initMountPoints(): Failed to get mount points");
     }
   }
 

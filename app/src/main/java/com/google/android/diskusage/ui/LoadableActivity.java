@@ -165,7 +165,7 @@ public abstract class LoadableActivity extends Activity {
           return;
         } catch (InterruptedException | IOException | RuntimeException e) {
           error = e.getClass().getName() + ":" + e.getMessage();
-          Timber.e("LoadableActivity.LoadFiles(): Native error", e);
+          Timber.e(e, "LoadableActivity.LoadFiles(): Native error");
         } catch (final StackOverflowError e) {
           error = "Filesystem is damaged.";
         }

@@ -574,7 +574,7 @@ public class DiskUsage extends LoadableActivity {
     try {
       return (new Apps2SDLoader(this).load(blockSize));
     } catch (Throwable t) {
-      Timber.e("DiskUsage.loadApps2SD(): Problem loading apps2sd info", t);
+      Timber.e(t, "DiskUsage.loadApps2SD(): Problem loading apps2sd info");
       return null;
     }
   }
