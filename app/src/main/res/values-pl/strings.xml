@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+ * DiskUsage - displays sdcard usage on android.
+ * Copyright (C) 2008 Ivan Volosyuk
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ -->
+<resources>
+    <string name="app_name">DiskUsage</string>
+<string name="app_description">Narzędzie do sprawdzania zawartości karty SD i czyszczenia na niej miejsca.</string>
+<string name="scaning_directories">Skanowanie katalogów...</string>
+<string name="button_show">Pokaż</string>
+<string name="button_delete">Usuń</string>
+<string name="button_rescan">Przeskanuj ponownie</string>
+<string name="button_cancel">Anuluj</string>
+<string name="button_background">Tło</string>
+<string name="install_oi_file_manager">Zainstaluj &quot;Solid Explorer&quot; aby przeglądać katalogi</string>
+<string name="title_for_path">%s</string>
+<string name="title_in_oi_file_manager">Solid Explorer</string>
+<string name="button_text_in_oi_file_manager">Wróć do DiskUsage</string>
+<string name="no_viewer_found">Nie znaleziono przeglądającego</string>
+<string name="ask_to_delete_directory">Usuń katalog %s?</string>
+<string name="ask_to_delete_file">Usunąć plik %s?</string>
+<string name="out_of_memory">Za mało pamięci!</string>
+<string name="empty_or_missing_sdcard">Pusta karta SD lub jej brak</string>
+<string name="path_doesnt_exist">%s\nnie\'nie istnieje</string>
+<string name="file_deleted">Plik usunięty</string>
+<string name="error_file_wasnt_deleted">Błąd: plik nie został usunięty</string>
+<string name="deleting_path">Usuwanie %s</string>
+<string name="deleted_n_directories_and_n_files">Usunięto katalogi %1$d i pliki %2$d</string>
+<string name="deleted_n_directories_and_files_and_canceled">Usuwanie anulowano: dotychczas %1$d katalogów i %2$d plików</string>
+<string name="deleted_n_directories_and_n_files_and_failed">Usuwanie nie powiodło się!: %1$d katalogów i %2$d plików zostało usuniętych</string>
+<string name="n_bytes">%d bajtów</string>
+<string name="n_kilobytes">%d KiB</string>
+<string name="n_megabytes">%5.2f MiB</string>
+<string name="n_megabytes10">%5.1f MiB</string>
+<string name="n_megabytes100">%d MiB</string>
+<string name="n_gigabytes">%5.2f GiB</string>
+<string name="n_gigabytes10">%5.1f GiB</string>
+<string name="n_gigabytes100">%d GiB</string>
+<string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d dirs)</string>
+<string name="dir_empty">%s (pusty)</string>
+<string name="dir_name_size">%1$s (%2$s)</string>
+<string name="apps_bulk_uninstall_not_supported">Odinstaluj wiele nieobsługiwanych aplikacji</string>
+<string name="app_storage">Pamięć aplikacji</string>
+<string name="storage_card">Karta pamięci</string>
+<string name="delete_summary">%1$d plików, całkowity rozmiar: %2$s</string>
+<string name="change_filter">Filtrowanie..</string>
+<string name="apps_filter">Filtr aplikacji</string>
+<string name="internal_only">Tylko wewnętrzne</string>
+<string name="internal_only_desc">Wyklucz dane przechowywane na karcie SD</string>
+<string name="show_apk">Pokaż apkę</string>
+<string name="show_apk_desc">Wyświetl pliki aplikacji.</string>
+<string name="show_data">Pokaż dane</string>
+<string name="show_data_desc">Wyświetl pamięć przydzieloną dla danych aplikacji.</string>
+<string name="show_dalvikcache">Pokaż DalvikCache</string>
+<string name="show_dalvikcache_desc">Wyświetl dalvikCache przydzieloną Twoim aplikacjom na partycji danych.</string>
+<string name="show_cache">Pokaż pamięć podręczną</string>
+<string name="show_cache_desc">Pamięć podręczna aplikacji używa innej partycji i nie może być używana przez apk i dane.</string>
+<string name="select_apps">Wybierz aplikacje</string>
+<string name="select_storage">Wybierz pamięć</string>
+<string name="button_search">Szukaj</string>
+<string name="graph_free_space">Wolne miejsce</string>
+<string name="graph_system_data">Dane systemowe</string>
+<string name="ask_view">Podgląd</string>
+<string name="dialog_usage_access_title">Wymagane uprawnienie dostępu do użytkowania</string>
+<string name="dialog_usage_access_desc">Zezwolić DiskUsage na uzyskanie listy zainstalowanych aplikacji?</string>
+<string name="dialog_external_storage_access_error">Odmówiono dostępu do pamięci zewnętrznej.</string>
+    <string name="dialog_ask_filemanager_title">Brak zgodnego menedżera plików</string>
+    <string name="dialog_ask_filemanager_desc">Nie znaleziono zgodnego menedżera plików.\n\nPoproś swojego ulubionego dewelopera menedżerów plików o integrację z DiskUsage lub zainstaluj:\n * Solid Explorer\n * Menedżer plików OI</string>
+    <string name="button_install_filemanager">Install Solid Explorer</string>
+    <string name="graph_media">Media</string>
+    <string name="graph_apps">Apki</string>
+    <string name="warn_on_file_select">Naciśnij menu, aby wyświetlić podgląd lub usunąć</string>
+    <string-array name="select_apps">
+  <item>Na urządzeniu.</item>
+  <item>Na karcie SD</item>
+  <item>Tu i tu.</item>
+</string-array>
+<string-array name="select_storage">
+  <item>Pokaż pamięć urządzenia.</item>
+  <item>SPokaż pamięć karty SD.</item>
+  <item>Show both.</item>
+</string-array>
+    <string name="about_view_source_code"><![CDATA[View source code at %s]]></string>
+    <string name="action_about">Informacje</string>
+</resources>
