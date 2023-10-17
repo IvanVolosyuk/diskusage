@@ -32,10 +32,13 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
+import android.util.Log;
+import android.widget.Toast;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.ActivityCommonBinding;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import splitties.toast.ToastKt;
+import com.google.android.diskusage.utils.Logger;
 
 public class PermissionRequestActivity extends Activity {
     private final static int DISKUSAGE_REQUEST_CODE = 10;
@@ -110,12 +113,19 @@ public class PermissionRequestActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (Environment.isExternalStorageManager()) {
                 forwardToDiskUsage();
+                return;
             } else {
-                final Intent i = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-                i.setData(Uri.parse("package:" + getPackageName()));
-                startActivityForResult(i, PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE);
+                try {
+                    final Intent i = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                    i.setData(Uri.parse("package:" + getPackageName()));
+                    startActivityForResult(i, PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE);
+                    return;
+                } catch (Exception e) {
+                    Log.d("diskusage", "failed to obtain all files access", e);
+                }
             }
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE
                 ) == PackageManager.PERMISSION_GRANTED &&
                 checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE
