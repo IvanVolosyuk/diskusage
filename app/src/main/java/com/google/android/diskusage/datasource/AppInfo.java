@@ -1,8 +1,5 @@
 package com.google.android.diskusage.datasource;
 
-import android.annotation.TargetApi;
-import android.os.Build;
-
 public interface AppInfo {
   int getFlags();
   String getDataDir();
@@ -11,7 +8,6 @@ public interface AppInfo {
   String getPackageName();
   String getPublicSourceDir();
   String getSourceDir();
-  @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   String[] getSplitSourceDirs();
   public String getApplicationLabel();
 }

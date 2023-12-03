@@ -29,7 +29,7 @@ import com.google.android.diskusage.filesystem.entity.FileSystemEntrySmall;
 import com.google.android.diskusage.filesystem.entity.FileSystemFile;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.ui.DiskUsage.ProgressGenerator;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -171,9 +171,9 @@ public class NativeScanner implements ProgressGenerator {
     this.context = context;
 //    this.blockAllowance = (allocatedBlocks << FileSystemEntry.blockOffset) / 2;
 //    this.blockAllowance = (maxHeap / 2) * sizeThreshold;
-    Logger.getLOGGER().d("NativeScanner: allocatedBlocks %s", allocatedBlocks);
-    Logger.getLOGGER().d("NativeScanner: maxHeap %s", maxHeap);
-    Logger.getLOGGER().d("NativeScanner: sizeThreshold = %s", sizeThreshold / (float) (1 << FileSystemEntry.blockOffset));
+    Timber.d("NativeScanner: allocatedBlocks %s", allocatedBlocks);
+    Timber.d("NativeScanner: maxHeap %s", maxHeap);
+    Timber.d("NativeScanner: sizeThreshold = %s", sizeThreshold / (float) (1 << FileSystemEntry.blockOffset));
   }
 
   private void print(String msg, @NonNull SmallList list) {
@@ -182,7 +182,7 @@ public class NativeScanner implements ProgressGenerator {
     for(FileSystemEntry p = list.parent; p != null; p = p.parent) {
       hidden_path.insert(0, p.name + "/");
     }
-    Logger.getLOGGER().d("%s %s = %s %s", msg, hidden_path, list.heapSize, list.spaceEfficiency);
+    Timber.d("%s %s = %s %s", msg, hidden_path, list.heapSize, list.spaceEfficiency);
   }
 
   public FileSystemEntry scan(@NonNull MountPoint mountPoint) throws IOException, InterruptedException {
@@ -192,7 +192,7 @@ public class NativeScanner implements ProgressGenerator {
     Type type = getType();
     if (type != Type.DIR) throw new RuntimeException("Error: no mount point");
     scanDirectory(null, getString(), 0);
-    Logger.getLOGGER().d("NativeScanner.scan(): Allocated %s B of heap", createdNodeSize);
+    Timber.d("NativeScanner.scan(): Allocated %s B of heap", createdNodeSize);
 
     int extraHeap = 0;
 
@@ -215,8 +215,8 @@ public class NativeScanner implements ProgressGenerator {
       list.parent.children = newChildren;
       extraHeap += list.heapSize;
     }
-    Logger.getLOGGER().d("allocated " + extraHeap + " B of extra heap");
-    Logger.getLOGGER().d("allocated " + (extraHeap + createdNodeSize) + " B total");
+    Timber.d("allocated " + extraHeap + " B of extra heap");
+    Timber.d("allocated " + (extraHeap + createdNodeSize) + " B total");
     if (offset != allocated) throw new RuntimeException("Error: extra data, " + (allocated - offset) + " bytes");
     is.close();
     return createdNode;

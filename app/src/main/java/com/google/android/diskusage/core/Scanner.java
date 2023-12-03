@@ -29,7 +29,7 @@ import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntrySmall;
 import com.google.android.diskusage.filesystem.entity.FileSystemFile;
 import com.google.android.diskusage.ui.DiskUsage;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.PriorityQueue;
@@ -86,9 +86,9 @@ public class Scanner implements DiskUsage.ProgressGenerator {
     this.maxHeapSize = maxHeap;
 //    this.blockAllowance = (allocatedBlocks << FileSystemEntry.blockOffset) / 2;
 //    this.blockAllowance = (maxHeap / 2) * sizeThreshold;
-    Logger.getLOGGER().d("Scanner: allocatedBlocks %s", allocatedBlocks);
-    Logger.getLOGGER().d("Scanner: maxHeap %s", maxHeap);
-    Logger.getLOGGER().d("Scanner: sizeThreshold = %s", sizeThreshold / (float) (1 << FileSystemEntry.blockOffset));
+    Timber.d("Scanner: allocatedBlocks %s", allocatedBlocks);
+    Timber.d("Scanner: maxHeap %s", maxHeap);
+    Timber.d("Scanner: sizeThreshold = %s", sizeThreshold / (float) (1 << FileSystemEntry.blockOffset));
   }
 
   public FileSystemEntry scan(LegacyFile file) throws IOException {
@@ -122,8 +122,8 @@ public class Scanner implements DiskUsage.ProgressGenerator {
       list.parent.children = newChildren;
       extraHeap += list.heapSize;
     }
-    Logger.getLOGGER().d("allocated " + extraHeap + " B of extra heap");
-    Logger.getLOGGER().d("allocated " + (extraHeap + createdNodeSize) + " B total");
+    Timber.d("allocated " + extraHeap + " B of extra heap");
+    Timber.d("allocated " + (extraHeap + createdNodeSize) + " B total");
     return createdNode;
   }
 
@@ -154,7 +154,7 @@ public class Scanner implements DiskUsage.ProgressGenerator {
     try {
       listNames = file.list();
     } catch (SecurityException io) {
-      Logger.getLOGGER().d("list files", io);
+      Timber.d("list files", io);
     }
 
     if (listNames == null) return;
@@ -322,7 +322,7 @@ public class Scanner implements DiskUsage.ProgressGenerator {
     try {
       list = file.listFiles();
     } catch (SecurityException io) {
-      Logger.getLOGGER().e("Scanner.calculateSize(): list files", io);
+      Timber.e(io, "Scanner.calculateSize(): list files");
     }
     if (list == null) return 0;
     long size = 1;

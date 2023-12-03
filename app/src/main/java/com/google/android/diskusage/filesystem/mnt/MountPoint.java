@@ -24,7 +24,7 @@ import com.google.android.diskusage.R;
 import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.datasource.PortableFile;
 import com.google.android.diskusage.datasource.fast.PortableFileImpl;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -95,7 +95,7 @@ public class MountPoint {
 
     for (final PortableFile dir : PortableFileImpl.getExternalAppFilesDirs()) {
       String path = dir.getAbsolutePath().replaceFirst("/Android/data/com.google.android.diskusage/files", "");
-      Logger.getLOGGER().d("MountPoint.initMountPoints: mountpoint %s", path);
+      Timber.d("MountPoint.initMountPoints: mountpoint %s", path);
       boolean internal = !dir.isExternalStorageRemovable();
       String title =  internal ? context.getString(R.string.storage_card) : path;
       MountPoint mountPoint = new MountPoint(title, path, internal);

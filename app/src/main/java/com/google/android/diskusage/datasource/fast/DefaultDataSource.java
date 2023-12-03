@@ -1,20 +1,18 @@
 package com.google.android.diskusage.datasource.fast;
 
+import android.content.Context;
+import android.content.pm.IPackageStatsObserver;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageStats;
+import android.os.Environment;
+import androidx.annotation.NonNull;
 import com.google.android.diskusage.datasource.AppStatsCallback;
 import com.google.android.diskusage.datasource.DataSource;
 import com.google.android.diskusage.datasource.LegacyFile;
 import com.google.android.diskusage.datasource.PkgInfo;
 import com.google.android.diskusage.datasource.PortableFile;
 import com.google.android.diskusage.datasource.StatFsSource;
-import android.annotation.TargetApi;
-import android.content.Context;
-import android.content.pm.IPackageStatsObserver;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.content.pm.PackageStats;
-import android.os.Build;
-import android.os.Environment;
-import androidx.annotation.NonNull;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -38,7 +36,6 @@ public class DefaultDataSource extends DataSource {
     return new StatFsSourceImpl(mountPoint);
   }
 
-  @TargetApi(Build.VERSION_CODES.FROYO)
   @Override
   public PortableFile getExternalFilesDir(Context context) {
     return PortableFileImpl.make(context.getExternalFilesDir(null));

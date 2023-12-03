@@ -1,9 +1,7 @@
 package com.google.android.diskusage.datasource.fast;
 
-import android.annotation.TargetApi;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.os.Build;
 
 import com.google.android.diskusage.datasource.AppInfo;
 
@@ -52,7 +50,6 @@ public class AppInfoImpl implements AppInfo {
   }
 
   @Override
-  @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   public String[] getSplitSourceDirs() {
     return app.splitSourceDirs;
   }

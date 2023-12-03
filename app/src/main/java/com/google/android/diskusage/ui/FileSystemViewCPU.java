@@ -10,7 +10,7 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.ui.FileSystemState.FileSystemView;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 
 public final class FileSystemViewCPU extends View implements FileSystemView {
   private final FileSystemState eventHandler;
@@ -28,7 +28,7 @@ public final class FileSystemViewCPU extends View implements FileSystemView {
   @SuppressLint("ClickableViewAccessibility")
   @Override
   public final boolean onTouchEvent(@NonNull MotionEvent ev) {
-    Logger.getLOGGER().d("FileSystemViewCPU.onTouchEvent(): Touch = %s:%s", ev.getX(), ev.getY());
+    Timber.d("FileSystemViewCPU.onTouchEvent(): Touch = %s:%s", ev.getX(), ev.getY());
     eventHandler.onTouchEvent(
         eventHandler.multitouchHandler.newMyMotionEvent(ev));
     return true;

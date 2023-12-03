@@ -21,7 +21,7 @@ package com.google.android.diskusage.filesystem.mnt;
 
 import android.content.Context;
 import com.google.android.diskusage.utils.IOHelper;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -82,11 +82,11 @@ public class RootMountPoint extends MountPoint {
       String line;
       while ((line = reader.readLine()) != null) {
         checksum += line.length();
-        Logger.getLOGGER().d("RootMountPoint.initMountPoints(): Line: %s", line);
+        Timber.d("RootMountPoint.initMountPoints(): Line: %s", line);
         String[] parts = line.split(" +");
         if (parts.length < 3) continue;
         String mountPoint = parts[1];
-        Logger.getLOGGER().d("RootMountPoint.initMountPoints(): Mount point: " + mountPoint);
+        Timber.d("RootMountPoint.initMountPoints(): Mount point: " + mountPoint);
         String fsType = parts[2];
 
         if (!mountPoint.startsWith("/mnt/asec/")) {
@@ -97,7 +97,7 @@ public class RootMountPoint extends MountPoint {
       }
       reader.close();
     } catch (Exception e) {
-      Logger.getLOGGER().e("RootMountPoint.initMountPoints(): Failed to get mount points", e);
+      Timber.e(e, "RootMountPoint.initMountPoints(): Failed to get mount points");
     }
   }
 

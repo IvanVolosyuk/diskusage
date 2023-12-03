@@ -32,7 +32,7 @@ import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.ui.DiskUsage;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 import java.io.File;
 import java.io.IOException;
 import splitties.resources.TextResourcesKt;
@@ -138,7 +138,7 @@ public class BackgroundDelete extends Thread {
   }
 
   public void restore() {
-    Logger.getLOGGER().d("restore started for " + path);
+    Timber.d("restore started for " + path);
     MountPoint mountPoint = MountPoint.getForKey(diskUsage, diskUsage.getKey());
     long displayBlockSize = diskUsage.fileSystemState.masterRoot.getDisplayBlockSize();
     try {
@@ -150,15 +150,15 @@ public class BackgroundDelete extends Thread {
       // FIXME: may be problems in case of two deletions
       entry.parent.insert(newEntry, displayBlockSize);
       diskUsage.fileSystemState.restore(newEntry);
-      Logger.getLOGGER().d("BackgroundDelete.restore(): Restoring undeleted: %s %s",
+      Timber.d("BackgroundDelete.restore(): Restoring undeleted: %s %s",
               newEntry.name, newEntry.sizeString());
     } catch (IOException e) {
-      Logger.getLOGGER().d("Failed to restore");
+      Timber.d("Failed to restore");
     }
   }
 
   public void notifyUser() {
-    Logger.getLOGGER().d("BackgroundDelete.notifyUser(): Delete: status = %s directories %s files %s",
+    Timber.d("BackgroundDelete.notifyUser(): Delete: status = %s directories %s files %s",
             deletionStatus, numDeletedDirectories, numDeletedFiles);
 
     if (deletionStatus == DELETION_SUCCESS) {
