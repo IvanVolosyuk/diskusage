@@ -266,7 +266,7 @@ public class DiskUsage extends LoadableActivity {
   public void view(FileSystemEntry entry) {
     Intent intent = new Intent(Intent.ACTION_VIEW);
     intent.addCategory(Intent.CATEGORY_DEFAULT);
-    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
     if (entry instanceof FileSystemEntrySmall) {
       entry = entry.parent;
     }
@@ -282,6 +282,10 @@ public class DiskUsage extends LoadableActivity {
     String path = entry.absolutePath();
     File file = new File(path);
     Uri uri = Uri.fromFile(file);
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+      uri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", file);
+    }
 
     if (file.isDirectory()) {
       // Go on with default file manager
@@ -332,20 +336,7 @@ public class DiskUsage extends LoadableActivity {
       } catch (ActivityNotFoundException|FileUriExposedException ignored) {
       }
 
-      final Intent installSolidExplorer = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=pl.solidexplorer"));
-
-      if (isIntentAvailable(installSolidExplorer)) {
-        new AlertDialog.Builder(this)
-        .setCancelable(true)
-        .setTitle(R.string.dialog_ask_filemanager_title)
-        .setMessage(R.string.dialog_ask_filemanager_desc)
-            .setPositiveButton(R.string.button_install_filemanager, (arg0, arg1) ->
-                    startActivity(installSolidExplorer))
-            .setNegativeButton(android.R.string.cancel, null)
-            .create().show();
-      } else {
-        ToastKt.toast(R.string.install_oi_file_manager);
-      }
+      ToastKt.toast(R.string.no_viewer_found);
       return;
     }
 
@@ -359,9 +350,6 @@ public class DiskUsage extends LoadableActivity {
       String mime = mimeTypeMap.getMimeTypeFromExtension(extension);
       Log.d("diskusage", "extension: " + extension + " mime: " + mime);
 
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-        uri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", file);
-      }
       try {
         intent = new Intent(Intent.ACTION_VIEW);
         intent.addCategory(Intent.CATEGORY_DEFAULT);
