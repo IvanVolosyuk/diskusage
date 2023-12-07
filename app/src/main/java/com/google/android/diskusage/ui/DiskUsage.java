@@ -28,13 +28,20 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.FileUriExposedException;
 import android.os.Handler;
 import android.provider.Settings;
 import androidx.annotation.NonNull;
+import androidx.core.content.FileProvider;
+
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.webkit.MimeTypeMap;
+
+import com.google.android.diskusage.BuildConfig;
 import com.google.android.diskusage.datasource.fast.LegacyFileImpl;
 import com.google.android.diskusage.datasource.fast.StatFsSourceImpl;
 import com.google.android.diskusage.filesystem.Apps2SDLoader;
@@ -55,7 +62,7 @@ import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSystemSpace;
 import com.google.android.diskusage.ui.common.ScanProgressDialog;
 import com.google.android.diskusage.utils.Logger;
-import com.google.android.diskusage.utils.MimeTypes;
+
 import org.jetbrains.annotations.Contract;
 import java.io.File;
 import java.io.IOException;
@@ -81,7 +88,6 @@ public class DiskUsage extends LoadableActivity {
 
   private String pathToDelete;
 
-  private static final MimeTypes mimeTypes = new MimeTypes();
   public DiskUsageMenu menu = DiskUsageMenu.getInstance(this);
   RendererManager rendererManager = new RendererManager(this);
 
@@ -345,18 +351,30 @@ public class DiskUsage extends LoadableActivity {
 
     String fileName = entry.name;
     int dot = fileName.lastIndexOf(".");
+    Log.d("diskusage", "name: " + fileName + " path: " + path + " dot: " + dot);
     if (dot != -1) {
       String extension = fileName.substring(dot + 1).toLowerCase();
-      String mime = mimeTypes.getMimeByExtension(this, extension);
+
+      MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
+      String mime = mimeTypeMap.getMimeTypeFromExtension(extension);
+      Log.d("diskusage", "extension: " + extension + " mime: " + mime);
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        uri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", file);
+      }
       try {
+        intent = new Intent(Intent.ACTION_VIEW);
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
         if (mime != null) {
           intent.setDataAndType(uri, mime);
         } else {
           intent.setDataAndType(uri, "binary/octet-stream");
         }
+        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivity(intent);
         return;
       } catch (ActivityNotFoundException|FileUriExposedException ignored) {
+        Log.e("diskusage", "Can't open viewer and crash", ignored);
       }
     }
     ToastKt.toast(R.string.no_viewer_found);
