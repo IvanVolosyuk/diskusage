@@ -28,21 +28,17 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.FileUriExposedException;
 import android.os.Handler;
-import android.os.storage.StorageManager;
 import android.provider.Settings;
 import androidx.annotation.NonNull;
-import androidx.core.content.FileProvider;
 
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.webkit.MimeTypeMap;
 
-import com.google.android.diskusage.BuildConfig;
 import com.google.android.diskusage.datasource.fast.LegacyFileImpl;
 import com.google.android.diskusage.datasource.fast.StatFsSourceImpl;
 import com.google.android.diskusage.filesystem.Apps2SDLoader;
