@@ -32,6 +32,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.FileUriExposedException;
 import android.os.Handler;
+import android.os.storage.StorageManager;
 import android.provider.Settings;
 import androidx.annotation.NonNull;
 import androidx.core.content.FileProvider;
@@ -61,6 +62,12 @@ import com.google.android.diskusage.filesystem.entity.FileSystemRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSystemSpace;
 import com.google.android.diskusage.ui.common.ScanProgressDialog;
+import com.google.android.diskusage.ui.filemanagers.DefaultFilemanager;
+import com.google.android.diskusage.ui.filemanagers.DocumentsUIFilemanager;
+import com.google.android.diskusage.ui.filemanagers.ExternalFileManager;
+import com.google.android.diskusage.ui.filemanagers.OldAstro;
+import com.google.android.diskusage.ui.filemanagers.OpenIntents;
+import com.google.android.diskusage.ui.filemanagers.OpenIntentsPickDir;
 import com.google.android.diskusage.utils.Logger;
 
 import org.jetbrains.annotations.Contract;
@@ -279,61 +286,29 @@ public class DiskUsage extends LoadableActivity {
       return;
     }
 
-    String path = entry.absolutePath();
-    File file = new File(path);
-    Uri uri = Uri.fromFile(file);
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-      uri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", file);
-    }
+    File file = new File(entry.absolutePath());
 
     if (file.isDirectory()) {
       // Go on with default file manager
       // Shoud this be optional?
-      intent = new Intent(Intent.ACTION_VIEW);
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setDataAndType(uri, "inode/directory");
-
-      try {
-        startActivity(intent);
+      if((new DefaultFilemanager(entry, this)).open()) {
         return;
-      } catch (ActivityNotFoundException ignored) {
       }
 
-      intent = new Intent("org.openintents.action.VIEW_DIRECTORY");
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setData(uri);
-
-      try {
-        startActivity(intent);
+      if((new DocumentsUIFilemanager(entry, this)).open()) {
         return;
-      } catch (ActivityNotFoundException|FileUriExposedException ignored) {
       }
 
-      intent = new Intent("org.openintents.action.PICK_DIRECTORY");
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setData(uri);
-      intent.putExtra("org.openintents.extra.TITLE",
-          getString(R.string.title_in_oi_file_manager));
-      intent.putExtra("org.openintents.extra.BUTTON_TEXT",
-          getString(R.string.button_text_in_oi_file_manager));
-
-      try {
-        startActivity(intent);
+      if((new OpenIntents(entry, this)).open()) {
         return;
-      } catch (ActivityNotFoundException|FileUriExposedException ignored) {
       }
 
-      // old Astro
-      intent = new Intent(Intent.ACTION_VIEW);
-      intent.addCategory(Intent.CATEGORY_DEFAULT);
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setDataAndType(uri, "vnd.android.cursor.item/com.metago.filemanager.dir");
-
-      try {
-        startActivity(intent);
+      if((new OpenIntentsPickDir(entry, this)).open()) {
         return;
-      } catch (ActivityNotFoundException|FileUriExposedException ignored) {
+      }
+
+      if((new OldAstro(entry, this)).open()) {
+        return;
       }
 
       ToastKt.toast(R.string.no_viewer_found);
@@ -342,7 +317,7 @@ public class DiskUsage extends LoadableActivity {
 
     String fileName = entry.name;
     int dot = fileName.lastIndexOf(".");
-    Log.d("diskusage", "name: " + fileName + " path: " + path + " dot: " + dot);
+    Log.d("diskusage", "name: " + fileName + " path: " + entry.absolutePath() + " dot: " + dot);
     if (dot != -1) {
       String extension = fileName.substring(dot + 1).toLowerCase();
 
@@ -353,6 +328,7 @@ public class DiskUsage extends LoadableActivity {
       try {
         intent = new Intent(Intent.ACTION_VIEW);
         intent.addCategory(Intent.CATEGORY_DEFAULT);
+        Uri uri = ExternalFileManager.Companion.getUri(entry, this);
         if (mime != null) {
           intent.setDataAndType(uri, mime);
         } else {
