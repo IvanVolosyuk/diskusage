@@ -21,24 +21,36 @@ package com.google.android.diskusage.filesystem;
 
 import android.app.usage.StorageStats;
 import android.app.usage.StorageStatsManager;
-import android.app.usage.UsageStats;
-import android.app.usage.UsageStatsManager;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.storage.StorageManager;
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.ui.DiskUsage;
 import com.google.android.diskusage.ui.common.ScanProgressDialog;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+/**
+ * Collects the storage footprint of every installed application.
+ *
+ * <p>Historically this used {@code UsageStatsManager.queryUsageStats()} which
+ * only returns applications the user interacted with recently. On modern
+ * Android that made most applications disappear from the graph. The package
+ * manager is the correct source; {@link StorageStatsManager} (API 26+) then
+ * provides accurate code/data/cache sizes. If the usage-access app-op has not
+ * been granted, the loader degrades gracefully to the APK size on disk instead
+ * of dropping the application entirely.
+ */
 public class Apps2SDLoader {
 
   private final DiskUsage diskUsage;
@@ -50,23 +62,18 @@ public class Apps2SDLoader {
     this.diskUsage = activity;
   }
 
-
   public FileSystemEntry[] load(final long blockSize) throws Throwable {
-    UsageStatsManager usageStatsManager = (UsageStatsManager) diskUsage.getSystemService(Context.USAGE_STATS_SERVICE);
-
-
-    final List<UsageStats> queryUsageStats=usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_YEARLY, 0 ,System.currentTimeMillis());
-    Logger.getLOGGER().d("Apps2SDLoader.load(): Stats size = %s", queryUsageStats.size());
-    StorageStatsManager storageStatsManager = (StorageStatsManager) diskUsage.getSystemService(Context.STORAGE_STATS_SERVICE);
-    final ArrayList<FileSystemEntry> entries = new ArrayList<FileSystemEntry>();
-    PackageManager packageManager = diskUsage.getApplicationContext().getPackageManager();
-    final Set<String> packages = new HashSet<>();
-    for (UsageStats s : queryUsageStats) {
-      packages.add(s.getPackageName());
+    final PackageManager packageManager = diskUsage.getApplicationContext().getPackageManager();
+    final List<PackageInfo> packages;
+    try {
+      packages = packageManager.getInstalledPackages(0);
+    } catch (Throwable t) {
+      Timber.e(t, "load: cannot list installed packages");
+      return new FileSystemEntry[0];
     }
 
     final Handler handler = diskUsage.handler;
+    final int total = packages.size();
     Runnable progressUpdater = new Runnable() {
       @Override
       public void run() {
@@ -76,46 +83,106 @@ public class Apps2SDLoader {
             dialog.switchToSecondary();
             switchToSecondary = false;
           }
-          dialog.setMax(packages.size());
+          dialog.setMax(total);
           final CharSequence appName;
           synchronized (Apps2SDLoader.this) {
             appName = lastAppName;
           }
           dialog.setProgress(numLoadedPackages, appName);
         }
-        diskUsage.handler.postDelayed(this, 50);
+        handler.postDelayed(this, 50);
       }
     };
     handler.post(progressUpdater);
 
+    final ArrayList<FileSystemEntry> entries = new ArrayList<>(total);
+    boolean statsAccessDenied = false;
 
-    for (String pkg : packages) {
-      Logger.getLOGGER().d("app: " + pkg);
-      try {
-        ApplicationInfo metadata = packageManager.getApplicationInfo(pkg, PackageManager.GET_META_DATA);
-        String appName = metadata.loadLabel(packageManager).toString();
-        lastAppName = appName;
-        StorageStats stats = storageStatsManager.queryStatsForPackage(
-                StorageManager.UUID_DEFAULT, pkg, android.os.Process.myUserHandle());
-        Logger.getLOGGER().d("stats: " + stats.getAppBytes() + " " + stats.getDataBytes());
+    try {
+      for (PackageInfo info : packages) {
+        ApplicationInfo metadata = info.applicationInfo;
+        if (metadata == null) continue;
+        // Do not try to report on apps that are hidden from the launcher and
+        // have no data at all (instant apps, stubs, ...).
+        String pkg = info.packageName;
+        if (pkg == null) continue;
+
+        final String appName;
+        try {
+          appName = metadata.loadLabel(packageManager).toString();
+        } catch (Throwable t) {
+          continue;
+        }
+        synchronized (this) {
+          lastAppName = appName;
+        }
+
+        long apkBytes = apkSizeOf(metadata);
+        long dataBytes = 0;
+        long cacheBytes = 0;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !statsAccessDenied) {
+          try {
+            long[] stats = queryStorageStats(pkg, apkBytes);
+            apkBytes = stats[0];
+            dataBytes = stats[1];
+            cacheBytes = stats[2];
+            if (numLoadedPackages == 0) {
+              Timber.d("load: storage stats available, first app %s -> apk=%s data=%s cache=%s",
+                  pkg, apkBytes, dataBytes, cacheBytes);
+            }
+          } catch (SecurityException e) {
+            // Usage access not granted: keep listing apps, only sizes degrade.
+            statsAccessDenied = true;
+            Timber.w("load: no usage access, falling back to APK sizes");
+          } catch (Throwable t) {
+            Timber.d(t, "load: no storage stats for %s", pkg);
+          }
+        }
+
+        if (apkBytes + dataBytes + cacheBytes <= 0) {
+          numLoadedPackages++;
+          continue;
+        }
+
         FileSystemPackage p = new FileSystemPackage(
-                appName,
-                pkg,
-                stats.getAppBytes(),
-                stats.getDataBytes(),
-                stats.getCacheBytes(),
-                metadata.flags);
+            appName, pkg, apkBytes, dataBytes, cacheBytes, metadata.flags);
         p.applyFilter(blockSize);
         entries.add(p);
         numLoadedPackages++;
-      } catch (PackageManager.NameNotFoundException e) {
-        Logger.getLOGGER().d("Failed to get package", e);
       }
+    } finally {
+      handler.removeCallbacks(progressUpdater);
     }
 
-    FileSystemEntry[] result = entries.toArray(new FileSystemEntry[] {});
+    FileSystemEntry[] result = entries.toArray(new FileSystemEntry[0]);
     Arrays.sort(result, FileSystemEntry.COMPARE);
-    handler.removeCallbacks(progressUpdater);
     return result;
+  }
+
+  /** @return {apkBytes, dataBytes, cacheBytes} */
+  @RequiresApi(Build.VERSION_CODES.O)
+  private long[] queryStorageStats(String pkg, long apkBytes) throws Exception {
+    StorageStatsManager manager =
+        (StorageStatsManager) diskUsage.getSystemService(Context.STORAGE_STATS_SERVICE);
+    if (manager == null) return new long[] {apkBytes, 0, 0};
+    StorageStats stats = manager.queryStatsForPackage(
+        StorageManager.UUID_DEFAULT, pkg, android.os.Process.myUserHandle());
+    return new long[] {
+        Math.max(apkBytes, stats.getAppBytes()),
+        stats.getDataBytes(),
+        stats.getCacheBytes()
+    };
+  }
+
+  private static long apkSizeOf(@NonNull ApplicationInfo info) {
+    long size = 0;
+    if (info.sourceDir != null) size += new File(info.sourceDir).length();
+    if (info.splitSourceDirs != null) {
+      for (String split : info.splitSourceDirs) {
+        if (split != null) size += new File(split).length();
+      }
+    }
+    return Math.max(size, 0);
   }
 }

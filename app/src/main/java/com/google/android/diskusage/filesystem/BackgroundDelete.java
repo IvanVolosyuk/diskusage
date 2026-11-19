@@ -19,11 +19,13 @@
 
 package com.google.android.diskusage.filesystem;
 
-import android.app.ProgressDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.view.LayoutInflater;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.core.Scanner;
 import com.google.android.diskusage.datasource.DataSource;
@@ -32,14 +34,14 @@ import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.ui.DiskUsage;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 import java.io.File;
 import java.io.IOException;
 import splitties.resources.TextResourcesKt;
 import splitties.toast.ToastKt;
 
 public class BackgroundDelete extends Thread {
-  ProgressDialog dialog;
+  AlertDialog dialog;
   File file;
   String path;
   String rootPath;
@@ -85,21 +87,31 @@ public class BackgroundDelete extends Thread {
       }
       return;
     }
-    dialog = new ProgressDialog(diskUsage);
-    dialog.setMessage(TextResourcesKt.appStr(R.string.deleting_path, path));
-    dialog.setIndeterminate(true);
-    dialog.setButton(DialogInterface.BUTTON_POSITIVE, diskUsage.getString(R.string.button_background),
-            (dialog, which) -> {
-              background();
-              dialog.dismiss();
-            });
-    dialog.setButton(DialogInterface.BUTTON_NEGATIVE, diskUsage.getString(android.R.string.cancel),
-            (dialog, which) -> {
-              cancel();
-              dialog.dismiss();
-            });
-    dialog.setOnDismissListener(x -> dialog = null);
-    dialog.setOnCancelListener(x -> dialog = null);
+    // ProgressDialog is deprecated since API 26 and no longer matches the
+    // app theme, so an AlertDialog with an indeterminate ProgressBar is used.
+    ProgressBar progressBar = new ProgressBar(diskUsage, null,
+        android.R.attr.progressBarStyleHorizontal);
+    progressBar.setIndeterminate(true);
+    LinearLayout container = new LinearLayout(diskUsage);
+    int padding = (int) (24 * diskUsage.getResources().getDisplayMetrics().density);
+    container.setPadding(padding, padding / 2, padding, 0);
+    container.addView(progressBar, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+    dialog = new AlertDialog.Builder(diskUsage)
+        .setMessage(TextResourcesKt.appStr(R.string.deleting_path, path))
+        .setView(container)
+        .setPositiveButton(R.string.button_background, (d, which) -> {
+          background();
+          d.dismiss();
+        })
+        .setNegativeButton(android.R.string.cancel, (d, which) -> {
+          cancel();
+          d.dismiss();
+        })
+        .setOnDismissListener(x -> dialog = null)
+        .setOnCancelListener(x -> dialog = null)
+        .create();
     dialog.show();
     start();
   }
@@ -138,7 +150,7 @@ public class BackgroundDelete extends Thread {
   }
 
   public void restore() {
-    Logger.getLOGGER().d("restore started for " + path);
+    Timber.d("restore started for " + path);
     MountPoint mountPoint = MountPoint.getForKey(diskUsage, diskUsage.getKey());
     long displayBlockSize = diskUsage.fileSystemState.masterRoot.getDisplayBlockSize();
     try {
@@ -150,15 +162,15 @@ public class BackgroundDelete extends Thread {
       // FIXME: may be problems in case of two deletions
       entry.parent.insert(newEntry, displayBlockSize);
       diskUsage.fileSystemState.restore(newEntry);
-      Logger.getLOGGER().d("BackgroundDelete.restore(): Restoring undeleted: %s %s",
+      Timber.d("restore: Restoring undeleted: %s %s",
               newEntry.name, newEntry.sizeString());
     } catch (IOException e) {
-      Logger.getLOGGER().d("Failed to restore");
+      Timber.d("Failed to restore");
     }
   }
 
   public void notifyUser() {
-    Logger.getLOGGER().d("BackgroundDelete.notifyUser(): Delete: status = %s directories %s files %s",
+    Timber.d("notifyUser: Delete: status = %s directories %s files %s",
             deletionStatus, numDeletedDirectories, numDeletedFiles);
 
     if (deletionStatus == DELETION_SUCCESS) {

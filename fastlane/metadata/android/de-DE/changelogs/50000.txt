@@ -1,0 +1,8 @@
+* Unterstützung für Android 17 (API 37), Edge-to-Edge ab Android 15
+* Neue Erkennung von Speichermedien: intern, SD-Karte und USB
+* App-Liste ohne Nutzungsdaten, Cache-Größen werden angezeigt
+* Dateien und Ordner öffnen wieder zuverlässig in anderen Apps
+* Absturz bei Scan-Fehlern behoben (Fallback auf Java-Scanner)
+* Dunkelmodus, adaptive und thematische App-Symbole
+* Native Bibliotheken mit 16-KB-Seitengröße
+* Automatische Releases und F-Droid-Metadaten

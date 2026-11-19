@@ -19,10 +19,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE    := scan
 LOCAL_SRC_FILES := scan.c
 
-# It seems that Google will not allow to run executable from app private
-# directory like `/data/data` or /data/user/0` since Android 10. A workaround
-# for this is that renaming executable like `libxxx.so`, and Gradle build
-# tools will pack it into apk, and app can run it from native library
-# directory. But it seems that marking BUILD_SHARED_LIBRARY is the only way to
-# do so for Android.mk.
+# Built as a shared library and called through JNI. (The historical approach -
+# renaming an executable to libscan.so and exec'ing it - crashes on modern
+# Android because a shared object has no startup routine.)
 include $(BUILD_SHARED_LIBRARY)

@@ -1,0 +1,32 @@
+[versions]
+agp = "9.5.1"
+coreKtx = "1.19.1"
+appcompat = "1.8.0"
+activity = "1.13.0"
+constraintlayout = "2.2.2"
+recyclerview = "1.4.0"
+lifecycle = "2.11.0"
+preference = "1.2.1"
+coroutines = "1.11.0"
+timber = "5.0.1"
+appiconloader = "1.5.0"
+splitties = "3.0.0"
+junit = "4.13.2"
+
+[libraries]
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activity" }
+androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
+androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
+androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
+androidx-preference = { module = "androidx.preference:preference", version.ref = "preference" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
+appiconloader = { module = "me.zhanghai.android.appiconloader:appiconloader", version.ref = "appiconloader" }
+splitties-toast = { module = "com.louiscad.splitties:splitties-toast", version.ref = "splitties" }
+splitties-resources = { module = "com.louiscad.splitties:splitties-resources", version.ref = "splitties" }
+junit = { module = "junit:junit", version.ref = "junit" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }

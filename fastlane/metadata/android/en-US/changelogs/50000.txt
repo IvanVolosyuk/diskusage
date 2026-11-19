@@ -1,0 +1,8 @@
+* Android 17 (API 37) support, edge-to-edge UI on Android 15+
+* Volume detection rewritten: internal storage, SD cards and USB drives
+* App list no longer depends on usage statistics; cache sizes are shown
+* Fixed opening files and folders in other apps (content URIs, explicit grants)
+* Scanner failures no longer crash the app; the Java fallback is used
+* Dark mode, adaptive and themed launcher icons
+* 16 KB page size compatible native code
+* Automatic releases and F-Droid metadata

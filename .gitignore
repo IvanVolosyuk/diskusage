@@ -5,3 +5,7 @@
 /local.properties
 /DiskUsage.iml
 /app/app.iml
+/keystore.properties
+*.jks
+*.keystore
+/dist

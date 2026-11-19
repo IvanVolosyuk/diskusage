@@ -1,0 +1,25 @@
+DiskUsage zeigt, welche Dateien und Verzeichnisse den Speicher deines Geräts
+belegen.
+
+Statt einer einfachen Dateiliste zeichnet die App eine Karte des Speichers:
+Jedes Verzeichnis ist ein Rechteck, dessen Fläche proportional zum belegten
+Platz ist. Einige Ebenen von Unterverzeichnissen werden gleichzeitig
+dargestellt. Zoome in einen Bereich, um hineinzuschauen, und entferne die
+großen Blöcke, um Platz zu schaffen.
+
+Funktionen
+* Übersichtskarte für internen Speicher, SD-Karten und USB-Geräte
+* Aufschlüsselung je App in Code-, Daten- und Cache-Größe
+* Belegter und freier Speicher inklusive Prozentangabe
+* Suche über den gesamten gescannten Baum
+* Verzeichnisse mit Bestätigungsdialog löschen
+* Optionaler Root-Zugriff für beliebige eingebundene Dateisysteme
+* Keine Werbung, kein Tracking, kein Netzzugriff
+
+Ab Android 11 benötigt die App die Berechtigung "Alle Dateien verwalten",
+weil zum Analysieren jeder Ordner gelesen werden muss. Ohne sie sind nur die
+eigenen Dateien sichtbar. Der Zugriff auf Nutzungsdaten ist optional und wird
+nur für exakte App-Datengrößen verwendet.
+
+DiskUsage ist freie Software unter der GNU General Public License, Version 2
+oder später.

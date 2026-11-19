@@ -19,70 +19,96 @@
 
 package com.google.android.diskusage.ui;
 
-import android.Manifest;
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.AppOpsManager;
-import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.Settings;
-import android.util.Log;
-import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.ActivityCommonBinding;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
+import com.google.android.diskusage.ui.common.EdgeToEdge;
+import com.google.android.diskusage.ui.common.Permissions;
 import splitties.toast.ToastKt;
-import com.google.android.diskusage.utils.Logger;
 
-public class PermissionRequestActivity extends Activity {
-    private final static int DISKUSAGE_REQUEST_CODE = 10;
-    private final static int PERMISSION_REQUEST_USAGE_ACCESS_CODE = 11;
-    private final static int PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE = 12;
+/**
+ * Makes sure the app can read the storage before {@link DiskUsage} starts.
+ *
+ * Only "All files access" (Android 11+) is mandatory — without it the scanner
+ * sees nothing but the app's own directory. Usage access is optional (exact app
+ * sizes) and is therefore not requested here any more: blocking on it confused
+ * users on ROMs like HyperOS, where the toggle does not always map to the app
+ * op. It can be granted later from within the graph (menu → Permissions).
+ */
+public class PermissionRequestActivity extends AppCompatActivity {
+    private static final int DISKUSAGE_REQUEST_CODE = 10;
+
+    private boolean forwarded = false;
+
+    private final ActivityResultLauncher<String[]> legacyStoragePermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
+                    result -> forwardToDiskUsage());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         ActivityCommonBinding binding = ActivityCommonBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        Intent i = getIntent();
+        EdgeToEdge.applyInsets(binding.getRoot());
 
+        Intent i = getIntent();
         final String key = i.getStringExtra(DiskUsage.KEY_KEY);
         if (key == null) {
-            // Just close instead of crashing later
             finish();
             return;
         }
-
         MountPoint mountPoint = MountPoint.getForKey(this, key);
         if (mountPoint == null) {
             finish();
             return;
         }
-        if ((!mountPoint.hasApps()) || isAccessGranted()) {
+
+        if (Permissions.hasAllFilesAccess()) {
             forwardToDiskUsage();
-            return;
+        } else {
+            showAllFilesAccessDialog();
         }
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Re-check instead of relying on the result callback: several ROMs do not
+        // deliver it, or return the user to a different task.
+        if (!forwarded && Permissions.hasAllFilesAccess()) {
+            forwardToDiskUsage();
+        }
+    }
+
+    private void showAllFilesAccessDialog() {
         new AlertDialog.Builder(this)
-                .setTitle(R.string.dialog_usage_access_title)
-                .setMessage(R.string.dialog_usage_access_desc)
-                .setPositiveButton(android.R.string.ok, (dialogInterface, i1) -> {
-                    Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
-                    startActivityForResult(intent, PERMISSION_REQUEST_USAGE_ACCESS_CODE);
+                .setTitle(R.string.dialog_all_files_access_title)
+                .setMessage(R.string.dialog_all_files_access_desc)
+                .setPositiveButton(R.string.button_open_settings, (dialog, which) -> {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                        Permissions.openAllFilesAccessSettings(this);
+                    } else {
+                        legacyStoragePermissionLauncher.launch(new String[] {
+                                android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        });
+                    }
                 })
-                .setNegativeButton(android.R.string.cancel, (dialogInterface, i12) ->
-                        forwardToDiskUsage()).create().show();
-
-        requestExternalStoragePermission();
+                .setNegativeButton(android.R.string.cancel, (dialog, which) -> finish())
+                .setOnCancelListener(dialog -> finish())
+                .show();
     }
 
     public void forwardToDiskUsage() {
+        if (forwarded) return;
+        forwarded = true;
         Intent input = getIntent();
         Intent diskusage = new Intent(this, DiskUsage.class);
         diskusage.putExtra(DiskUsage.KEY_KEY, input.getStringExtra(DiskUsage.KEY_KEY));
@@ -96,66 +122,6 @@ public class PermissionRequestActivity extends Activity {
         if (requestCode == DISKUSAGE_REQUEST_CODE) {
             setResult(0, data);
             finish();
-        } else if (requestCode == PERMISSION_REQUEST_USAGE_ACCESS_CODE) {
-            forwardToDiskUsage();
-        } else if (requestCode == PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                if (Environment.isExternalStorageManager()) {
-                    forwardToDiskUsage();
-                } else {
-                    ToastKt.toast(R.string.dialog_external_storage_access_error);
-                }
-            }
         }
     }
-
-    private void requestExternalStoragePermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (Environment.isExternalStorageManager()) {
-                forwardToDiskUsage();
-                return;
-            } else {
-                try {
-                    final Intent i = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                    i.setData(Uri.parse("package:" + getPackageName()));
-                    startActivityForResult(i, PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE);
-                    return;
-                } catch (Exception e) {
-                    Log.d("diskusage", "failed to obtain all files access", e);
-                }
-            }
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_GRANTED &&
-                checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_GRANTED) {
-                forwardToDiskUsage();
-            } else {
-                requestPermissions(
-                        new String[] {
-                                Manifest.permission.READ_EXTERNAL_STORAGE,
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE
-                        },
-                        PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE
-                );
-            }
-        }
-    }
-
-    private boolean isAccessGranted() {
-        try {
-            PackageManager packageManager = getPackageManager();
-            ApplicationInfo applicationInfo = packageManager.getApplicationInfo(getPackageName(), 0);
-            AppOpsManager appOpsManager = (AppOpsManager) getSystemService(Context.APP_OPS_SERVICE);
-            int mode = 0;
-            mode = appOpsManager.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
-                    applicationInfo.uid, applicationInfo.packageName);
-            return (mode == AppOpsManager.MODE_ALLOWED);
-
-        } catch (PackageManager.NameNotFoundException e) {
-            return false;
-        }
-    }
-
 }

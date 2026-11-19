@@ -19,22 +19,25 @@
 
 package com.google.android.diskusage.ui;
 
-import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.ViewCompat;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.ActivityCommonBinding;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
 import com.google.android.diskusage.filesystem.mnt.MountPoint;
 import com.google.android.diskusage.filesystem.mnt.RootMountPoint;
+import com.google.android.diskusage.ui.common.EdgeToEdge;
 import com.google.android.diskusage.utils.DeviceHelper;
 import com.google.android.diskusage.utils.IOHelper;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.Map;
@@ -42,12 +45,20 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-public class SelectActivity extends Activity {
+/**
+ * Entry point: lets the user pick the volume (or, with root, any mount point)
+ * that should be analysed.
+ */
+public class SelectActivity extends AppCompatActivity {
   private static final String BUNDLE_KEYS = "keys";
   private AlertDialog dialog;
-  Map<String, Bundle> bundles = new TreeMap<>();
-  ArrayList<Runnable> actionList = new ArrayList<>();
+  final Map<String, Bundle> bundles = new TreeMap<>();
+  final ArrayList<Runnable> actionList = new ArrayList<>();
   private boolean expandRootMountPoints;
+  /** Guards against re-entering the graph in a loop when the user presses back. */
+  private boolean autoSelected;
+  /** True when the graph returned a state bundle (back on a multi-volume device). */
+  private boolean childReturnedState;
 
   private abstract class AbstractUsageAction implements Runnable {
     public void runAction(String key, Class<?> viewer) {
@@ -80,27 +91,26 @@ public class SelectActivity extends Activity {
     }
   }
 
-  public Handler handler = new Handler();
-  public Runnable checkForMountsUpdates = new Runnable() {
+  public final Handler handler = new Handler(Looper.getMainLooper());
+  private final Runnable checkForMountsUpdates = new Runnable() {
     @Override
     public void run() {
       boolean reload = false;
-      try {
-        BufferedReader reader = IOHelper.getProcMountsReader();
+      try (BufferedReader reader = IOHelper.getProcMountsReader()) {
         String line;
         int checksum = 0;
         while ((line = reader.readLine()) != null) {
           checksum += line.length();
         }
-        reader.close();
         if (checksum != RootMountPoint.checksum) {
-          Logger.getLOGGER().d("%s vs %s", checksum, RootMountPoint.checksum);
+          Timber.d("%s vs %s", checksum, RootMountPoint.checksum);
           reload = true;
         }
-      } catch (Throwable ignored) {}
+      } catch (Throwable ignored) {
+      }
 
       if (reload) {
-        dialog.hide();
+        dismissDialog();
         MountPoint.reset();
         makeDialog();
       }
@@ -108,19 +118,26 @@ public class SelectActivity extends Activity {
     }
   };
 
+  private void dismissDialog() {
+    if (dialog != null && dialog.isShowing()) {
+      dialog.dismiss();
+    }
+    dialog = null;
+  }
 
   public void makeDialog() {
+    dismissDialog();
+
     ArrayList<String> options = new ArrayList<>();
     actionList.clear();
 
-//    PortableFile[] fileDirs = DataSource.get().getExternalFilesDirs(this);
     for (MountPoint mountPoint : MountPoint.getMountPoints(this)) {
       options.add(mountPoint.getTitle());
       actionList.add(new DiskUsageAction(mountPoint));
     }
 
     if (DeviceHelper.isDeviceRooted()) {
-      SharedPreferences prefs =  getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
+      SharedPreferences prefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE);
       Map<String, ?> ignoreList = prefs.getAll();
       if (!ignoreList.keySet().isEmpty()) {
         Set<String> ignores = ignoreList.keySet();
@@ -129,74 +146,78 @@ public class SelectActivity extends Activity {
           options.add(mountPoint.getRoot());
           actionList.add(new DiskUsageAction(mountPoint));
         }
-        options.add("[Show/hide]");
+        options.add(getString(R.string.show_hide_mount_points));
         actionList.add(new ShowHideAction());
       } else if (expandRootMountPoints) {
         for (MountPoint mountPoint : RootMountPoint.getRootedMountPoints(this)) {
           options.add(mountPoint.getRoot());
           actionList.add(new DiskUsageAction(mountPoint));
         }
-        options.add("[Show/hide]");
+        options.add(getString(R.string.show_hide_mount_points));
         actionList.add(new ShowHideAction());
       } else {
-        options.add("[Root required]");
+        options.add(getString(R.string.root_required));
         actionList.add(() -> {
           expandRootMountPoints = true;
           makeDialog();
         });
-
       }
+    }
+
+    // Autoselect: on devices with a single storage volume the extra tap is
+    // pointless. The dialog is only skipped on the first visit; after returning
+    // from the graph the user explicitly gets the chooser.
+    if (options.size() == 1 && bundles.isEmpty() && !autoSelected && !actionList.isEmpty()) {
+      autoSelected = true;
+      actionList.get(0).run();
+      return;
     }
 
     final String[] optionsArray = options.toArray(new String[0]);
 
     dialog = new AlertDialog.Builder(this)
-    .setItems(optionsArray,
-            (dialog, which) -> actionList.get(which).run())
-    .setTitle(R.string.ask_view)
-    .setOnCancelListener(dialog -> finish()).create();
-    /*try {
-      if (debugDataSourceBridge != null) {
-        dialog.getListView().setOnItemLongClickListener(
-            new OnItemLongClickListener() {
-          @Override
-          public boolean onItemLongClick(
-              AdapterView<?> arg0, View arg1, int arg2, long arg3) {
-            debugUnhidden = true;
-            dialog.hide();
-            makeDialog();
-            return true;
+        .setItems(optionsArray, (d, which) -> {
+          if (which >= 0 && which < actionList.size()) {
+            actionList.get(which).run();
           }
-        });
-      }
-    } catch (Throwable t) {
-      // api 3
-    }*/
+        })
+        .setTitle(R.string.ask_view)
+        .setOnCancelListener(d -> finish())
+        .create();
     dialog.show();
   }
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    EdgeToEdge.enable(this);
     FileSystemEntry.setupStrings(this);
     ActivityCommonBinding binding = ActivityCommonBinding.inflate(getLayoutInflater());
     setContentView(binding.getRoot());
-//    ActionBar bar = getActionBar();
-//    bar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_USE_LOGO);
+    EdgeToEdge.applyInsets(binding.getRoot());
+    ViewCompat.setAccessibilityPaneTitle(binding.getRoot(), getString(R.string.app_name));
   }
 
   @Override
   protected void onResume() {
     super.onResume();
-//    ActionBar actionBar = getActionBar();
-//    actionBar.setDisplayHomeAsUpEnabled(true);
+    if (autoSelected && !childReturnedState) {
+      // We entered a child screen and it went away without handing back a
+      // state (scan cancelled, permission dialog dismissed, ...): back means
+      // "leave the app", not "show the volume chooser again".
+      finish();
+      return;
+    }
     makeDialog();
     handler.post(checkForMountsUpdates);
   }
 
   @Override
   protected void onPause() {
-    if (dialog.isShowing()) dialog.dismiss();
+    // Coming back from the graph (or from a permission screen) must not
+    // auto-open it again; show the chooser instead.
+    autoSelected = true;
+    dismissDialog();
     handler.removeCallbacks(checkForMountsUpdates);
     super.onPause();
   }
@@ -207,7 +228,10 @@ public class SelectActivity extends Activity {
     if (data == null) return;
     Bundle state = data.getBundleExtra(DiskUsage.STATE_KEY);
     String key = data.getStringExtra(DiskUsage.KEY_KEY);
-    bundles.put(key, state);
+    if (key != null && state != null) {
+      bundles.put(key, state);
+      childReturnedState = true;
+    }
   }
 
   @Override
@@ -221,10 +245,15 @@ public class SelectActivity extends Activity {
   }
 
   @Override
-  protected void onRestoreInstanceState(Bundle savedInstanceState) {
+  protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
     super.onRestoreInstanceState(savedInstanceState);
-    for (String key : savedInstanceState.getStringArray(BUNDLE_KEYS)) {
-      bundles.put(key, savedInstanceState.getBundle(key));
+    String[] keys = savedInstanceState.getStringArray(BUNDLE_KEYS);
+    if (keys == null) return;
+    for (String key : keys) {
+      Bundle bundle = savedInstanceState.getBundle(key);
+      if (bundle != null) {
+        bundles.put(key, bundle);
+      }
     }
   }
 }

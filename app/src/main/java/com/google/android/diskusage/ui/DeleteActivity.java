@@ -19,56 +19,89 @@
 
 package com.google.android.diskusage.ui;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.view.Menu;
 import android.view.MenuItem;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import com.google.android.diskusage.R;
 import com.google.android.diskusage.databinding.DeleteViewBinding;
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry;
+import com.google.android.diskusage.ui.common.EdgeToEdge;
+import com.google.android.diskusage.ui.common.FileInfo;
 import com.google.android.diskusage.ui.common.FileInfoAdapter;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public class DeleteActivity extends Activity {
+/**
+ * Confirmation screen that lists the content which is about to be removed.
+ * The listing runs off the UI thread so that huge directories don't cause an
+ * ANR (issue: "can not delete & scan is slow").
+ */
+public class DeleteActivity extends AppCompatActivity {
   public static final String NUM_FILES_KEY = "numFiles";
   public static final String SIZE_KEY = "size";
-  
+
+  private static final ExecutorService LISTING_EXECUTOR = Executors.newSingleThreadExecutor();
+
   Intent responseIntent;
+  private DeleteViewBinding binding;
 
   @Override
   protected void onResume() {
     super.onResume();
-//    Debug.startMethodTracing("diskusage");
+    EdgeToEdge.enable(this);
     FileSystemEntry.setupStrings(this);
-    final String path = getIntent().getStringExtra(
-        DiskUsage.DELETE_PATH_KEY);
-    final String absolutePath = getIntent().getStringExtra(
-            DiskUsage.DELETE_ABSOLUTE_PATH_KEY);
-    Logger.getLOGGER().d("DeleteActivity.onResume(): %s -> %s", path, absolutePath);
+    final String path = getIntent().getStringExtra(DiskUsage.DELETE_PATH_KEY);
+    final String absolutePath = getIntent().getStringExtra(DiskUsage.DELETE_ABSOLUTE_PATH_KEY);
+    Timber.d("onResume: %s -> %s", path, absolutePath);
 
-    DeleteViewBinding binding = DeleteViewBinding.inflate(getLayoutInflater());
+    binding = DeleteViewBinding.inflate(getLayoutInflater());
     setContentView(binding.getRoot());
+    EdgeToEdge.applyInsets(binding.getRoot());
+    setSupportActionBar(binding.toolbar);
+    setTitle(R.string.button_delete);
+
     String sizeString = getIntent().getStringExtra(SIZE_KEY);
     int count = getIntent().getIntExtra(NUM_FILES_KEY, 0);
-    FileInfoAdapter.setMessage(
-        this, binding.summary, count, sizeString);
+    binding.summary.setText(getString(R.string.delete_summary, count, sizeString));
+
+    final File file = new File(absolutePath);
+    binding.list.setLayoutManager(new LinearLayoutManager(this));
+
+    LISTING_EXECUTOR.execute(() -> {
+      final ArrayList<FileInfo> infos = new ArrayList<>();
+      if (file.exists()) {
+        collect(file, infos, 0);
+      }
+      runOnUiThread(() -> {
+        if (isFinishing() || isDestroyed()) return;
+        binding.list.setAdapter(new FileInfoAdapter(infos));
+      });
+    });
 
     responseIntent = new Intent();
     responseIntent.putExtra(DiskUsage.DELETE_PATH_KEY, path);
-    binding.list.setAdapter(new FileInfoAdapter(
-        this,
-        absolutePath,
-        count,
-        binding.summary));
-    /* binding.okButton.setOnClickListener(view -> {
-      setResult(DiskUsage.RESULT_DELETE_CONFIRMED, responseIntent);
-      finish();
-    });
-    binding.cancelButton.setOnClickListener(view -> {
-      setResult(DiskUsage.RESULT_DELETE_CANCELED);
-      finish();
-    }); **/
+  }
+
+  /** Depth-limited listing: enough to recognise the content, bounded memory. */
+  private static void collect(File file, ArrayList<FileInfo> infos, int depth) {
+    File[] children = file.listFiles();
+    if (children == null) return;
+    for (File sub : children) {
+      if (sub.isDirectory()) {
+        infos.add(new FileInfo("", sub.getName()));
+        if (depth < 3) {
+          collect(sub, infos, depth + 1);
+        }
+      } else if (sub.isFile()) {
+        infos.add(new FileInfo(FileSystemEntry.calcSizeString(sub.length()), sub.getName()));
+      }
+    }
   }
 
   @Override
@@ -91,11 +124,4 @@ public class DeleteActivity extends Activity {
     }
     return super.onOptionsItemSelected(item);
   }
-
-  /*
-  @Override
-  protected void onPause() {
-    super.onPause();
-    // Debug.stopMethodTracing();
-  } **/
 }

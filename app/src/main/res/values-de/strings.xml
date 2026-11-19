@@ -54,7 +54,7 @@
 <string name="dir_empty">%s (leer)</string>
 <string name="dir_name_size">%1$s (%2$s)</string>
   <string name="app_storage">App Speicher</string>
-<string name="storage_card">SD-Karte</string>
+<string name="storage_card">Interner Speicher</string>
 <string name="delete_summary">%1$d Dateien, Gesamtgröße: %2$s</string>
 <string name="change_filter">Filter...</string>
   <string name="internal_only">Nur interner Speicher</string>
@@ -85,4 +85,22 @@
   <string name="graph_free_space">Frei</string>
   <string name="graph_system_data">Systemdaten</string>
     <string name="ask_view">Auswahl</string>
+    <string name="permission_granted">erteilt</string>
+    <string name="permission_denied">nicht erteilt</string>
+    <string name="permissions_dialog_message">Zugriff auf alle Dateien: %1$s\nNutzungsdaten-Zugriff: %2$s\n\nDer Zugriff auf alle Dateien ist nötig, damit DiskUsage jeden Ordner lesen kann. Ohne ihn sind nur die eigenen Dateien der App sichtbar.\n\nDer Zugriff auf Nutzungsdaten ist optional und verbessert nur die Genauigkeit der App-Größen.\n\nBeides sind besondere App-Berechtigungen, deshalb bleibt die normale Berechtigungsliste in den Android-Einstellungen leer.</string>
+    <string name="button_all_files_access">Alle Dateien</string>
+    <string name="button_usage_access">Nutzungsdaten</string>
+    <string name="button_open_settings">Einstellungen öffnen</string>
+    <string name="dialog_all_files_access_title">Zugriff auf alle Dateien nötig</string>
+    <string name="dialog_all_files_access_desc">Um den gesamten Speicher zu analysieren, braucht DiskUsage den Zugriff auf alle Dateien.\n\nÖffne die Einstellungen und erlaube DiskUsage den Zugriff, dann kehre zu diesem Bildschirm zurück.</string>
+    <string name="show_hide_mount_points">Einhängepunkte ein-/ausblenden</string>
+    <string name="root_required">Root erforderlich</string>
+    <string name="usage_info">Belegt: %1$s von %2$s (%3$d%%)</string>
+    <string name="usage_info_unknown">Belegt: &lt;keine Angabe&gt;</string>
+    <string name="scan_interrupted">Scan abgebrochen</string>
+    <string name="action_permissions">Berechtigungen</string>
+    <string name="warn_on_file_select">Doppeltippen zum Öffnen - Menü für weitere Optionen</string>
+    <string name="no_file_manager_found_desc">Keine App kann diesen Ordner direkt öffnen.\n\nPfad:\n%1$s</string>
+    <string name="button_copy_path">Pfad kopieren</string>
+    <string name="path_copied">Pfad kopiert</string>
 </resources>

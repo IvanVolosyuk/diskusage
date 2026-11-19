@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: '17'
+  GRADLE_OPTS: >-
+    -Dorg.gradle.jvmargs=-Xmx4g
+    -Dorg.gradle.daemon=false
+    -Dkotlin.incremental=false
+
+jobs:
+  build:
+    name: Build, test and lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Install Android SDK components
+        uses: android-actions/setup-android@v4
+        with:
+          packages: >-
+            platforms;android-37.0
+            build-tools;36.0.0
+            ndk;28.2.13676358
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Assemble debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Lint
+        run: ./gradlew lintDebug --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: diskusage-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports-${{ github.sha }}
+          path: |
+            app/build/reports/tests/**
+            app/build/reports/lint-results-*.html
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Verify 16 KB page size support of native libraries
+        run: |
+          set -euo pipefail
+          apk=$(ls app/build/outputs/apk/debug/*.apk | head -n1)
+          mkdir -p /tmp/apk-libs
+          unzip -q -o "$apk" 'lib/*' -d /tmp/apk-libs
+          readelf="$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          for so in /tmp/apk-libs/lib/arm64-v8a/*.so /tmp/apk-libs/lib/x86_64/*.so; do
+            [ -e "$so" ] || continue
+            align=$("$readelf" -l "$so" | awk '/LOAD/ {print $NF}' | sort -u | tr '\n' ' ')
+            echo "$(basename "$so"): $align"
+            case "$align" in
+              *0x4000*) ;;
+              *) echo "::error::$so is not 16 KB aligned"; exit 1 ;;
+            esac
+          done
