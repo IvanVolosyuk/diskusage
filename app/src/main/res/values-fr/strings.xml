@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 
  * DiskUsage - displays sdcard usage on android.
- * Copyright (C) 2008-2010 Ivan Volosyuk, Alexis Vuillemin
+ * Copyright (C) 2008 Ivan Volosyuk
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,58 +17,77 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  -->
- <!-- Translated by Ivan Volosyuk using translate.google.com with zero knowledge of french,
-      Corrected and updated by Alexis Vuillemin -->
+<!--
+ * Translated by Ivan Volosyuk using translate.google.com with zero knowledge of french
+ * Corrected and updated by Alexis Vuillemin, Grena
+ -->
 <resources>
- <string name="app_name">DiskUsage</string>
- <string name="app_description">Utilitaire pour examiner le contenu de la carte SD et, optionnellement, y libérer de l\'espace.</string>
- <string name="scaning_directories">Examen des répertoires ...</string>
- <string name="button_show">Afficher</string>
- <string name="button_delete">Supprimer</string>
- <string name="button_rescan">Rafraîchir</string>
- <string name="button_cancel">Annuler</string>
- <string name="button_background">En tâche de fond</string>
- <string name="install_oi_file_manager">Installez «Solid Explorer» pour afficher le contenu des répertoires</string>
- <string name="title_for_path">%s - DiskUsage</string>
- <string name="title_in_oi_file_manager">Solid Explorer</string>
- <string name="button_text_in_oi_file_manager">Retourner à DiskUsage</string>
- <string name="no_viewer_found">Aucun lecteur pour ce type de document</string>
- <string name="ask_to_delete_directory">Supprimer le répertoire \'%s\'?</string>
- <string name="ask_to_delete_file">Supprimer le fichier \'%s\'?</string>
- <string name="out_of_memory">Pas assez de mémoire!</string>
- <string name="empty_or_missing_sdcard">Carte SD vide ou manquante</string>
- <string name="path_doesnt_exist">%s n\'existe pas</string>
- <string name="file_deleted">Fichier supprimé</string>
- <string name="error_file_wasnt_deleted">Erreur: le fichier n\'a pas été supprimé</string>
- <string name="deleting_path">Suppression  de \'%s\' en cours</string>
- <string name="deleted_n_directories_and_n_files">Ont été supprimé(s): %1$d répertoires et %2$d fichiers</string>
- <string name="deleted_n_directories_and_files_and_canceled">Suppressions annulées: %1$d répertoires et %2$d fichiers jusque là</string>
- <string name="deleted_n_directories_and_n_files_and_failed">Échec de la suppression! : %1$d répertoires et %2$d fichiers ont été supprimés</string>
- <string name="n_bytes">%d octets</string>
- <string name="n_kilobytes">%d Ko</string>
- <string name="n_megabytes">%5.2f Mo</string>
- <string name="n_megabytes10">%5.1f Mo</string>
- <string name="n_megabytes100">%d Mo</string>
- <string name="n_gigabytes">%5.2f Go</string>
- <string name="n_gigabytes10">%5.1f Go</string>
- <string name="n_gigabytes100">%d Go</string>
- <string name="dir_name_size_num_dirs">%1$s (%2$s, %3$d rép)</string>
- <string name="dir_empty">%s (vide)</string>
- <string name="dir_name_size">%1$s (%2$s)</string>
- <string name="apps_bulk_uninstall_not_supported">La désinstallation de multiples applications n\'est pas encore possible</string>
-<string name="app_storage">Stockage des applications</string>
-<string name="storage_card">Stockage sur la carte</string>
-<string name="delete_summary">%1$d fichiers, taille totale: %2$s</string>
-<string name="change_filter">Filtres...</string>
-<string name="apps_filter">Filtre application</string>
-<string name="internal_only">Seulement interne</string>
-<string name="internal_only_desc">Exclut données stockées sur la  carte SD</string>
-<string name="show_apk">Afficher Apk</string>
-<string name="show_apk_desc">Affiche les fichiers d\'application.</string>
-<string name="show_data">Afficher les données</string>
-<string name="show_data_desc">Affiche le stockage alloué pour les données des applications.</string>
-<string name="show_dalvikcache">Afficher le Dalvik Cache</string>
-<string name="show_dalvikcache_desc">Affiche le dalvik Cache alloué pour vos applications sur votre partition.</string>
-<string name="show_cache">Afficher le Cache</string>
-<string name="show_cache_desc">Le cache des applications utilise une autre partition, qui ne peut être utilisée par votre apk ni pour le stockage de ses données.</string>
+	<string name='app_name'>DiskUsage</string>
+	<string name='app_description'>Utilitaire permettant d\'examiner le contenu de la carte SD et de libérer de l\'espace.</string>
+	<string name='scaning_directories'>Analyse des répertoires…</string>
+	<string name='button_show'>Afficher</string>
+	<string name='button_delete'>Supprimer</string>
+	<string name='button_rescan'>Réanalyser</string>
+	<string name='button_cancel'>Annuler</string>
+	<string name='button_background'>En arrière-plan</string>
+	<string name='install_oi_file_manager'>Installez « Solid Explorer » pour afficher les répertoires</string>
+	<string name='title_for_path'>%s</string>
+	<string name='title_in_oi_file_manager'>Solid Explorer</string>
+	<string name='button_text_in_oi_file_manager'>Retour à DiskUsage</string>
+	<string name='no_viewer_found'>Aucun spectateur trouvé</string>
+	<string name='ask_to_delete_directory'>Supprimer le répertoire %s ?</string>
+	<string name='ask_to_delete_file'>Supprimer le fichier %s ?</string>
+	<string name='out_of_memory'>Pas assez de mémoire !</string>
+	<string name='empty_or_missing_sdcard'>Carte SD vide ou manquante</string>
+	<string name='path_doesnt_exist'>%s\n\n\'existe pas</string>
+	<string name='file_deleted'>Fichier supprimé</string>
+	<string name='error_file_wasnt_deleted'>Erreur : le fichier n\'a pas été supprimé</string>
+	<string name='deleting_path'>Suppression de %s</string>
+	<string name='deleted_n_directories_and_n_files'>%1$d répertoires et %2$d fichiers supprimés</string>
+	<string name='deleted_n_directories_and_files_and_canceled'>Suppression annulée : %1$d répertoires et %2$d fichiers jusqu\'à présent</string>
+	<string name='deleted_n_directories_and_n_files_and_failed'>Échec de la suppression ! : %1$d répertoires et %2$d fichiers ont été supprimés</string>
+	<string name='n_bytes'>%d octets</string>
+	<string name='n_kilobytes'>%d Ko</string>
+	<string name='n_megabytes'>%5,2f Mo</string>
+	<string name='n_megabytes10'>%5,1f Mo</string>
+	<string name='n_megabytes100'>%d Mo</string>
+	<string name='n_gigabytes'>%5,2f Go</string>
+	<string name='n_gigabytes10'>%5,1f Go</string>
+	<string name='n_gigabytes100'>%d Go</string>
+	<string name='dir_name_size_num_dirs'>%1$s (%2$s, %3$d répertoires)</string>
+	<string name='dir_empty'>%s (vide)</string>
+	<string name='dir_name_size'>%1$s (%2$s)</string>
+	<string name='apps_bulk_uninstall_not_supported'>La désinstallation de plusieurs applications n\'est pas prise en charge</string>
+	<string name='app_storage'>Stockage des applications</string>
+	<string name='storage_card'>Carte de stockage</string>
+	<string name='delete_summary'>%1$d fichiers, taille totale : %2$s</string>
+	<string name='change_filter'>Filtre…</string>
+	<string name='apps_filter'>Filtre des applications</string>
+	<string name='internal_only'>Interne uniquement</string>
+	<string name='internal_only_desc'>Exclure les données stockées sur la carte SD</string>
+	<string name='show_apk'>Afficher l\'APK</string>
+	<string name='show_apk_desc'>Afficher les fichiers d\'application.</string>
+	<string name='show_data'>Afficher les données</string>
+	<string name='show_data_desc'>Afficher le stockage alloué aux données des applications.</string>
+	<string name='show_dalvikcache'>Afficher le DalvikCache</string>
+	<string name='show_dalvikcache_desc'>Affichez le DalvikCache alloué à vos applications sur votre partition de données.</string>
+	<string name='show_cache'>Afficher le cache</string>
+	<string name='show_cache_desc'>Le cache d\'application utilise une partition différente et ne peut pas être utilisé par l\'APK et les données.</string>
+	<string name='select_apps'>Sélectionner des applications</string>
+	<string name='select_storage'>Sélectionner le stockage</string>
+	<string name='button_search'>Recherche</string>
+	<string name='graph_free_space'>Espace libre</string>
+	<string name='graph_system_data'>Données système</string>
+	<string name='ask_view'>Voir</string>
+	<string name='dialog_usage_access_title'>Autorisation d\'accès à l\'utilisation requise</string>
+	<string name='dialog_usage_access_desc'>Autoriser DiskUsage à obtenir la liste des applications installées ?</string>
+	<string name='dialog_external_storage_access_error'>L\'accès au stockage externe a été refusé.</string>
+	<string name='dialog_ask_filemanager_title'>Gestionnaire de fichiers compatible manquant</string>
+	<string name='dialog_ask_filemanager_desc'>Aucun gestionnaire de fichiers compatible n\'a été trouvé.\n\nDemandez à votre développeur de gestionnaire de fichiers préféré l\'intégration avec DiskUsage ou installez :\n * Solid Explorer\n * OI File Manager</string>
+	<string name='button_install_filemanager'>Installer Solid Explorer</string>
+	<string name='graph_media'>Médias</string>
+	<string name='graph_apps'>Applications</string>
+	<string name='warn_on_file_select'>Appuyez sur le menu pour prévisualiser ou supprimer</string>
+	<string name='about_view_source_code'>Afficher le code source sur %s</string>
+	<string name='action_about'>À propos</string>
 </resources>
