@@ -20,21 +20,24 @@
 package com.google.android.diskusage.ui;
 
 import android.app.ActivityManager;
-import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.content.pm.ResolveInfo;
+import android.content.ClipData;
 import android.net.Uri;
+import android.os.Environment;
+import android.provider.DocumentsContract;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.FileUriExposedException;
 import android.os.Handler;
 import android.provider.Settings;
 import androidx.annotation.NonNull;
+import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.util.Log;
 import android.view.Menu;
@@ -60,8 +63,9 @@ import com.google.android.diskusage.filesystem.entity.FileSystemPackage;
 import com.google.android.diskusage.filesystem.entity.FileSystemRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot;
 import com.google.android.diskusage.filesystem.entity.FileSystemSystemSpace;
+import com.google.android.diskusage.ui.common.EdgeToEdge;
 import com.google.android.diskusage.ui.common.ScanProgressDialog;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 
 import org.jetbrains.annotations.Contract;
 import java.io.File;
@@ -69,7 +73,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
+import java.util.Locale;
+
 import splitties.toast.ToastKt;
 
 public class DiskUsage extends LoadableActivity {
@@ -88,16 +93,32 @@ public class DiskUsage extends LoadableActivity {
 
   private String pathToDelete;
 
-  public DiskUsageMenu menu = DiskUsageMenu.getInstance(this);
+  public DiskUsageMenu menu = new DiskUsageMenu(this);
   RendererManager rendererManager = new RendererManager(this);
 
   @Override
   protected void onCreate(Bundle icicle) {
     super.onCreate(icicle);
-    Logger.getLOGGER().d("DiskUsage.onCreate()");
+    final DiskUsageViewModel viewModel = new ViewModelProvider(this).get(DiskUsageViewModel.class);
+    Timber.d("DiskUsage.onCreate()");
+    EdgeToEdge.enable(this);
     ActivityCommonBinding binding = ActivityCommonBinding.inflate(getLayoutInflater());
     setContentView(binding.getRoot());
-    menu.onCreate();
+    EdgeToEdge.applyInsets(binding.getRoot());
+    binding.toolbar.setVisibility(android.view.View.VISIBLE);
+    setSupportActionBar(binding.toolbar);
+    menu.onCreate(viewModel);
+
+    // Handle back ourselves: with Android 13+ predictive back the framework no
+    // longer delivers KEYCODE_BACK to the view, so the old handler in
+    // FileSystemState never ran and the app fell back to "finish DiskUsage",
+    // which surfaced the volume chooser again.
+    getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+      @Override
+      public void handleOnBackPressed() {
+        finishOnBack();
+      }
+    });
     Intent i = getIntent();
 
 
@@ -114,8 +135,9 @@ public class DiskUsage extends LoadableActivity {
       finish();
       return;
     }
-    Logger.getLOGGER().d("DiskUsage.onCreate(), rootPath = %s, receivedState = %s",
+    Timber.d("DiskUsage.onCreate(), rootPath = %s, receivedState = %s",
             mountPoint.getRoot(), receivedState);
+    setTitle(mountPoint.getTitle());
     if (receivedState != null) onRestoreInstanceState(receivedState);
   }
 
@@ -179,7 +201,8 @@ public class DiskUsage extends LoadableActivity {
 
   @Override
   public boolean onCreateOptionsMenu(Menu menu) {
-    return super.onCreateOptionsMenu(menu);
+    this.menu.setupToolbarMenu(menu);
+    return true;
   }
 
   private static abstract class VersionedPackageViewer {
@@ -194,7 +217,7 @@ public class DiskUsage extends LoadableActivity {
   private final class GingerbreadPackageViewer extends VersionedPackageViewer {
     @Override
     void viewPackage(String pkg) {
-      Logger.getLOGGER().d("Show package = %s", pkg);
+      Timber.d("Show package = %s", pkg);
       Intent viewIntent = new Intent(
           Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
           Uri.parse("package:" + pkg));
@@ -223,7 +246,7 @@ public class DiskUsage extends LoadableActivity {
   public void askForDeletion(@NonNull final FileSystemEntry entry) {
     final String path = entry.path2();
     final String fullPath = entry.absolutePath();
-    Logger.getLOGGER().d("Deletion requested for %s", path);
+    Timber.d("Deletion requested for %s", path);
 
     if (entry instanceof FileSystemEntrySmall) {
       ToastKt.toast("Delete directory instead");
@@ -256,17 +279,16 @@ public class DiskUsage extends LoadableActivity {
     }
   }
 
-  public boolean isIntentAvailable(Intent intent) {
-    final PackageManager packageManager = getPackageManager();
-    List<ResolveInfo> res = packageManager.queryIntentActivities(
-        intent, PackageManager.MATCH_DEFAULT_ONLY);
-    return res.size() > 0;
-  }
-
+  /**
+   * Opens the selected entry in an external application.
+   *
+   * Android 11+ requires a content URI plus an explicit read grant; the old
+   * code used a file:// URI, a bogus "binary/octet-stream" fallback and a
+   * provider whose paths didn't cover removable volumes. That combination is
+   * the root cause of the "no viewer found" and "video opens in a strange
+   * mode" reports.
+   */
   public void view(FileSystemEntry entry) {
-    Intent intent = new Intent(Intent.ACTION_VIEW);
-    intent.addCategory(Intent.CATEGORY_DEFAULT);
-
     if (entry instanceof FileSystemEntrySmall) {
       entry = entry.parent;
     }
@@ -279,93 +301,160 @@ public class DiskUsage extends LoadableActivity {
       return;
     }
 
-    String path = entry.absolutePath();
-    File file = new File(path);
-    Uri uri = Uri.fromFile(file);
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-      uri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", file);
+    final String path = entry.absolutePath();
+    final File file = new File(path);
+    if (!file.exists()) {
+      ToastKt.toast(getString(R.string.path_doesnt_exist, path));
+      return;
     }
 
-    if (file.isDirectory()) {
-      // Go on with default file manager
-      // Shoud this be optional?
-      intent = new Intent(Intent.ACTION_VIEW);
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setDataAndType(uri, "inode/directory");
-
-      try {
-        startActivity(intent);
-        return;
-      } catch (ActivityNotFoundException ignored) {
-      }
-
-      intent = new Intent("org.openintents.action.VIEW_DIRECTORY");
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setData(uri);
-
-      try {
-        startActivity(intent);
-        return;
-      } catch (ActivityNotFoundException|FileUriExposedException ignored) {
-      }
-
-      intent = new Intent("org.openintents.action.PICK_DIRECTORY");
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setData(uri);
-      intent.putExtra("org.openintents.extra.TITLE",
-          getString(R.string.title_in_oi_file_manager));
-      intent.putExtra("org.openintents.extra.BUTTON_TEXT",
-          getString(R.string.button_text_in_oi_file_manager));
-
-      try {
-        startActivity(intent);
-        return;
-      } catch (ActivityNotFoundException|FileUriExposedException ignored) {
-      }
-
-      // old Astro
-      intent = new Intent(Intent.ACTION_VIEW);
-      intent.addCategory(Intent.CATEGORY_DEFAULT);
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      intent.setDataAndType(uri, "vnd.android.cursor.item/com.metago.filemanager.dir");
-
-      try {
-        startActivity(intent);
-        return;
-      } catch (ActivityNotFoundException|FileUriExposedException ignored) {
-      }
-
+    final Uri uri;
+    try {
+      uri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", file);
+    } catch (IllegalArgumentException e) {
+      Timber.w(e, "No provider path configured for %s", path);
       ToastKt.toast(R.string.no_viewer_found);
       return;
     }
 
-    String fileName = entry.name;
-    int dot = fileName.lastIndexOf(".");
-    Log.d("diskusage", "name: " + fileName + " path: " + path + " dot: " + dot);
-    if (dot != -1) {
-      String extension = fileName.substring(dot + 1).toLowerCase();
+    if (file.isDirectory()) {
+      viewDirectory(uri, file);
+      return;
+    }
 
-      MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
-      String mime = mimeTypeMap.getMimeTypeFromExtension(extension);
-      Log.d("diskusage", "extension: " + extension + " mime: " + mime);
+    if (startViewIntent(uri, file.getName(), guessMimeType(file.getName()))) return;
+    // Unknown extension or no handler for the specific type: let the user pick.
+    if (startViewIntent(uri, file.getName(), "*/*")) return;
+    ToastKt.toast(R.string.no_viewer_found);
+  }
 
-      try {
-        intent = new Intent(Intent.ACTION_VIEW);
-        intent.addCategory(Intent.CATEGORY_DEFAULT);
-        if (mime != null) {
-          intent.setDataAndType(uri, mime);
-        } else {
-          intent.setDataAndType(uri, "binary/octet-stream");
-        }
-        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivity(intent);
-        return;
-      } catch (ActivityNotFoundException|FileUriExposedException ignored) {
-        Log.e("diskusage", "Can't open viewer and crash", ignored);
+  private static String guessMimeType(String fileName) {
+    int dot = fileName.lastIndexOf('.');
+    if (dot < 0 || dot == fileName.length() - 1) return null;
+    String extension = fileName.substring(dot + 1).toLowerCase(Locale.ROOT);
+    return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+  }
+
+  private boolean startViewIntent(Uri uri, String name, String mime) {
+    Intent intent = new Intent(Intent.ACTION_VIEW);
+    intent.addCategory(Intent.CATEGORY_DEFAULT);
+    intent.setDataAndType(uri, mime == null ? "*/*" : mime);
+    intent.setClipData(ClipData.newRawUri(name, uri));
+    // Our own FileProvider URI: the viewer needs an explicit read grant.
+    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    return startViewIntent(intent);
+  }
+
+  private boolean startViewIntent(@NonNull Intent intent) {
+    // No FLAG_GRANT_READ_URI_PERMISSION here: the caller decides. Granting read
+    // access for a URI we do not own (e.g. the system documents provider) makes
+    // UriGrantsManagerService throw a SecurityException, which used to silently
+    // fall back to a useless chooser.
+    try {
+      startActivity(intent);
+      return true;
+    } catch (ActivityNotFoundException | SecurityException e) {
+      Timber.d(e, "No activity for %s", intent);
+      return false;
+    }
+  }
+
+  /**
+   * Opens a directory in a file manager.
+   *
+   * Android has no standard "show this folder" intent, and most file managers
+   * do not register for a {@code content://} URI of a foreign provider. The
+   * reliable route is the system documents provider: a document URI of the
+   * "externalstorage" provider plus {@code vnd.android.document/directory} opens
+   * the preinstalled Files app directly at that folder. The generic intents are
+   * still tried first-but-one so third-party managers keep working, and a
+   * copy-path dialog is offered when nothing can handle the folder.
+   */
+  private void viewDirectory(Uri uri, @NonNull File folder) {
+    Intent documents = documentsIntent(folder);
+    Timber.d("viewDirectory: folder=%s documentsIntent=%s", folder, documents);
+    if (documents != null) {
+      boolean started = startViewIntent(documents);
+      Timber.d("viewDirectory: documents intent started=%s", started);
+      if (started) return;
+    }
+
+    // Third-party file managers that accept any provider (Material Files & co).
+    for (String mime : new String[] {"resource/folder", "inode/directory"}) {
+      if (startViewIntent(uri, folder.getName(), mime)) return;
+    }
+
+    // Legacy integrations (OI File Manager, Astro, ...).
+    Intent intent = new Intent("org.openintents.action.VIEW_DIRECTORY");
+    intent.setData(uri);
+    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    intent.setClipData(ClipData.newRawUri("folder", uri));
+    try {
+      startActivity(intent);
+      return;
+    } catch (ActivityNotFoundException | SecurityException ignored) {
+    }
+
+    showNoFileManagerDialog(folder.getAbsolutePath());
+  }
+
+  /**
+   * Builds a {@code content://com.android.externalstorage.documents/...} URI for
+   * [folder], which the system Files app (DocumentsUI) understands.
+   * Returns null for paths outside the shared storage volumes.
+   */
+  private Intent documentsIntent(@NonNull File folder) {
+    final String path = folder.getAbsolutePath();
+    String docId = null;
+
+    File primary = Environment.getExternalStorageDirectory();
+    if (primary != null) {
+      String primaryPath = primary.getAbsolutePath();
+      if (path.equals(primaryPath)) {
+        docId = "primary:";
+      } else if (path.startsWith(primaryPath + "/")) {
+        docId = "primary:" + path.substring(primaryPath.length() + 1);
       }
     }
-    ToastKt.toast(R.string.no_viewer_found);
+    if (docId == null && path.startsWith("/storage/")) {
+      // Removable / USB volume: /storage/<UUID>/<relative path>
+      String[] parts = path.split("/", 4);
+      if (parts.length >= 3 && parts[2].length() > 0 && !parts[2].equals("emulated")
+          && !parts[2].equals("self")) {
+        docId = parts[2] + ":" + (parts.length > 3 ? parts[3] : "");
+      }
+    }
+    if (docId == null) return null;
+
+    try {
+      Uri documentUri =
+          DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", docId);
+      Intent intent = new Intent(Intent.ACTION_VIEW);
+      // The provider manages its own permissions; adding a read grant for a
+      // foreign URI would throw a SecurityException in UriGrantsManagerService.
+      intent.setDataAndType(documentUri, DocumentsContract.Document.MIME_TYPE_DIR);
+      return intent;
+    } catch (Throwable t) {
+      Timber.w(t, "Cannot build documents URI for %s", path);
+      return null;
+    }
+  }
+
+  /** Nothing could open the folder: at least let the user copy the path. */
+  private void showNoFileManagerDialog(final String path) {
+    new AlertDialog.Builder(this)
+        .setTitle(R.string.no_viewer_found)
+        .setMessage(getString(R.string.no_file_manager_found_desc, path))
+        .setPositiveButton(R.string.button_copy_path, (dialog, which) -> {
+          android.content.ClipboardManager clipboard =
+              (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+          if (clipboard != null) {
+            clipboard.setPrimaryClip(ClipData.newPlainText("path", path));
+            ToastKt.toast(R.string.path_copied);
+          }
+        })
+        .setNegativeButton(android.R.string.cancel, null)
+        .show();
   }
 
   public void rescan() {
@@ -382,7 +471,15 @@ public class DiskUsage extends LoadableActivity {
     result.putExtra(DiskUsage.STATE_KEY, outState);
     result.putExtra(DiskUsage.KEY_KEY, key);
     setResult(0, result);
-    finish();
+
+    if (MountPoint.getMountPoints(this).size() > 1) {
+      // More than one volume: go back to the chooser so the user can switch.
+      finish();
+    } else {
+      // Single volume: back means "leave the app". The task (and with it the
+      // scan result) is kept, so reopening is instant.
+      moveTaskToBack(true);
+    }
   }
 
   public void setSelectedEntity(FileSystemEntry position) {
@@ -410,7 +507,7 @@ public class DiskUsage extends LoadableActivity {
 
   @Override
   protected void onRestoreInstanceState(@NonNull final Bundle inState) {
-    Logger.getLOGGER().d("DiskUsage.onRestoreInstanceState(), rootPath = %s", inState.getString(KEY_KEY));
+    Timber.d("DiskUsage.onRestoreInstanceState(), rootPath = %s", inState.getString(KEY_KEY));
 
     if (fileSystemState != null)
       fileSystemState.restoreStateInRenderThread(inState);
@@ -441,7 +538,7 @@ public class DiskUsage extends LoadableActivity {
     @Override
     int maxHeap() {
       ActivityManager manager = (ActivityManager) DiskUsage.this.getSystemService(Context.ACTIVITY_SERVICE);
-      return manager.getMemoryClass() * 1024 * 1024;
+      return manager.getLargeMemoryClass() * 1024 * 1024;
     }
   }
   MemoryClass memoryClass = MemoryClass.getInstance(this);
@@ -463,7 +560,7 @@ public class DiskUsage extends LoadableActivity {
       try {
         stats = new StatFsSourceImpl(mountPoint.getRoot());
       } catch (IllegalArgumentException e) {
-        Logger.getLOGGER().e(e, "Failed to get filesystem stats for " + mountPoint.getRoot());
+        Timber.e(e, "Failed to get filesystem stats for " + mountPoint.getRoot());
       }
       if (stats != null) {
         blockSize = stats.getBlockSizeLong();
@@ -475,11 +572,15 @@ public class DiskUsage extends LoadableActivity {
         blockSize = 512;
       }
     }
-    public String formatUsageInfo() {
-      if (totalBlocks == 0) return "Used <no information>";
-      return String.format("Used %s of %s",
-          FileSystemEntry.calcSizeString(busyBlocks * blockSize),
-          FileSystemEntry.calcSizeString(totalBlocks * blockSize));
+    public String formatUsageInfo(Context context) {
+      if (totalBlocks == 0) return context.getString(R.string.usage_info_unknown);
+      long usedBytes = busyBlocks * blockSize;
+      long totalBytes = totalBlocks * blockSize;
+      int percent = totalBytes > 0 ? (int) (usedBytes * 100 / totalBytes) : 0;
+      return context.getString(R.string.usage_info,
+          FileSystemEntry.calcSizeString(usedBytes),
+          FileSystemEntry.calcSizeString(totalBytes),
+          percent);
     }
   }
 
@@ -523,7 +624,11 @@ public class DiskUsage extends LoadableActivity {
       handler.post(progressUpdater);
       rootElement = scanner.scan(mountPoint);
       handler.removeCallbacks(progressUpdater);
-    } catch (RuntimeException e) {
+      if (rootElement == null || rootElement.children == null) {
+        throw new IOException("Native scanner returned no data");
+      }
+    } catch (IOException | RuntimeException e) {
+      Timber.w(e, "Native scan failed, falling back to the Java scanner");
       final Scanner scanner = new Scanner(20, stats.blockSize, stats.busyBlocks, heap);
       progressUpdater = makeProgressUpdater(scanner, stats);
       handler.post(progressUpdater);
@@ -580,7 +685,7 @@ public class DiskUsage extends LoadableActivity {
     try {
       return (new Apps2SDLoader(this).load(blockSize));
     } catch (Throwable t) {
-      Logger.getLOGGER().e("DiskUsage.loadApps2SD(): Problem loading apps2sd info", t);
+      Timber.e(t, "loadApps2SD: Problem loading apps2sd info");
       return null;
     }
   }
@@ -599,90 +704,77 @@ public class DiskUsage extends LoadableActivity {
     }
   }
 
-  void moveAppData(@NonNull FileSystemEntry[] apps, FileSystemRoot media, long blockSize) {
-    String diskusage = "com.google.android.diskusage";
-    for (FileSystemEntry a : apps) {
-      FileSystemPackage app = (FileSystemPackage)  a;
-      try {
-        String cacheDir = getCacheDir().getCanonicalPath().replaceAll(diskusage, app.pkg);
-        moveIntoPackage(app, media, cacheDir, "Cache", FileSystemPackage.ChildType.CACHE, blockSize);
-      } catch (IOException ignored) {
-      }
+  /**
+   * Canonical path of a possibly absent directory, or null.
+   *
+   * `Context.getExternalCacheDir()`, `getObbDirs()` and friends return null when
+   * the volume is not ready (storage full, external storage just reset, MIUI
+   * blocking the app dir). The previous code called `getCanonicalPath()` on the
+   * result and crashed with a NullPointerException, which aborted the whole
+   * application list.
+   */
+  private static String canonicalPath(File file) {
+    if (file == null) return null;
+    try {
+      return file.getCanonicalPath();
+    } catch (IOException e) {
+      return null;
     }
-    for (FileSystemEntry a : apps) {
-      FileSystemPackage app = (FileSystemPackage)  a;
-      try {
-        String dir = getCodeCacheDir().getCanonicalPath().replaceAll(diskusage, app.pkg);
-        moveIntoPackage(app, media, dir, "CodeCache", FileSystemPackage.ChildType.CACHE, blockSize);
-      } catch (IOException ignored) {
-      }
-    }
-    for (FileSystemEntry a : apps) {
-      FileSystemPackage app = (FileSystemPackage)  a;
-      try {
-        String dir = getExternalCacheDir().getCanonicalPath().replaceAll(diskusage, app.pkg);
-        moveIntoPackage(app, media, dir, "ExternalCache", FileSystemPackage.ChildType.CACHE, blockSize);
-      } catch (IOException ignored) {
-      }
-    }
-    for (FileSystemEntry a : apps) {
-      FileSystemPackage app = (FileSystemPackage)  a;
-      try {
-        String dir = getDataDir().getCanonicalPath().replaceAll(diskusage, app.pkg);
-        moveIntoPackage(app, media, dir, "Data", FileSystemPackage.ChildType.DATA, blockSize);
-      } catch (IOException ignored) {
-      }
-    }
-    for (FileSystemEntry a : apps) {
-      FileSystemPackage app = (FileSystemPackage)  a;
-      try {
-        String dir = getFilesDir().getCanonicalPath().replaceAll(diskusage, app.pkg);
-        moveIntoPackage(app, media, dir, "InternalFiles", FileSystemPackage.ChildType.DATA, blockSize);
-      } catch (IOException ignored) {
-      }
-    }
-
-    for (FileSystemEntry a : apps) {
-      FileSystemPackage app = (FileSystemPackage)  a;
-      try {
-        String dir = getExternalFilesDir(null).getCanonicalPath().replaceAll(diskusage, app.pkg);
-        moveIntoPackage(app, media, dir, "Files", FileSystemPackage.ChildType.DATA, blockSize);
-      } catch (IOException ignored) {
-      }
-    }
-    for (FileSystemEntry a : apps) {
-      FileSystemPackage app = (FileSystemPackage)  a;
-      try {
-        for (File mediaDir : getExternalMediaDirs()) {
-          String dir = mediaDir.getCanonicalPath().replaceAll(diskusage, app.pkg);
-          moveIntoPackage(app, media, dir, "MediaFiles", FileSystemPackage.ChildType.DATA, blockSize);
-        }
-      } catch (IOException ignored) {
-      }
-    }
-    for (FileSystemEntry a : apps) {
-      FileSystemPackage app = (FileSystemPackage)  a;
-      try {
-        for (File mediaDir : getObbDirs()) {
-          String dir = mediaDir.getCanonicalPath().replaceAll(diskusage, app.pkg);
-          moveIntoPackage(app, media, dir, "Obb", FileSystemPackage.ChildType.CODE, blockSize);
-        }
-      } catch (IOException ignored) {
-      }
-    }
-
-    for (FileSystemEntry a : apps) {
-      FileSystemPackage app = (FileSystemPackage)  a;
-      app.applyFilter(blockSize);
-    }
-    Arrays.sort(apps, FileSystemEntry.COMPARE);
   }
 
-  @Override
-  public boolean onPrepareOptionsMenu(Menu menu) {
-    super.onPrepareOptionsMenu(menu);
-    this.menu.onPrepareOptionsMenu(menu);
-    return true;
+  private void moveAppDirectory(FileSystemEntry[] apps, FileSystemRoot media,
+                                String sourcePath, String newName,
+                                FileSystemPackage.ChildType type, long blockSize) {
+    if (sourcePath == null) return;
+    try {
+      for (FileSystemEntry a : apps) {
+        if (!(a instanceof FileSystemPackage)) continue;
+        FileSystemPackage app = (FileSystemPackage) a;
+        String dir = sourcePath.replace(diskUsagePackage, app.pkg);
+        moveIntoPackage(app, media, dir, newName, type, blockSize);
+      }
+    } catch (Throwable t) {
+      Timber.w(t, "Cannot map %s for the app list", newName);
+    }
+  }
+
+  private static final String diskUsagePackage = "com.google.android.diskusage";
+
+  void moveAppData(@NonNull FileSystemEntry[] apps, FileSystemRoot media, long blockSize) {
+    moveAppDirectory(apps, media, canonicalPath(getCacheDir()),
+        "Cache", FileSystemPackage.ChildType.CACHE, blockSize);
+    moveAppDirectory(apps, media, canonicalPath(getCodeCacheDir()),
+        "CodeCache", FileSystemPackage.ChildType.CACHE, blockSize);
+    moveAppDirectory(apps, media, canonicalPath(getExternalCacheDir()),
+        "ExternalCache", FileSystemPackage.ChildType.CACHE, blockSize);
+    moveAppDirectory(apps, media, canonicalPath(getDataDir()),
+        "Data", FileSystemPackage.ChildType.DATA, blockSize);
+    moveAppDirectory(apps, media, canonicalPath(getFilesDir()),
+        "InternalFiles", FileSystemPackage.ChildType.DATA, blockSize);
+    moveAppDirectory(apps, media, canonicalPath(getExternalFilesDir(null)),
+        "Files", FileSystemPackage.ChildType.DATA, blockSize);
+
+    for (File mediaDir : getExternalMediaDirs()) {
+      if (mediaDir == null) continue;
+      moveAppDirectory(apps, media, canonicalPath(mediaDir),
+          "MediaFiles", FileSystemPackage.ChildType.DATA, blockSize);
+    }
+    for (File obbDir : getObbDirs()) {
+      if (obbDir == null) continue;
+      moveAppDirectory(apps, media, canonicalPath(obbDir),
+          "Obb", FileSystemPackage.ChildType.CODE, blockSize);
+    }
+
+    for (FileSystemEntry a : apps) {
+      if (!(a instanceof FileSystemPackage)) continue;
+      FileSystemPackage app = (FileSystemPackage) a;
+      try {
+        app.applyFilter(blockSize);
+      } catch (Throwable t) {
+        Timber.w(t, "Cannot finalise app entry %s", app.pkg);
+      }
+    }
+    Arrays.sort(apps, FileSystemEntry.COMPARE);
   }
 
   @Override

@@ -1,63 +1,155 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
+import java.util.Properties
+
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+// Single source of truth for the app version. CI overrides these values with
+// -PversionName=... / -PversionCode=... when building a tagged release.
+def versionPropsFile = rootProject.file("version.properties")
+def versionProps = new Properties()
+if (versionPropsFile.exists()) {
+    versionPropsFile.withInputStream { versionProps.load(it) }
+}
+def resolvedVersionName = (project.findProperty("versionName")
+        ?: versionProps.getProperty("versionName")
+        ?: "0.0.0").toString()
+def resolvedVersionCode = (project.findProperty("versionCode")
+        ?: versionProps.getProperty("versionCode")
+        ?: "1").toString().toInteger()
+
 android {
-    namespace 'com.google.android.diskusage'
-    compileSdk 34
-    buildToolsVersion "34.0.0"
-    ndkVersion "25.2.9519653"
+    namespace = "com.google.android.diskusage"
+    compileSdk = 37
+    ndkVersion = "28.2.13676358"
 
     defaultConfig {
-        applicationId "com.google.android.diskusage"
-        targetSdk 33
-        minSdk 21
+        applicationId = "com.google.android.diskusage"
+        minSdk = 24
+        targetSdk = 37
+        versionCode = resolvedVersionCode
+        versionName = resolvedVersionName
     }
+
     buildFeatures {
-        viewBinding true
-        buildConfig true
+        buildConfig = true
+        viewBinding = true
+        // AGP 9 disables resValues by default; the debug build overrides app_name.
+        resValues = true
     }
+
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-    jvmTarget = "1.8"
-    }
-    sourceSets {
-        main {
-            java {
-                srcDir 'src/main/java'
-            }
-        }
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            // Distinct label so both builds can be told apart in the launcher.
+            resValue "string", "app_name", "DiskUsage Debug"
+        }
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
+
+    packaging {
+        jniLibs {
+            // Libraries are loaded via System.loadLibrary(); keeping them
+            // uncompressed and page aligned is what 16 KB devices expect.
+            useLegacyPackaging = false
+        }
+        resources {
+            excludes += ["META-INF/*.kotlin_module", "META-INF/LICENSE*", "META-INF/NOTICE*"]
+        }
+    }
+
+    androidResources {
+        generateLocaleConfig = false
+    }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
+
     externalNativeBuild {
         ndkBuild {
-            path file('src/main/jni/Android.mk')
+            path = file("src/main/jni/Android.mk")
         }
     }
 }
 
-android.applicationVariants.all { variant ->
-    variant.outputs.all {
-        outputFileName = "diskusage-v${variant.versionName}-${variant.name}.apk"
+// Optional release signing, driven either by keystore.properties (local) or by
+// environment variables (CI secrets).
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def envKeystoreFile = System.getenv("RELEASE_KEYSTORE_FILE")
+def hasEnvKeystore = envKeystoreFile != null && !envKeystoreFile.trim().isEmpty()
+if (keystorePropertiesFile.exists() || hasEnvKeystore) {
+    def props = new Properties()
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.withInputStream { props.load(it) }
+    }
+    android {
+        signingConfigs {
+            release {
+                storeFile = file(hasEnvKeystore ? envKeystoreFile : props.getProperty("storeFile"))
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                        ?: props.getProperty("storePassword")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                        ?: props.getProperty("keyAlias")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+                        ?: props.getProperty("keyPassword")
+            }
+        }
+        buildTypes {
+            release {
+                signingConfig = signingConfigs.release
+            }
+        }
+    }
+}
+
+// Without a release keystore the APK stays unsigned (required for F-Droid and
+// reproducible builds). CI sets ALLOW_DEBUG_SIGNING=true so that automatic
+// releases in forks without secrets are still installable.
+if (!keystorePropertiesFile.exists() && !hasEnvKeystore
+        && System.getenv("ALLOW_DEBUG_SIGNING") == "true") {
+    android {
+        buildTypes {
+            release {
+                signingConfig = signingConfigs.debug
+            }
+        }
     }
 }
 
 dependencies {
-    // implementation files('src/main/extra/system.jar')
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    implementation 'androidx.core:core-ktx:1.12.0'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
-    implementation 'me.zhanghai.android.appiconloader:appiconloader:1.5.0'
-    implementation "com.louiscad.splitties:splitties-toast:$splitties_version"
-    implementation "com.louiscad.splitties:splitties-resources:$splitties_version"
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.activity.ktx)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.preference)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.timber)
+    implementation(libs.appiconloader)
+    implementation(libs.splitties.toast)
+    implementation(libs.splitties.resources)
 
-    testImplementation 'junit:junit:4.13.2'
+    testImplementation(libs.junit)
+}
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.outputs.each { output ->
+            // Public variant API, no AGP internals.
+            output.outputFileName.set("diskusage-${variant.name}-${resolvedVersionName}.apk")
+        }
+    }
 }

@@ -22,7 +22,7 @@ package com.google.android.diskusage.ui.common;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import android.app.AlertDialog;
+import androidx.appcompat.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Paint;
 import android.os.Bundle;

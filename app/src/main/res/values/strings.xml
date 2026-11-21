@@ -19,7 +19,7 @@
  -->
 <resources>
     <string name="app_name">DiskUsage</string>
-<string name="app_description">Utility to examine SD card content and cleanup some space there.</string>
+<string name="app_description">Find the files and directories that use the most space and free up storage again.</string>
 <string name="scaning_directories">Scanning directories...</string>
 <string name="button_show">Show</string>
 <string name="button_delete">Delete</string>
@@ -55,7 +55,7 @@
 <string name="dir_name_size">%1$s (%2$s)</string>
 <string name="apps_bulk_uninstall_not_supported">Uninstall multiple apps not supported</string>
 <string name="app_storage">App Storage</string>
-<string name="storage_card">Storage card</string>
+<string name="storage_card">Internal storage</string>
 <string name="delete_summary">%1$d files, total size: %2$s</string>
 <string name="change_filter">Filter...</string>
 <string name="apps_filter">Apps Filter</string>
@@ -83,7 +83,7 @@
     <string name="button_install_filemanager">Install Solid Explorer</string>
     <string name="graph_media">Media</string>
     <string name="graph_apps">Apps</string>
-    <string name="warn_on_file_select">Press menu to preview or delete</string>
+    <string name="warn_on_file_select">Double tap to open - menu for more options</string>
     <string-array name="select_apps">
   <item>On device.</item>
   <item>On SD card.</item>
@@ -96,4 +96,24 @@
 </string-array>
     <string name="about_view_source_code"><![CDATA[View source code at %s]]></string>
     <string name="action_about">About</string>
+    <string name="rederer">Renderer</string>
+    <string name="software_renderer">Software Renderer</string>
+    <string name="hardware_renderer">Hardware Renderer</string>
+    <string name="dialog_all_files_access_title">All files access needed</string>
+    <string name="dialog_all_files_access_desc">To analyse the whole storage DiskUsage needs the "All files access" permission.\n\nOpen Settings and allow access for DiskUsage, then return to this screen.</string>
+    <string name="show_hide_mount_points">Show/hide mount points</string>
+    <string name="root_required">Root required</string>
+    <string name="usage_info">Used %1$s of %2$s (%3$d%%)</string>
+    <string name="usage_info_unknown">Used &lt;no information&gt;</string>
+    <string name="scan_interrupted">Scan interrupted</string>
+    <string name="action_permissions">Permissions</string>
+    <string name="permission_granted">granted</string>
+    <string name="permission_denied">not granted</string>
+    <string name="permissions_dialog_message">All files access: %1$s\nUsage access: %2$s\n\nAll files access is required so that DiskUsage can read every folder. Without it only the app\'s own files are visible.\n\nUsage access is optional and only improves how precise the per-app sizes are.\n\nBoth are special app permissions, so the normal permission list in Android\'s app settings stays empty.</string>
+    <string name="button_all_files_access">All files access</string>
+    <string name="button_usage_access">Usage access</string>
+    <string name="button_open_settings">Open settings</string>
+    <string name="no_file_manager_found_desc">No app can open this folder directly.\n\nPath:\n%1$s</string>
+    <string name="button_copy_path">Copy path</string>
+    <string name="path_copied">Path copied</string>
 </resources>

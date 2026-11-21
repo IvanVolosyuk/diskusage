@@ -1,0 +1,77 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please check first whether the issue already exists.
+  - type: input
+    id: version
+    attributes:
+      label: DiskUsage version
+      description: Shown in the About dialog (`⋮ → About`) or in the release file name.
+      placeholder: "5.0.0"
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android version
+      description: Android version and, if relevant, the ROM (One UI, LineageOS, …).
+      placeholder: "Android 16 (API 36), LineageOS 23"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      placeholder: "Pixel 8"
+    validations:
+      required: true
+  - type: dropdown
+    id: permissions
+    attributes:
+      label: Which permissions are granted?
+      multiple: true
+      options:
+        - All files access
+        - Usage access
+        - Root
+        - None
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open DiskUsage
+        2. Select "Storage card"
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        `adb logcat -d | grep -i diskusage` (or a crash report) helps a lot.
+      render: shell
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Screenshots, whether the storage is a removable SD card or USB drive, …

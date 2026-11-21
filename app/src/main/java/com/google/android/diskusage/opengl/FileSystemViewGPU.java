@@ -12,7 +12,7 @@ import androidx.annotation.NonNull;
 import com.google.android.diskusage.ui.FileSystemState;
 import com.google.android.diskusage.ui.FileSystemState.FileSystemView;
 import com.google.android.diskusage.ui.FileSystemState.MyMotionEvent;
-import com.google.android.diskusage.utils.Logger;
+import timber.log.Timber;
 
 public final class FileSystemViewGPU extends SurfaceView
                                      implements FileSystemView, SurfaceHolder.Callback {
@@ -25,7 +25,7 @@ public final class FileSystemViewGPU extends SurfaceView
     this.eventHandler = eventHandler;
     setFocusable(true);
     setFocusableInTouchMode(true);
-    Logger.getLOGGER().d("new FileSystemViewGPU");
+    Timber.d("new FileSystemViewGPU");
 
 //    setBackgroundColor(Color.GRAY);
     SurfaceHolder holder = getHolder();
@@ -87,7 +87,7 @@ public final class FileSystemViewGPU extends SurfaceView
   @Override
   public void surfaceChanged(SurfaceHolder holder, int format, int width,
       int height) {
-    Logger.getLOGGER().d("Surface changed to: %s x %s", width, height);
+    Timber.d("Surface changed to: %s x %s", width, height);
     thread.addEvent(thread.new SurfaceChangedEvent(holder, width, height));
     requestRepaintGPU();
   }
@@ -105,7 +105,7 @@ public final class FileSystemViewGPU extends SurfaceView
   
   @Override
   protected void onDetachedFromWindow() {
-    Logger.getLOGGER().d("FileSystemViewGPU.onDetachedFromWindow");
+    Timber.d("FileSystemViewGPU.onDetachedFromWindow");
       super.onDetachedFromWindow();
       thread.addEvent(thread.new ExitEvent());
   }

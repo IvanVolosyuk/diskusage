@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Simple two-chevron mark used for themed (monochrome) launcher icons on
+     Android 13+. The system tints the alpha channel, so only the shape matters. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M30,32 L62,54 L30,76 L30,64 L44,54 L30,44 Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M52,32 L84,54 L52,76 L52,64 L66,54 L52,44 Z" />
+</vector>

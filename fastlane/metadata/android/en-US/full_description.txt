@@ -1,0 +1,23 @@
+DiskUsage shows which files and directories occupy the space on your device.
+
+Instead of a plain file list it draws a map of your storage: every directory is
+a rectangle whose area is proportional to the space it consumes, and a few
+levels of subdirectories are shown at the same time. Zoom into a region to see
+what is inside, and remove the big blocks to free up space.
+
+Features
+* Visual map of internal storage, SD cards and USB drives
+* Per-application breakdown of code, data and cache sizes
+* Shows used and free space including the percentage that is occupied
+* Search across the scanned tree
+* Delete whole directories with a confirmation screen
+* Optional root support to analyse any mounted file system
+* No ads, no tracking, no network access
+
+The app needs the "All files access" permission on Android 11 and newer, because
+analysing the storage requires reading every directory. Without it only the
+app's own files are visible. Usage access is optional and only used to show
+exact per-app data sizes.
+
+DiskUsage is free software, licensed under the GNU General Public License
+version 2 or later.
